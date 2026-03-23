@@ -49,12 +49,7 @@ __version__ = f"{__base_version__}{_git_suffix()}"
 
 
 import os
-# import shutil
-# import sys
 
-# #
-# # System-wide environment settings.
-# #
 PACKAGE_NAME = 'easely'
 PISAMEET_ROOT = os.path.abspath(os.path.dirname(__file__))
 PISAMEET_BASE = os.path.abspath(os.path.join(PISAMEET_ROOT, os.pardir, os.pardir))
@@ -65,17 +60,3 @@ MISSING_PICTURE_PATH = os.path.join(PISAMEET_GRAPHICS, 'unknown_female.png')
 MISSING_POSTER_PATH = os.path.join(PISAMEET_GRAPHICS, 'pisameet2024.png')
 MISSING_QRCODE_PATH = os.path.join(PISAMEET_GRAPHICS, 'unknown_qrcode.png')
 
-# Magic file to induce a reload in the apps that support it.
-MAGIC_FILE_PATH = os.path.join(PISAMEET_BASE, '.reload')
-
-
-
-def read_magic_file():
-    """
-    """
-    if os.path.exists(MAGIC_FILE_PATH):
-        logger.info('Magic file found!')
-        os.remove(MAGIC_FILE_PATH)
-        logger.info('Magic file removed.')
-        return 1
-    return 0
