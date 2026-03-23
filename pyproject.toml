@@ -31,7 +31,13 @@ authors = [
   { name = "Luca Baldini", email = "luca.baldini@unipi.it" }
   ]
 dependencies = [
+  "cv2",
   "numpy",
+  "pandas",
+  "PIL",
+  "pdfrw",
+  "PyQt5",
+  "qrcode",
   ]
 
 # Optional dependencies are listed here, grouped into logical sections.
