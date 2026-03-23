@@ -18,8 +18,8 @@
 """
 
 import os
+import pathlib
 import subprocess
-import sys
 
 import cv2
 from loguru import logger
@@ -28,18 +28,12 @@ import pdfrw
 import PIL
 import PIL.Image
 
-from easely import PISAMEET_DATA
-
-
-# Move upstream
-DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=">>> <level>{message}</level>")
-logger.remove()
-logger.add(**DEFAULT_LOGURU_HANDLER)
+_OPENCV_DATA_FOLDER_PATH = pathlib.Path(__file__).parent.parent.parent / "data"
 
 REFERENCE_DENSITY = 72.
 EXIF_ORIENTATION_TAG = 274
 EXIF_ROTATION_DICT = {3: 180, 6: 270, 8: 90}
-HAARCASCADE_FILE_PATH = os.path.join(PISAMEET_DATA, 'haarcascade_frontalface_default.xml')
+HAARCASCADE_FILE_PATH = _OPENCV_DATA_FOLDER_PATH / 'haarcascade_frontalface_default.xml'
 
 
 def pdf_page_size(file_path: str, page_number: int=0) -> tuple[int, int]:
