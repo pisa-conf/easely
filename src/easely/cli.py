@@ -28,8 +28,7 @@ from loguru import logger
 from PyQt5.QtWidgets import QApplication
 
 from easely import __name__ as __package_name__
-from easely import __version__
-from easely import logging_
+from easely import __version__, logging_
 from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
 
 
@@ -136,8 +135,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(report)
         report.set_defaults(runner=self.dump_report)
 
-    def add_config_file(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option for the input file.
+    @staticmethod
+    def add_config_file(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the input configuration file.
         """
         parser.add_argument("cfgfile", type=str,
             help="path to the input excel configuration file")
@@ -146,20 +146,24 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add the default arguments to the given parser.
         """
         self.add_config_file(parser)
-        parser.add_argument("--conference-name", type=str, default="16th Pisa Meeting on Advanced Detectors",
+        parser.add_argument("--conference-name", type=str,
+            default="16th Pisa Meeting on Advanced Detectors",
             help="the conference name")
-        parser.add_argument("--conference-dates", type=str, default="La Biodola, Isola d'Elba",
+        parser.add_argument("--conference-dates", type=str,
+            default="La Biodola, Isola d'Elba",
             help="the conference dates")
-        parser.add_argument("--conference-location", type=str, default="May 26-June 1, 2024",
+        parser.add_argument("--conference-location", type=str,
+            default="May 26-June 1, 2024",
             help="the conference location")
 
-    def add_geometry(self, parser: argparse.ArgumentParser, default_header_height: int=310):
+    @staticmethod
+    def add_geometry(parser: argparse.ArgumentParser, default_header_height: int=310):
         """Add all the geometry options.
         """
         parser.add_argument("--mode", type=str, default="fullscreen", choices=VALID_DISPLAY_MODES,
             help="display geometry")
         parser.add_argument("--poster-width", type=int, default=None,
-            help="width of the poster display (taken from the screen size by default)")
+            help="width of the poster display (from the screen size by default)")
         parser.add_argument("--header-height", type=int, default=default_header_height,
             help="height of the poster header")
         parser.add_argument("--portrait-height", type=int, default=132,
@@ -216,7 +220,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             poster_width = app.screens()[0].size().width() - 20
             logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
             kwargs["poster_width"] = poster_width
-        window = SlideShow(**kwargs)
+        _ = SlideShow(**kwargs)
         sys.exit(app.exec_())
 
     def start_browser(self, **kwargs) -> None:
@@ -229,7 +233,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             poster_width = app.screens()[0].size().width() - 20
             logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
             kwargs["poster_width"] = poster_width
-        window = ProgramBrowser(**kwargs)
+        _ = ProgramBrowser(**kwargs)
         sys.exit(app.exec_())
 
     def start_directory(self, **kwargs) -> None:
@@ -242,7 +246,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             poster_width = app.screens()[0].size().width() - 20
             logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
             kwargs["poster_width"] = poster_width
-        window = SessionDirectory(**kwargs)
+        _ = SessionDirectory(**kwargs)
         sys.exit(app.exec_())
 
     def dump_report(self, **kwargs) -> None:
