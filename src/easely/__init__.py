@@ -69,36 +69,6 @@ MISSING_QRCODE_PATH = os.path.join(PISAMEET_GRAPHICS, 'unknown_qrcode.png')
 MAGIC_FILE_PATH = os.path.join(PISAMEET_BASE, '.reload')
 
 
-# Relevant files for setting up the screen ID.
-_SCREEN_ID_FILE_PATH = os.path.join(PISAMEET_ROOT, 'screen.cfg')
-_SAMPLE_SCREEN_ID_FILE_PATH = os.path.join(PISAMEET_ROOT, 'screen.cfg.sample')
-
-
-def copy_screen_id_sample_file():
-    """Copy the sample configuration file with the screen identifier to the
-    proper location, for it to be manually edited.
-    """
-    src = _SAMPLE_SCREEN_ID_FILE_PATH
-    dest = _SCREEN_ID_FILE_PATH
-    logger.info('Copying %s to %s...', src, dest)
-    shutil.copyfile(src, dest)
-
-
-def read_screen_id():
-    """Read the screen identifier from the local configuration file.
-
-    Note that if the proper text files does not exists, a copy from a sample
-    file will be created, for the user to edit it by hand.
-    (The configuration file is included in the .gitignore file.)
-    """
-    if not os.path.exists(_SCREEN_ID_FILE_PATH):
-        copy_screen_id_sample_file()
-    logger.info('Reading tyeh screen identifier from %s...', _SCREEN_ID_FILE_PATH)
-    with open(_SCREEN_ID_FILE_PATH) as input_file:
-        screen_id = int(input_file.read())
-    logger.info('Local screen identifier: %d', screen_id)
-    return screen_id
-
 
 def read_magic_file():
     """

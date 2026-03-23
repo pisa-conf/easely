@@ -32,7 +32,8 @@ from PyQt5.QtGui import QKeyEvent, QColor, QFont
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 
 from .logging_ import logger
-from easely import read_screen_id, read_magic_file
+from .screen import read_screen_id
+from easely import read_magic_file
 from easely.profile import psstatus
 from easely.program import Poster, PosterRoster, PosterProgram, DATE_FORMAT,\
     DATE_PRETTY_FORMAT, DATETIME_FORMAT
