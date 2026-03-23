@@ -33,6 +33,7 @@ authors = [
 dependencies = [
   "numpy",
   "opencv-python",
+  "openpyxl",
   "pandas",
   "pillow",
   "pdfrw",
