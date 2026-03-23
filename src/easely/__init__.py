@@ -69,36 +69,6 @@ MISSING_QRCODE_PATH = os.path.join(PISAMEET_GRAPHICS, 'unknown_qrcode.png')
 MAGIC_FILE_PATH = os.path.join(PISAMEET_BASE, '.reload')
 
 
-
-
-
-# class TerminalFormatter(logging.Formatter):
-
-#     """Logging terminal formatter class.
-#     """
-
-#     def format(self, record):
-#         """Overloaded format method.
-#         """
-#         text = ('>>> %s' % record.msg)
-#         if len(record.args) > 0:
-#             text = text % record.args
-#         if record.levelno >= logging.ERROR:
-#             text = TerminalColors.red(text)
-#         elif record.levelno == logging.WARNING:
-#             text = TerminalColors.yellow(text)
-#         return text
-
-
-# #Configure the main terminal logger.
-# logger = logging.getLogger('easely')
-# logger.setLevel(logging.DEBUG)
-# console_handler = logging.StreamHandler()
-# console_handler.setLevel(logging.DEBUG)
-# console_handler.setFormatter(TerminalFormatter())
-# logger.addHandler(console_handler)
-
-
 # Relevant files for setting up the screen ID.
 _SCREEN_ID_FILE_PATH = os.path.join(PISAMEET_ROOT, 'screen.cfg')
 _SAMPLE_SCREEN_ID_FILE_PATH = os.path.join(PISAMEET_ROOT, 'screen.cfg.sample')
