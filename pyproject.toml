@@ -31,10 +31,10 @@ authors = [
   { name = "Luca Baldini", email = "luca.baldini@unipi.it" }
   ]
 dependencies = [
-  "cv2",
   "numpy",
+  "opencv-python",
   "pandas",
-  "PIL",
+  "pillow",
   "pdfrw",
   "PyQt5",
   "qrcode",
