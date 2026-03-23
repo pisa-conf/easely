@@ -50,13 +50,8 @@ __version__ = f"{__base_version__}{_git_suffix()}"
 
 import os
 
-PACKAGE_NAME = 'easely'
 PISAMEET_ROOT = os.path.abspath(os.path.dirname(__file__))
 PISAMEET_BASE = os.path.abspath(os.path.join(PISAMEET_ROOT, os.pardir, os.pardir))
-PISAMEET_DATA = os.path.join(PISAMEET_BASE, 'data')
-PISAMEET_GRAPHICS = os.path.join(PISAMEET_BASE, 'graphics')
+PISAMEET_DATA = os.path.join(PISAMEET_BASE, "data")
 
-MISSING_PICTURE_PATH = os.path.join(PISAMEET_GRAPHICS, 'unknown_female.png')
-MISSING_POSTER_PATH = os.path.join(PISAMEET_GRAPHICS, 'pisameet2024.png')
-MISSING_QRCODE_PATH = os.path.join(PISAMEET_GRAPHICS, 'unknown_qrcode.png')
 
