@@ -30,7 +30,7 @@ from PyQt5.QtWidgets import QApplication
 from easely import __name__ as __package_name__
 from easely import __version__
 from easely import logging_
-from easely.gui import ProgramBrowser
+from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
 
 
 def start_message() -> None:
@@ -93,22 +93,59 @@ class CliArgumentParser(argparse.ArgumentParser):
         # See https://stackoverflow.com/questions/8757338/
         subparsers._parser_class = argparse.ArgumentParser
 
+        # Poster slideshow.
+        slideshow = subparsers.add_parser("slideshow",
+            help="run the poster slideshow",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_default_arguments(slideshow)
+        self.add_geometry(slideshow)
+        self.add_pause(slideshow)
+        self.add_advance(slideshow)
+        self.add_fading(slideshow)
+        self.add_datetime(slideshow)
+        self.add_logging_level(slideshow)
+        slideshow.set_defaults(runner=self.start_slideshow)
+
         # Program browser.
         browser = subparsers.add_parser("browse",
             help="run the program browser",
             formatter_class=self._FORMATTER_CLASS)
         self.add_default_arguments(browser)
         self.add_geometry(browser)
-        self.add_advance(browser)
         self.add_pause(browser)
+        self.add_advance(browser)
         self.add_logging_level(browser)
         browser.set_defaults(runner=self.start_browser)
+
+        # Program directory.
+        directory = subparsers.add_parser("directory",
+            help="run the session directory",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_default_arguments(directory)
+        self.add_geometry(directory)
+        self.add_advance(directory)
+        self.add_datetime(directory)
+        self.add_logging_level(directory)
+        directory.set_defaults(runner=self.start_directory)
+
+        # Dump a text report on the program.
+        report = subparsers.add_parser("report",
+            help="dump a text report on the program",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_config_file(report)
+        self.add_logging_level(report)
+        report.set_defaults(runner=self.dump_report)
+
+    def add_config_file(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option for the input file.
+        """
+        parser.add_argument('cfgfile', type=str,
+            help='path to the input excel configuration file')
 
     def add_default_arguments(self, parser: argparse.ArgumentParser) -> None:
         """Add the default arguments to the given parser.
         """
-        parser.add_argument('cfgfile', type=str,
-            help='path to the input excel configuration file')
+        self.add_config_file(parser)
         parser.add_argument('--conference-name', type=str, default='16th Pisa Meeting on Advanced Detectors',
             help='the conference name')
         parser.add_argument('--conference-dates', type=str, default='La Biodola, Isola d\'Elba',
@@ -169,6 +206,19 @@ class CliArgumentParser(argparse.ArgumentParser):
                             default="INFO",
                             help="logging level")
 
+    def start_slideshow(self, **kwargs) -> None:
+        """Start the poster slideshow.
+        """
+        app = QApplication(sys.argv)
+        # Determine the appropriate poster width from the screen size unless this is
+        # explicitly overridden via command-line options.
+        if kwargs.get('poster_width') is None:
+            poster_width = app.screens()[0].size().width() - 20
+            logger.info('Setting posted width to %d (based on the screen size)', poster_width)
+            kwargs['poster_width'] = poster_width
+        window = SlideShow(**kwargs)
+        sys.exit(app.exec_())
+
     def start_browser(self, **kwargs) -> None:
         """Start the program browser.
         """
@@ -179,14 +229,32 @@ class CliArgumentParser(argparse.ArgumentParser):
             poster_width = app.screens()[0].size().width() - 20
             logger.info('Setting posted width to %d (based on the screen size)', poster_width)
             kwargs['poster_width'] = poster_width
-        browser = ProgramBrowser(**kwargs)
+        window = ProgramBrowser(**kwargs)
         sys.exit(app.exec_())
+
+    def start_directory(self, **kwargs) -> None:
+        """Start the session directory.
+        """
+        app = QApplication(sys.argv)
+        # Determine the appropriate poster width from the screen size unless this is
+        # explicitly overridden via command-line options.
+        if kwargs.get('poster_width') is None:
+            poster_width = app.screens()[0].size().width() - 20
+            logger.info('Setting posted width to %d (based on the screen size)', poster_width)
+            kwargs['poster_width'] = poster_width
+        window = SessionDirectory(**kwargs)
+        sys.exit(app.exec_())
+
+    def dump_report(self, **kwargs) -> None:
+        """Dump a text report on the program.
+        """
+        program = PosterProgram(kwargs.get('cfgfile'))
+        program.dump_report()
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
         """
-        ns = self.parse_args()
-        kwargs = vars(ns)
+        kwargs = vars(self.parse_args())
         # Setup logging.
         logging_.setup_logger(kwargs.pop("logging_level"))
         # Call the appropriate runner function.

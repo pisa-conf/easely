@@ -138,14 +138,14 @@ class Poster:
         """Load the underlying pixmap with a fixed width.
         """
         logger.debug('Loading image data from %s...', file_path)
-        return QPixmap(file_path).scaledToWidth(width, Qt.SmoothTransformation)
+        return QPixmap(str(file_path)).scaledToWidth(width, Qt.SmoothTransformation)
 
     @staticmethod
     def _load_pixmap_h(file_path: str, height: int):
         """Load the underlying pixmap with a fixed height.
         """
         logger.debug('Loading image data from %s...', file_path)
-        return QPixmap(file_path).scaledToHeight(height, Qt.SmoothTransformation)
+        return QPixmap(str(file_path)).scaledToHeight(height, Qt.SmoothTransformation)
 
     @staticmethod
     def load_default_pixmaps(poster_width: int, portrait_height: int):
