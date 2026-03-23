@@ -61,6 +61,9 @@ docs = [
 Homepage = "https://github.com/lucabaldini/easely"
 Issues = "https://github.com/lucabaldini/easely/issues"
 
+[project.scripts]
+easely = "easely.cli:main"
+
 # Specify the python file that hatchling should read the version string from.
 [tool.hatch.version]
 path = "src/easely/_version.py"
