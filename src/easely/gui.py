@@ -25,22 +25,17 @@ import os
 import time
 
 import pandas as pd
-# pylint: disable=no-name-in-module, too-many-instance-attributes
-from PyQt5.QtWidgets import QLabel, QGridLayout, QWidget, QGraphicsOpacityEffect,\
-    QTableWidget, QTableWidgetItem, QHeaderView, QTreeWidget, QTreeWidgetItem
-from PyQt5.QtGui import QKeyEvent, QColor, QFont
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 
+from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
 from .screen import read_screen_id
 from .magic import read_magic_file
-from easely.profile import psstatus
-from easely.program import Poster, PosterRoster, PosterProgram, DATE_FORMAT,\
-    DATE_PRETTY_FORMAT, DATETIME_FORMAT
+from .profile import psstatus
+from .program import Poster, PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
 
 
 
-class FadingEffect(QGraphicsOpacityEffect):
+class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
 
     """Graphic effect for picture fade-in/out.
 
@@ -65,7 +60,7 @@ class FadingEffect(QGraphicsOpacityEffect):
         self.setOpacity(1.)
         self._step = step
         self._interval = interval
-        self._timer = QTimer()
+        self._timer = QtCore.QTimer()
         self._timer.start(self._interval)
         logger.debug('Opacity fade time set to %.3f s', self.fade_time())
 
@@ -117,7 +112,7 @@ class FadingEffect(QGraphicsOpacityEffect):
 
 
 
-class RosterTable(QTableWidget):
+class RosterTable(QtWidgets.QTableWidget):
 
     """Custom QTableWidget to display a poster roster.
 
@@ -143,17 +138,17 @@ class RosterTable(QTableWidget):
         self.setColumnCount(3)
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
-        self.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
         self.verticalHeader().setMinimumSectionSize(row_height)
         self.verticalHeader().setDefaultSectionSize(row_height)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setShowGrid(False)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.setStyleSheet("border: 0px")
         self.setEnabled(False)
         self.setMaximumHeight(height)
-        self._default_color = QColor(default_rgb, default_rgb, default_rgb)
-        self._highlight_color = QColor(0, 0, 0)
+        self._default_color = QtGui.QColor(default_rgb, default_rgb, default_rgb)
+        self._highlight_color = QtGui.QColor(0, 0, 0)
         self._highlighted_row = None
 
     def set_text(self, row: int, col: int, text: str):
@@ -172,7 +167,7 @@ class RosterTable(QTableWidget):
         text : str
             The text to be displayed.
         """
-        item = QTableWidgetItem(text)
+        item = QtWidgets.QTableWidgetItem(text)
         item.setForeground(self._default_color)
         self.setItem(row, col, item)
 
@@ -223,7 +218,7 @@ class RosterTable(QTableWidget):
 
 
 
-class ScreenHeaderMinimal(QWidget):
+class ScreenHeaderMinimal(QtWidgets.QWidget):
 
     """Minimal screen header.
 
@@ -244,24 +239,24 @@ class ScreenHeaderMinimal(QWidget):
         vertical_spacing = kwargs.get('vertical_spacing', 8)
         margin = kwargs.get('margin', 0)
         super().__init__()
-        self.setLayout(QGridLayout())
+        self.setLayout(QtWidgets.QGridLayout())
         self.layout().setHorizontalSpacing(horizontal_spacing)
         self.layout().setVerticalSpacing(vertical_spacing)
         self.layout().setContentsMargins(margin, margin, margin, margin)
         # Create all the necessary widgets: the title Qlabel...
-        self.title_label = QLabel()
+        self.title_label = QtWidgets.QLabel()
         font = self.title_label.font()
         font.setPointSize(title_font_size)
         self.title_label.setFont(font)
         self.title_label.setText(title)
         # ... the subtitle QLabel...
-        self.subtitle_label = QLabel()
+        self.subtitle_label = QtWidgets.QLabel()
         font = self.subtitle_label.font()
         font.setPointSize(subtitle_font_size)
         self.subtitle_label.setFont(font)
         # ... and the status message label.
-        self.status_label = QLabel()
-        self.status_label.setAlignment(Qt.AlignTop)
+        self.status_label = QtWidgets.QLabel()
+        self.status_label.setAlignment(QtCore.Qt.AlignTop)
         # Setup the payout.
         self._setup_layout()
         # And freeze the height of the last column to add a minimum space between
@@ -314,17 +309,17 @@ class ScreenHeader(ScreenHeaderMinimal):
         """Constructor.
         """
         # ... the presenter portrait QLabel...
-        self.portrait_label = QLabel()
+        self.portrait_label = QtWidgets.QLabel()
         self.portrait_label.setFixedSize(portrait_height, portrait_height)
-        self.portrait_label.setAlignment(Qt.AlignLeft)
+        self.portrait_label.setAlignment(QtCore.Qt.AlignLeft)
         # ... the QR code QLabel...
-        self.qrcode_label = QLabel()
+        self.qrcode_label = QtWidgets.QLabel()
         self.qrcode_label.setFixedSize(portrait_height, portrait_height)
-        self.qrcode_label.setAlignment(Qt.AlignCenter)
+        self.qrcode_label.setAlignment(QtCore.Qt.AlignCenter)
         # ... the presenter name/affiliation QLabel...
-        self.presenter_label = QLabel()
+        self.presenter_label = QtWidgets.QLabel()
         self.presenter_label.setWordWrap(True)
-        self.presenter_label.setAlignment(Qt.AlignTop)
+        self.presenter_label.setAlignment(QtCore.Qt.AlignTop)
         # ... the poster roster table...
         self.table = RosterTable(portrait_height)
         self._roster = None
@@ -402,7 +397,7 @@ class ScreenHeader(ScreenHeaderMinimal):
 
 
 
-class DisplaWindowBase(QWidget):
+class DisplaWindowBase(QtWidgets.QWidget):
 
     """Base class for display windows.
     """
@@ -439,13 +434,13 @@ class DisplaWindowBase(QWidget):
             self.display_date = datetime.datetime.strptime(display_date, DATE_FORMAT).date()
             self.display_datetime = datetime.datetime.strptime(display_datetime, DATETIME_FORMAT)
         # Setup the widget.
-        self.setLayout(QGridLayout())
+        self.setLayout(QtWidgets.QGridLayout())
         self.layout().setColumnMinimumWidth(0, self.poster_width)
         header_title = f'{kwargs["conference_name"]} - {kwargs["conference_location"]} - {kwargs["conference_dates"]}'
         self.header = header_class(header_title, kwargs['header_height'], kwargs['portrait_height'])
-        self.poster_label = QLabel()
-        self.poster_label.setAlignment(Qt.AlignHCenter or Qt.AlignTop)
-        self.debug_label = QLabel()
+        self.poster_label = QtWidgets.QLabel()
+        self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
+        self.debug_label = QtWidgets.QLabel()
         self.layout().addWidget(self.header, 0, 0, 1, 3)
         self.layout().addWidget(self.poster_label, 1, 0, 1, 3)
         # Increase the stretch value for the poster label so that it takes
@@ -457,7 +452,7 @@ class DisplaWindowBase(QWidget):
         if kwargs.get('fading', False):
             self.poster_label.setGraphicsEffect(self.fading_effect)
         # Setup the timer for updating the header.
-        self.header_timer = QTimer()
+        self.header_timer = QtCore.QTimer()
         self.header_timer.setInterval(100)
         self.header_timer.timeout.connect(self.update_header_status)
         self.__start_time = time.time()
@@ -568,14 +563,14 @@ class SlideShow(DisplaWindowBase):
         self.__status = SlideShowStatus.STOPPED
         self.__current_index = 0
         # Setup the timers.
-        self.advance_timer = QTimer()
+        self.advance_timer = QtCore.QTimer()
         self.advance_timer.setInterval(self.advance_interval)
         self.advance_timer.timeout.connect(self.advance)
-        self.resume_timer = QTimer()
+        self.resume_timer = QtCore.QTimer()
         self.resume_timer.setInterval(self.pause_interval)
         self.resume_timer.setSingleShot(True)
         self.resume_timer.timeout.connect(self.resume)
-        self.reload_timer = QTimer()
+        self.reload_timer = QtCore.QTimer()
         self.reload_timer.setInterval(10000)
         self.reload_timer.timeout.connect(self._check_reload)
         # We're good to go!
@@ -691,7 +686,7 @@ class SlideShow(DisplaWindowBase):
         """
         self.display_poster(self.__current_index - 1)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         """Overloaded method to handle key events.
         """
         # Disengage the keyboard if there is less than two posters.
@@ -721,27 +716,27 @@ class BrowserKeyMap(IntEnum):
     """Basic mapping of the five-key keyboard for the poster browser.
     """
 
-    EXPAND = Qt.Key_Right
-    COLLAPSE = Qt.Key_Left
-    ADVANCE = Qt.Key_Down
-    BACKUP = Qt.Key_Up
-    PAUSE = Qt.Key_Return
+    EXPAND = QtCore.Qt.Key_Right
+    COLLAPSE = QtCore.Qt.Key_Left
+    ADVANCE = QtCore.Qt.Key_Down
+    BACKUP = QtCore.Qt.Key_Up
+    PAUSE = QtCore.Qt.Key_Return
 
 
 
-class ProgramTreeWidget(QTreeWidget):
+class ProgramTreeWidget(QtWidgets.QTreeWidget):
 
     """Light wrapper over the QTreeWidget class.
     """
 
     # Signal emitted when any active key has been pressed.
-    key_pressed = pyqtSignal()
+    key_pressed = QtCore.pyqtSignal()
 
     # Signal emitted when the display of the current poster is requested.
-    poster_selected = pyqtSignal()
+    poster_selected = QtCore.pyqtSignal()
 
     # Signal emitted when the tree view uis requested.
-    treeview_selected = pyqtSignal()
+    treeview_selected = QtCore.pyqtSignal()
 
     def __init__(self, width: int, screen_id: bool = False):
         """Constructor.
@@ -847,10 +842,10 @@ class ProgramBrowser(DisplaWindowBase):
         self._load_program()
         # Setup the timers. We have two of them---one for the carousel progression
         # and another one for toggling between the different views.
-        self.carousel_timer = QTimer()
+        self.carousel_timer = QtCore.QTimer()
         self.carousel_timer.setInterval(self.sec_to_msec(kwargs['advance_interval']))
         self.carousel_timer.timeout.connect(self.display_random_poster)
-        self.toggle_timer = QTimer()
+        self.toggle_timer = QtCore.QTimer()
         self.toggle_timer.setInterval(self.sec_to_msec(kwargs['pause_interval']))
         # Setup the necessary connections.
         self.toggle_timer.timeout.connect(self.toggle_view)
@@ -867,7 +862,7 @@ class ProgramBrowser(DisplaWindowBase):
         """
         items = []
         for session, posters in self.program.items():
-            item = QTreeWidgetItem([session.title])
+            item = QtWidgets.QTreeWidgetItem([session.title])
             for poster in posters:
                 if self.program.missing_poster_image(poster.friendly_id):
                     continue
@@ -879,7 +874,7 @@ class ProgramBrowser(DisplaWindowBase):
                 #if self.program.missing_poster_image(poster.friendly_id):
                 #    label = f'{label} (?)'
                 values = [label, presenter.full_name()]
-                child = QTreeWidgetItem(values)
+                child = QtWidgets.QTreeWidgetItem(values)
                 child.poster = poster
                 item.addChild(child)
             items.append(item)
@@ -1061,11 +1056,11 @@ class SessionDirectory(DisplaWindowBase):
         self.tree_widget = ProgramTreeWidget(self.poster_width, screen_id=True)
         self.layout().addWidget(self.tree_widget, 1, 0, 1, 3)
         # Setup the timers.
-        self.toggle_timer = QTimer()
+        self.toggle_timer = QtCore.QTimer()
         self.toggle_timer.setInterval(self.advance_interval)
         self.toggle_timer.timeout.connect(self.toggle_session)
         self.header_timer.start()
-        self.reload_timer = QTimer()
+        self.reload_timer = QtCore.QTimer()
         self.reload_timer.setInterval(10000)
         self.reload_timer.timeout.connect(self._check_reload)
         self._reload_due = None
@@ -1106,7 +1101,7 @@ class SessionDirectory(DisplaWindowBase):
             end = session.end
             if self._reload_due is None or end < self._reload_due:
                 self._reload_due = end
-            item = QTreeWidgetItem([session.title])
+            item = QtWidgets.QTreeWidgetItem([session.title])
             for poster in posters:
                 presenter = poster.presenter
                 affiliation = presenter.affiliation
@@ -1114,7 +1109,7 @@ class SessionDirectory(DisplaWindowBase):
                     affiliation = 'N/A'
                 values = [f'[{poster.friendly_id}] {poster.title}', presenter.full_name(),
                     f'{poster.screen_id}']
-                child = QTreeWidgetItem(values)
+                child = QtWidgets.QTreeWidgetItem(values)
                 child.poster = poster
                 item.addChild(child)
             items.append(item)
