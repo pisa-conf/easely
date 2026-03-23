@@ -36,7 +36,7 @@ from easely.qrcode_ import generate_qrcode
 
 
 
-def retrieve_info(url: str, file_path: str , detail: str = 'sessions', overwrite: bool = False):
+def retrieve_info(url: str, file_path: str , detail: str = "sessions", overwrite: bool = False):
     """Retrieve the contributions, grouped by session for a given conference,
     following the instructions at
     https://docs.getindico.io/en/stable/http-api/exporters/event/#sessions
@@ -62,7 +62,7 @@ def retrieve_info(url: str, file_path: str , detail: str = 'sessions', overwrite
     overwrite : bool
         Overwrite the output file.
     """
-    assert str(file_path).endswith('.json')
+    assert str(file_path).endswith(".json")
     if os.path.exists(file_path) and overwrite is False:
         logger.info(f"File {file_path} exists, skipping (delete it or set overwrite=False)...")
         return
@@ -70,7 +70,7 @@ def retrieve_info(url: str, file_path: str , detail: str = 'sessions', overwrite
     resp = requests.get(f"{url}?detail={detail}&pretty=yes")
     data = resp.json()
     logger.info(f"Saving data to {file_path}...")
-    with open(file_path, 'w') as f:
+    with open(file_path, "w") as f:
         json.dump(data, f)
     logger.info("Done.")
 
@@ -128,43 +128,43 @@ class ConferenceInfo(dict):
         """Constructor.
         """
         super().__init__()
-        logger.info(f'Loading conference contributions from {file_path}...')
-        with open(file_path, 'r') as f:
+        logger.info(f"Loading conference contributions from {file_path}...")
+        with open(file_path, "r") as f:
             data = json.load(f)
         # Parse the json hierarchy.
-        results = data['results'][0]
-        sessions = results['sessions']
-        logger.info(f'{len(sessions)} session (s) found')
+        results = data["results"][0]
+        sessions = results["sessions"]
+        logger.info(f"{len(sessions)} session (s) found")
         for session in sessions:
-            print(session['id'], session['title'])
+            print(session["id"], session["title"])
         # If we are passing a section dictionary of the form {session_id: session_title},
         # we want to do a few things:
         # * filter the sessions in the input json file and ;
         # * sort the sessions by id in the dictionary;
         # * tweak the session title is necessary.
         if session_dict is not None:
-            logger.info('Filtering sessions...')
+            logger.info("Filtering sessions...")
             for _id, _title in session_dict.items():
                 for session in sessions:
-                    if session['id'] == _id:
-                        session['title'] = _title
+                    if session["id"] == _id:
+                        session["title"] = _title
                         self[_title] = session
-        contributions = results['contributions']
+        contributions = results["contributions"]
         if len(contributions):
-            logger.warning(f'{len(contributions)} orphan contribution(s) found...')
+            logger.warning(f"{len(contributions)} orphan contribution(s) found...")
         else:
-            logger.info('No orphan contributions found...')
-        #logger.info(f'Program info:\n{self}')
+            logger.info("No orphan contributions found...")
+        #logger.info(f"Program info:\n{self}")
 
     def contribution_ids(self):
         """Return all the contribution ids.
         """
-        logger.info('Retrieving all the contribution identifiers...')
+        logger.info("Retrieving all the contribution identifiers...")
         ids = []
         for session in self.values():
-            for contribution in session['contributions']:
-                ids.append(int(contribution['id']))
-        logger.info(f'Done, {len(ids)} contribution(s) found.')
+            for contribution in session["contributions"]:
+                ids.append(int(contribution["id"]))
+        logger.info(f"Done, {len(ids)} contribution(s) found.")
         ids.sort()
         return ids
 
@@ -172,15 +172,15 @@ class ConferenceInfo(dict):
     def pretty_print(contribution):
         """Pretty print.
         """
-        identifier = contribution['friendly_id']
+        identifier = contribution["friendly_id"]
         try:
-            speaker = contribution['speakers'][0]
-            full_name = speaker['fullName']
+            speaker = contribution["speakers"][0]
+            full_name = speaker["fullName"]
         except IndexError:
-            logger.warning(f'Cannot retrieve speaker for contribution {identifier}')
-            full_name = 'N/A'
-        title = contribution['title']
-        return f'[{identifier}] {full_name}: "{title}"'
+            logger.warning(f"Cannot retrieve speaker for contribution {identifier}")
+            full_name = "N/A"
+        title = contribution["title"]
+        return f"[{identifier}] {full_name}: \"{title}\""
 
     @staticmethod
     def _format_date(date_dict: str, fmt: str = DATETIME_FORMAT):
@@ -190,41 +190,41 @@ class ConferenceInfo(dict):
         This means turning {'date': '2015-05-28', 'time': '15:45:00', 'tz': 'Europe/Rome'}
         into 28/05/2015 15:45.
         """
-        text = f'{date_dict["date"]} {date_dict["time"]}'
-        d = datetime.datetime.strptime(text, '%Y-%m-%d %H:%M:%S')
+        text = f"{date_dict['date']} {date_dict['time']}"
+        d = datetime.datetime.strptime(text, "%Y-%m-%d %H:%M:%S")
         return d.strftime(fmt)
 
     def dump_excel(self, file_path):
         """Dump the contribution list as an excel file.
         """
-        logger.info(f'Dumping conference info to {file_path}...')
-        writer = pd.ExcelWriter(file_path, engine='xlsxwriter')
+        logger.info(f"Dumping conference info to {file_path}...")
+        writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
 
         # Create the master sheet with the session data.
-        def _session_data(key, change_hour='13:30:00'):
+        def _session_data(key, change_hour="13:30:00"):
             """Small nested function to facilitate the session data retrival.
             """
-            if key == 'startDate':
+            if key == "startDate":
                 _data = []
                 for session in self.values():
                     date_dict = session[key]
-                    if int(date_dict['time'].split(':')[0]) < 13:
-                        date_dict['time'] = '00:01:00'
+                    if int(date_dict["time"].split(":")[0]) < 13:
+                        date_dict["time"] = "00:01:00"
                     else:
-                        date_dict['time'] = change_hour
-            if key == 'endDate':
+                        date_dict["time"] = change_hour
+            if key == "endDate":
                 _data = []
                 for session in self.values():
                     date_dict = session[key]
-                    if int(date_dict['time'].split(':')[0]) < 13:
-                        date_dict['time'] = change_hour
+                    if int(date_dict["time"].split(":")[0]) < 13:
+                        date_dict["time"] = change_hour
                     else:
-                        date_dict['time'] = '21:00:00'
-            if key in ('startDate', 'endDate'):
+                        date_dict["time"] = "21:00:00"
+            if key in ("startDate", "endDate"):
                 return [self._format_date(session[key]) for session in self.values()]
             return [str(session[key]) for session in self.values()]
 
-        data = [_session_data(key) for key in ('id', 'title', 'startDate', 'endDate')]
+        data = [_session_data(key) for key in ("id", "title", "startDate", "endDate")]
         df = pd.DataFrame({key: val for key, val in zip(PosterCollectionBase.PROGRAM_COL_NAMES, data)})
         df.to_excel(writer, sheet_name=PosterCollectionBase.PROGRAM_SHEET_NAME, index=False)
         sheet = writer.sheets[PosterCollectionBase.PROGRAM_SHEET_NAME]
@@ -236,7 +236,7 @@ class ConferenceInfo(dict):
         def _warning_message(msg, contribution, max_title_length=30):
             """Small nested function to provide useful diagnostics in case of missing data.
             """
-            logger.warning(f'{msg} for contribution {contribution["id"]} ({contribution["title"][:max_title_length]}...)')
+            logger.warning(f"{msg} for contribution {contribution['id']} ({contribution['title'][:max_title_length]}...)")
 
         # Loop over all the contributions in the session and retrieve the data.
         # Note that, rather than doing this by column, we do it by row (i.e., by
@@ -244,48 +244,48 @@ class ConferenceInfo(dict):
         # diagnostics if data are missing, at the expense of code beauty.
         for session in self.values():
             data = [[], [], [], [], [], []]
-            for contrib in session['contributions']:
-                _id = contrib['id']
-                _title = contrib['title']
-                _url = contrib['url']
-                _db_id = contrib['db_id']
+            for contrib in session["contributions"]:
+                _id = contrib["id"]
+                _title = contrib["title"]
+                _url = contrib["url"]
+                _db_id = contrib["db_id"]
                 try:
-                    first_speaker = contrib['speakers'][0]
+                    first_speaker = contrib["speakers"][0]
                 except IndexError as e:
-                    _warning_message('No speaker(s)', contrib)
+                    _warning_message("No speaker(s)", contrib)
                     first_speaker = None
                 if first_speaker is not None:
-                    _first_name = first_speaker['first_name']
-                    _last_name = first_speaker['last_name']
-                    _affiliation = first_speaker['affiliation']
-                    if _first_name == '':
-                        _warning_message('No first name', contrib)
-                    if _last_name == '':
-                        _warning_message('No last name', contrib)
-                    if _affiliation == '':
-                        _warning_message('No affiliation', contrib)
+                    _first_name = first_speaker["first_name"]
+                    _last_name = first_speaker["last_name"]
+                    _affiliation = first_speaker["affiliation"]
+                    if _first_name == "":
+                        _warning_message("No first name", contrib)
+                    if _last_name == "":
+                        _warning_message("No last name", contrib)
+                    if _affiliation == "":
+                        _warning_message("No affiliation", contrib)
                 else:
-                    _first_name, _last_name, _affiliation = 'N/A', 'N/A', 'N/A'
+                    _first_name, _last_name, _affiliation = "N/A", "N/A", "N/A"
                 for col, val in zip(data, (_id, _db_id, _title, _first_name, _last_name, _affiliation)):
                     col.append(val)
 
             # Placeholder for the screen id.
-            screen_id = [i % 20 + 1 for i in range(len(session['contributions']))]
+            screen_id = [i % 20 + 1 for i in range(len(session["contributions"]))]
             data.insert(2, screen_id)
             df = pd.DataFrame({key: val for key, val in zip(PosterCollectionBase.SESSION_COL_NAMES, data)})
-            sheet_name = str(session['id'])
+            sheet_name = str(session["id"])
             df.to_excel(writer, sheet_name=sheet_name, index=False)
             sheet = writer.sheets[sheet_name]
             sheet.set_column(0, 2, 12)
             sheet.set_column(3, 3, 100)
             sheet.set_column(4, 5, 20)
             sheet.set_column(6, 6, 60)
-        logger.info('Writing output file...')
+        logger.info("Writing output file...")
         writer.save()
-        logger.info('Done.')
+        logger.info("Done.")
 
     @staticmethod
-    def download_urls(contribution, filters=('pdf', 'ppt', 'pptx')):
+    def download_urls(contribution, filters=("pdf", "ppt", "pptx")):
         """Return the list of all download urls and fellow timestamp for
         a given contribution.
 
@@ -301,62 +301,62 @@ class ConferenceInfo(dict):
             The allowed file types.
         """
         urls = []
-        for folder in contribution['folders']:
-            for attachment in folder['attachments']:
-                url = attachment['download_url']
-                if url.split('.')[-1].lower() in filters:
-                    timestamp = attachment['modified_dt']
+        for folder in contribution["folders"]:
+            for attachment in folder["attachments"]:
+                url = attachment["download_url"]
+                if url.split(".")[-1].lower() in filters:
+                    timestamp = attachment["modified_dt"]
                     urls.append((url, timestamp))
         if len(urls) == 0:
-            logger.warning(f'No attachment for "{contribution["title"]}"')
+            logger.warning(f"No attachment for \"{contribution['title']}\"")
         return urls
 
     def download_attachments(self, folder_path: str, separator: str = '-',
-        filters=('pdf', 'ppt', 'pptx', 'png', 'jpg', 'jpeg'), dry_run: bool = False):
+        filters=("pdf", "ppt", "pptx", "png", "jpg", "jpeg"), dry_run: bool = False):
         """Download all the files attached to the given conference program.
         """
-        logger.info('Downloading files...')
+        logger.info("Downloading files...")
         num_downloads = 0
         for session in self.values():
-            logger.info('Processing session "%s"', session["title"])
-            for contribution in session['contributions']:
+            logger.info(f"Processing session \"{session['title']}\"")
+            for contribution in session["contributions"]:
                 for url, timestamp in self.download_urls(contribution, filters):
-                    file_name = f'{int(contribution["id"]):03d}{separator}{os.path.basename(url)}'
+                    file_name = f"{int(contribution['id']):03d}{separator}{os.path.basename(url)}"
                     file_path = os.path.join(folder_path, file_name)
-                    tstamp_file_path = f'{file_path}.tstamp'
+                    tstamp_file_path = f"{file_path}.tstamp"
                     # If we have the file locally, and we have track of the
                     # timestamp, and that matches the one in the .json file,
                     # there is no point in downloading another identical copy.
                     if os.path.exists(file_path) and os.path.exists(tstamp_file_path) \
                         and open(tstamp_file_path).read() == timestamp:
-                        logger.debug(f'{file_path} up to date, skipping...')
+                        logger.debug(f"{file_path} up to date, skipping...")
                         continue
                     # Otherwise we're good to go.
-                    logger.info(f'Downloading {url} -> {file_path}...')
+                    logger.info(f"Downloading {url} -> {file_path}...")
                     if not dry_run:
                         response = requests.get(url)
-                        with open(file_path, 'wb') as f:
+                        with open(file_path, "wb") as f:
                             f.write(response.content)
                         num_downloads += 1
                     # And, of course, we need to write the timestamp, as well.
-                    logger.info(f'Writing file timestamp to {file_path}...')
+                    logger.info(f"Writing file timestamp to {file_path}...")
                     if not dry_run:
-                        with open(tstamp_file_path, 'w') as f:
+                        with open(tstamp_file_path, "w") as f:
                             f.write(timestamp)
-        logger.info(f'{num_downloads} additional file(s) downloaded.')
+        logger.info(f"{num_downloads} additional file(s) downloaded.")
 
     def generate_qr_codes(self, folder_path):
         """Generate all the QR codes for the poster contributions.
         """
         for session in self.values():
-            for contrib in session['contributions']:
-                url = contrib['url']
-                file_name = f'{contrib["friendly_id"]:03}.png'
+            for contrib in session["contributions"]:
+                url = contrib["url"]
+                file_name = f"{contrib["friendly_id"]:03}.png"
                 file_path = os.path.join(folder_path, file_name)
                 generate_qrcode(url, file_path)
 
     def __str__(self):
         """String formatting.
         """
-        return '\n'.join([f'- {key} ({len(val["contributions"])} contributions)' \
+        return "\n".join([f"- {key} ({len(val['contributions'])} contributions)" \
             for key, val in self.items()])
