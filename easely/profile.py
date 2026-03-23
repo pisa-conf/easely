@@ -26,7 +26,7 @@ try:
 except ImportError:
     psutil = None
 
-from pisameet import logger
+from easely import logger
 
 
 NO_PSUTIL_MSG = 'No system information available.'

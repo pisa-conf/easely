@@ -24,9 +24,9 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from pisameet import logger
-from pisameet.program import PosterProgram
-from pisameet.options import ArgumentParser
+from easely import logger
+from easely.program import PosterProgram
+from easely.options import ArgumentParser
 
 
 

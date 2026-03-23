@@ -28,7 +28,7 @@ import pdfrw
 import PIL
 import PIL.Image
 
-from pisameet import PISAMEET_DATA
+from easely import PISAMEET_DATA
 
 
 # Move upstream

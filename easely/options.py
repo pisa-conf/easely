@@ -22,7 +22,7 @@ import argparse
 from enum import Enum
 import os
 
-from pisameet import PISAMEET_BASE
+from easely import PISAMEET_BASE
 
 
 class DisplayMode(Enum):

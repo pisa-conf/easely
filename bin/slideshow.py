@@ -28,9 +28,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from PyQt5.QtWidgets import QApplication
 
-from pisameet import logger
-from pisameet.gui import SlideShow
-from pisameet.options import ArgumentParser
+from easely import logger
+from easely.gui import SlideShow
+from easely.options import ArgumentParser
 
 PARSER = ArgumentParser()
 PARSER.add_geometry()

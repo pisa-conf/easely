@@ -31,9 +31,9 @@ from PyQt5.QtWidgets import QLabel, QGridLayout, QWidget, QGraphicsOpacityEffect
 from PyQt5.QtGui import QKeyEvent, QColor, QFont
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 
-from pisameet import logger, abort, read_screen_id, read_magic_file
-from pisameet.profile import psstatus
-from pisameet.program import Poster, PosterRoster, PosterProgram, DATE_FORMAT,\
+from easely import logger, abort, read_screen_id, read_magic_file
+from easely.profile import psstatus
+from easely.program import Poster, PosterRoster, PosterProgram, DATE_FORMAT,\
     DATE_PRETTY_FORMAT, DATETIME_FORMAT
 
 
@@ -481,7 +481,7 @@ class DisplaWindowBase(QWidget):
         """
         """
         uptime = time.time() - self.__start_time
-        msg = f'Powered by https://github.com/lucabaldini/pisameet, {uptime:.1f} s uptime, {psstatus()}'
+        msg = f'Powered by https://github.com/lucabaldini/easely, {uptime:.1f} s uptime, {psstatus()}'
         self.set_debug_message(msg)
 
     @staticmethod

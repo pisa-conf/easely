@@ -27,9 +27,9 @@ import os
 import pandas as pd
 import requests
 
-from pisameet import logger
-from pisameet.program import PosterCollectionBase, DATETIME_FORMAT
-from pisameet.qrcode_ import generate_qrcode
+from easely import logger
+from easely.program import PosterCollectionBase, DATETIME_FORMAT
+from easely.qrcode_ import generate_qrcode
 
 
 # pylint: disable=invalid-name

@@ -26,9 +26,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from PyQt5.QtWidgets import QApplication
 
-from pisameet import logger
-from pisameet.gui import ProgramBrowser
-from pisameet.options import ArgumentParser
+from easely import logger
+from easely.gui import ProgramBrowser
+from easely.options import ArgumentParser
 
 
 

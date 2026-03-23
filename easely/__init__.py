@@ -28,7 +28,7 @@ import sys
 #
 # System-wide environment settings.
 #
-PACKAGE_NAME = 'pisameet'
+PACKAGE_NAME = 'easely'
 PISAMEET_ROOT = os.path.abspath(os.path.dirname(__file__))
 PISAMEET_BASE = os.path.abspath(os.path.join(PISAMEET_ROOT, os.pardir))
 PISAMEET_DATA = os.path.join(PISAMEET_BASE, 'data')
@@ -107,7 +107,7 @@ class TerminalFormatter(logging.Formatter):
 
 
 #Configure the main terminal logger.
-logger = logging.getLogger('pisameet')
+logger = logging.getLogger('easely')
 logger.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)

@@ -21,7 +21,7 @@ import os
 
 import qrcode
 
-from pisameet import logger, MISSING_QRCODE_PATH
+from easely import logger, MISSING_QRCODE_PATH
 
 
 def generate_qrcode(data, file_path, overwrite=False):
@@ -29,7 +29,7 @@ def generate_qrcode(data, file_path, overwrite=False):
     """
     if os.path.exists(file_path) and overwrite is False:
         logger.info('File %s exists, skipping...', file_path)
-        return 
+        return
     #pylint: disable=invalid-name
     logger.info('Generating QR code for "%s"...', data)
     qr = qrcode.QRCode(version=1, box_size=10, border=0)
