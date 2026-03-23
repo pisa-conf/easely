@@ -25,8 +25,8 @@ from enum import Enum
 
 from easely import __name__ as __package_name__
 from easely import __version__, logging_
-from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
 from easely.__qt__ import bootstrap_window
+from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
 
 
 def start_message() -> None:
