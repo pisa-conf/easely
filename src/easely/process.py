@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021, luca.baldini@pi.infn.it
+# Copyright (C) 2021--2026, the easely team.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
