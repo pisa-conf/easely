@@ -19,10 +19,6 @@
 """Main slideshow application.
 """
 
-import os
-import sys
-
-from easely import logger
 from easely.program import PosterProgram
 from easely.options import ArgumentParser
 
