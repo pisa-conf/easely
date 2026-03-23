@@ -64,12 +64,12 @@ def retrieve_info(url: str, file_path: str , detail: str = 'sessions', overwrite
     """
     assert file_path.endswith('.json')
     if os.path.exists(file_path) and overwrite is False:
-        logger.info('File %s exists, skipping (delete it or set overwrite=False)...', file_path)
+        logger.info(f'File {file_path} exists, skipping (delete it or set overwrite=False)...')
         return
-    logger.info('Retrieving program from %s...', url)
+    logger.info(f'Retrieving program from {url}...')
     resp = requests.get(f'{url}?detail={detail}&pretty=yes')
     data = resp.json()
-    logger.info('Saving data to %s...', file_path)
+    logger.info(f'Saving data to {file_path}...')
     with open(file_path, 'w') as f:
         json.dump(data, f)
     logger.info('Done.')
@@ -128,13 +128,13 @@ class ConferenceInfo(dict):
         """Constructor.
         """
         super().__init__()
-        logger.info('Loading conference contributions from %s...', file_path)
+        logger.info(f'Loading conference contributions from {file_path}...')
         with open(file_path, 'r') as f:
             data = json.load(f)
         # Parse the json hierarchy.
         results = data['results'][0]
         sessions = results['sessions']
-        logger.info('%d session (s) found', len(sessions))
+        logger.info(f'{len(sessions)} session (s) found')
         for session in sessions:
             print(session['id'], session['title'])
         # If we are passing a section dictionary of the form {session_id: session_title},
@@ -151,7 +151,7 @@ class ConferenceInfo(dict):
                         self[_title] = session
         contributions = results['contributions']
         if len(contributions):
-            logger.warning('%d orphan contribution(s) found...', len(contributions))
+            logger.warning(f'{len(contributions)} orphan contribution(s) found...')
         else:
             logger.info('No orphan contributions found...')
         #logger.info(f'Program info:\n{self}')
@@ -164,7 +164,7 @@ class ConferenceInfo(dict):
         for session in self.values():
             for contribution in session['contributions']:
                 ids.append(int(contribution['id']))
-        logger.info('Done, %d contribution(s) found.', len(ids))
+        logger.info(f'Done, {len(ids)} contribution(s) found.')
         ids.sort()
         return ids
 
@@ -177,7 +177,7 @@ class ConferenceInfo(dict):
             speaker = contribution['speakers'][0]
             full_name = speaker['fullName']
         except IndexError:
-            logger.warning('Cannot retrieve speaker for contribution %d', identifier)
+            logger.warning(f'Cannot retrieve speaker for contribution {identifier}')
             full_name = 'N/A'
         title = contribution['title']
         return f'[{identifier}] {full_name}: "{title}"'
@@ -197,7 +197,7 @@ class ConferenceInfo(dict):
     def dump_excel(self, file_path):
         """Dump the contribution list as an excel file.
         """
-        logger.info('Dumping conference info to %s...', file_path)
+        logger.info(f'Dumping conference info to {file_path}...')
         writer = pd.ExcelWriter(file_path, engine='xlsxwriter')
 
         # Create the master sheet with the session data.
@@ -236,8 +236,7 @@ class ConferenceInfo(dict):
         def _warning_message(msg, contribution, max_title_length=30):
             """Small nested function to provide useful diagnostics in case of missing data.
             """
-            logger.warning('%s for contribution %s (%s...)', msg, contribution['id'],
-                contribution['title'][:max_title_length])
+            logger.warning(f'{msg} for contribution {contribution["id"]} ({contribution["title"][:max_title_length]}...)')
 
         # Loop over all the contributions in the session and retrieve the data.
         # Note that, rather than doing this by column, we do it by row (i.e., by
@@ -309,7 +308,7 @@ class ConferenceInfo(dict):
                     timestamp = attachment['modified_dt']
                     urls.append((url, timestamp))
         if len(urls) == 0:
-            logger.warning('No attachment for "%s"', contribution["title"])
+            logger.warning(f'No attachment for "{contribution["title"]}"')
         return urls
 
     def download_attachments(self, folder_path: str, separator: str = '-',
@@ -327,20 +326,20 @@ class ConferenceInfo(dict):
                     tstamp_file_path = f'{file_path}.tstamp'
                     # If we have the file locally, and we have track of the
                     # timestamp, and that matches the one in the .json file,
-                    # thers is no point in downloading another identical copy.
+                    # there is no point in downloading another identical copy.
                     if os.path.exists(file_path) and os.path.exists(tstamp_file_path) \
                         and open(tstamp_file_path).read() == timestamp:
-                        logger.debug('%s up to date, skipping...', file_path)
+                        logger.debug(f'{file_path} up to date, skipping...')
                         continue
                     # Otherwise we're good to go.
-                    logger.info('Downloading %s -> %s...', url, file_path)
+                    logger.info(f'Downloading {url} -> {file_path}...')
                     if not dry_run:
                         response = requests.get(url)
                         with open(file_path, 'wb') as f:
                             f.write(response.content)
                         num_downloads += 1
                     # And, of course, we need to write the timestamp, as well.
-                    logger.info('Writing file timestamp to %s...', file_path)
+                    logger.info(f'Writing file timestamp to {file_path}...')
                     if not dry_run:
                         with open(tstamp_file_path, 'w') as f:
                             f.write(timestamp)

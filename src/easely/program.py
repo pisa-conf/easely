@@ -135,14 +135,14 @@ class Poster:
     def _load_pixmap_w(file_path: str, width: int):
         """Load the underlying pixmap with a fixed width.
         """
-        logger.debug('Loading image data from %s...', file_path)
+        logger.debug(f'Loading image data from {file_path}...')
         return QtGui.QPixmap(str(file_path)).scaledToWidth(width, QtCore.Qt.SmoothTransformation)
 
     @staticmethod
     def _load_pixmap_h(file_path: str, height: int):
         """Load the underlying pixmap with a fixed height.
         """
-        logger.debug('Loading image data from %s...', file_path)
+        logger.debug(f'Loading image data from {file_path}...')
         return QtGui.QPixmap(str(file_path)).scaledToHeight(height, QtCore.Qt.SmoothTransformation)
 
     @staticmethod
@@ -157,7 +157,7 @@ class Poster:
         """Load all the necessary poster data.
         """
         #pylint: disable=too-many-arguments
-        logger.info('Loading data for poster %s...', self)
+        logger.info(f'Loading data for poster {self}...')
         self.poster_pixmap = self._load_pixmap_w(poster_file_path, poster_width)
         self.presenter_pixmap = self._load_pixmap_h(presenter_file_path, portrait_height)
         self.qrcode_pixmap = self._load_pixmap_h(qrcode_file_path, portrait_height)
@@ -206,7 +206,7 @@ class PosterSession:
         try:
             return datetime.datetime.strptime(text, DATETIME_FORMAT)
         except Exception as exception:
-            logger.warning('Invalid date and/or time for session %s (%s).', self.id_, exception)
+            logger.warning(f'Invalid date and/or time for session {self.id_} ({exception}).')
             return None
 
     @classmethod
@@ -276,10 +276,10 @@ class PosterCollectionBase:
         self.poster_folder_path = os.path.join(self.root_folder_path, self.POSTER_FOLDER_NAME)
         self.presenter_folder_path = os.path.join(self.root_folder_path, self.PRESENTER_FOLDER_NAME)
         self.qrcode_folder_path = os.path.join(self.root_folder_path, self.QRCODE_FOLDER_NAME)
-        logger.debug('Reading %s sheet from %s...', self.PROGRAM_SHEET_NAME, config_file_path)
+        logger.debug(f'Reading {self.PROGRAM_SHEET_NAME} sheet from {config_file_path}...')
         self._program_df = pd.read_excel(config_file_path, self.PROGRAM_SHEET_NAME,
             dtype=self.PROGRAM_COL_DTYPES)
-        logger.debug('Done, %d row(s) found.', len(self._program_df))
+        logger.debug(f'Done, {len(self._program_df)} row(s) found.')
 
     def session_list(self):
         """Return a list with all the PosterSession objects.
@@ -301,11 +301,11 @@ class PosterCollectionBase:
         """Return a pandas data frame with all the data for a given session.
         """
         # pylint: disable=broad-except
-        logger.info('Reading data for session %d...', session_id)
+        logger.info(f'Reading data for session {session_id}...')
         try:
             return pd.read_excel(self.config_file_path, str(session_id), dtype=self.SESSION_COL_DTYPES)
         except Exception as exception:
-            logger.warning('Data not available for session %s: %s', session_id, exception)
+            logger.warning(f'Data not available for session {session_id}: {exception}')
             return None
 
     def session_poster_list(self, session_id, sort=True):
@@ -350,7 +350,7 @@ class PosterCollectionBase:
         file_name = self._image_file_name(poster_id)
         file_path = os.path.join(self.root_folder_path, folder_name, file_name)
         if not os.path.exists(file_path):
-            logger.warning('Could not find %s...', file_path)
+            logger.warning(f'Could not find {file_path}...')
             return default
         return file_path
 
@@ -433,7 +433,7 @@ class PosterRoster(PosterCollectionBase, list):
             session = PosterSession.from_df_row(program_row)
             if not session.ongoing(display_date):
                 continue
-            logger.info('Parsing ongoing %s...', session)
+            logger.info(f'Parsing ongoing {session}...')
             try:
                 session_df = pd.read_excel(config_file_path, f'{session.id_}')
                 for _, session_row in session_df.iterrows():
@@ -442,14 +442,14 @@ class PosterRoster(PosterCollectionBase, list):
                         self.append(poster)
                         self.session = session
             except ValueError as exception:
-                logger.warning('Data not available for session %s: %s', session.id_, exception)
+                logger.warning(f'Data not available for session {session.id_}: {exception}')
             # The following two lines have been modified to support multiple
             # poster sessions in parallel---the break is removed and the session
             # assigned is moved within the for loop.
             #self.session = session
             #break
         if len(self) == 0:
-            logger.warning('Empty poster roster for screen %d', self.screen_id)
+            logger.warning(f'Empty poster roster for screen {self.screen_id}')
 
     def load_pixmaps(self, poster_width: int, portrait_height: int):
         """Load all the poster pixmaps with the proper dimensions.
@@ -523,8 +523,7 @@ class PosterProgram(PosterCollectionBase, dict):
             mult = cnt.values()
             num_screens = len(mult)
             mean_mult = num_posters / num_screens
-            logger.info('%d posters on %d screen(s), multiplicity: %d--%d (average %.2f)',
-                num_posters, num_screens, min(mult), max(mult), mean_mult)
+            logger.info(f'{num_posters} posters on {num_screens} screen(s), multiplicity: {min(mult)}--{max(mult)} (average {mean_mult:.2f})')
             for poster in posters:
                 if self.missing_poster_image(poster.friendly_id):
                     missing_stats['posters'] += 1
@@ -541,7 +540,7 @@ class PosterProgram(PosterCollectionBase, dict):
                     missing_stats['qrcodes'] += 1
                 else:
                     basic_stats['qrcodes'] += 1
-            logger.info('Screen statistics: %s', cnt)
+            logger.info(f'Screen statistics: {cnt}')
         logger.info(f'Basic statistics: {basic_stats}')
         logger.info(f'Missing elements: {missing_stats}')
         logger.info(f'Oprhan posters with no presenter pic:')

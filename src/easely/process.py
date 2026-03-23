@@ -21,7 +21,6 @@
 import os
 
 
-
 def crawl(folder_path: str, file_type: str = '.pdf', filter_pattern: str = None) -> list:
     """Crawl a given folder recursively and return a list of all the files of
     a given type matching a given pattern.

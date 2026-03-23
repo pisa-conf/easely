@@ -38,19 +38,19 @@ def pdf_info(file_path: str):
         Path to the input pdf file.
     """
     # pylint: disable=broad-except
-    assert file_path.endswith('.pdf')
+    assert file_path.endswith(".pdf")
     try:
         pdf = pdfrw.PdfReader(file_path)
     except Exception as exception:
-        logger.error('Parsing error for %s: %s', file_path, exception)
+        logger.error(f"Parsing error for {file_path}: {exception}")
         return None, None
     num_pages = len(pdf.pages)
     box = pdf.pages[0].MediaBox or pdf.pages[0].Parent.MediaBox
     if box is None:
-        logger.warning('No media box for %s...', file_path)
+        logger.warning(f"No media box for {file_path}...")
         return num_pages, None
     if float(box[3]) == 0:
-        logger.warning(f'zero height for {file_path}')
+        logger.warning(f"zero height for {file_path}")
         return num_pages, None
     aspect_ratio = float(box[2]) / float(box[3])
     return num_pages, aspect_ratio
@@ -62,7 +62,7 @@ def poster_candidates(file_list):
     """
     candidates = []
     for file_path in file_list:
-        if file_path.endswith('.pdf'):
+        if file_path.endswith(".pdf"):
             num_pages, aspect_ratio = pdf_info(file_path)
             if num_pages == 1 and aspect_ratio is not None and aspect_ratio < 1:
                 candidates.append(file_path)
@@ -75,58 +75,56 @@ def dispatch_posters(contribution_ids, src_folder_path, dest_folder_path):
     """
     file_dict = {id_: [] for id_ in contribution_ids}
     for file_name in os.listdir(src_folder_path):
-        if not file_name.endswith('.pdf'):
+        if not file_name.endswith(".pdf"):
             continue
-        id_ = int(file_name.split('-')[0])
+        id_ = int(file_name.split("-")[0])
         if id_ in file_dict:
             file_dict[id_].append(os.path.join(src_folder_path, file_name))
     for id_, attachments in file_dict.items():
         if len(attachments) == 0:
-            logger.error('No poster candidate found for contribution %d', id_)
+            logger.error(f"No poster candidate found for contribution {id_}")
             continue
         candidates = poster_candidates(attachments)
         if len(candidates) == 1:
-            logger.info('Unique poster candidate found!')
+            logger.info("Unique poster candidate found!")
             src = candidates[0]
-            file_name = f'{id_:03d}.pdf'
+            file_name = f"{id_:03d}.pdf"
             dest = os.path.join(dest_folder_path, file_name)
             if os.path.exists(dest):
-                logger.info('Target file %s exist, skipping...', dest)
+                logger.info(f"Target file {dest} exist, skipping...")
             else:
-                logger.info('Copying over poster to %s...', dest)
+                logger.info(f"Copying over poster to {dest}...")
                 shutil.copyfile(src, dest)
         else:
-            logger.warning('%d candidate posters / %d attachments for contribution %s',
-                len(candidates), len(attachments), id_)
+            logger.warning(f"{len(candidates)} candidate posters / {len(attachments)} attachments for contribution {id_}")
 
 
 def dispatch_pictures(contribution_ids, src_folder_path, dest_folder_path):
     """
     """
-    logger.info('Dispatching pictures...')
+    logger.info("Dispatching pictures...")
     file_dict = {id_: [] for id_ in contribution_ids}
     for file_name in os.listdir(src_folder_path):
-        if not file_name.split('.')[-1].lower() in ('png', 'jpg', 'jpeg'):
+        if not file_name.split(".")[-1].lower() in ("png", "jpg", "jpeg"):
             continue
-        id_ = int(file_name.split('-')[0])
+        id_ = int(file_name.split("-")[0])
         if id_ in file_dict:
             file_dict[id_].append(os.path.join(src_folder_path, file_name))
     for id_, attachments in file_dict.items():
         if len(attachments) == 0:
-            logger.error('No picture candidate found for contribution %d', id_)
+            logger.error(f"No picture candidate found for contribution {id_}")
             continue
         if len(attachments) == 1:
-            logger.info('Unique picture candidate found!')
+            logger.info("Unique picture candidate found!")
             src = attachments[0]
-            ext = attachments[0].split('.')[-1]
-            file_name = f'{id_:03d}.{ext}'
+            ext = attachments[0].split(".")[-1]
+            file_name = f"{id_:03d}.{ext}"
             dest = os.path.join(dest_folder_path, file_name)
             if os.path.exists(dest):
-                logger.info('Target file %s exist, skipping...', dest)
+                logger.info(f"Target file {dest} exist, skipping...")
             else:
-                logger.info('Copying over poster to %s...', dest)
+                logger.info(f"Copying over poster to {dest}...")
                 shutil.copyfile(src, dest)
         else:
-            logger.warning('%d candidate pictures found for contribution %d...',
-                len(attachments), id_)
-    logger.info('Done.')
+            logger.warning(f"{len(attachments)} candidate pictures found for contribution {id_}...")
+    logger.info("Done.")

@@ -62,7 +62,7 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
         self._interval = interval
         self._timer = QtCore.QTimer()
         self._timer.start(self._interval)
-        logger.debug('Opacity fade time set to %.3f s', self.fade_time())
+        logger.debug(f"Opacity fade time set to {self.fade_time():.3f} s")
 
     def fade_time(self):
         """Return the total fade-in/out time in seconds, i.e., the time that it
@@ -695,7 +695,7 @@ class SlideShow(DisplaWindowBase):
         # pylint: disable=invalid-name
         key = event.text()
         if not key in self.VALID_KEYS:
-            logger.warning('Invalid key pressed (%s).', key)
+            logger.warning(f'Invalid key pressed ({key}).')
             return
         key = int(key)
         if key == SlideShowKeyMap.ADVANCE:
