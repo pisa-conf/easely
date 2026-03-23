@@ -67,9 +67,9 @@ class DisplayMode(Enum):
     """Definition of the possible visualization modes for the applications.
     """
 
-    DEFAULT = 'default'
-    MAXIMIZE = 'maximize'
-    FULLSCREEN = 'fullscreen'
+    DEFAULT = "default"
+    MAXIMIZE = "maximize"
+    FULLSCREEN = "fullscreen"
 
 
 VALID_DISPLAY_MODES = [mode.value for mode in DisplayMode]
@@ -139,63 +139,63 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_config_file(self, parser: argparse.ArgumentParser) -> None:
         """Add an option for the input file.
         """
-        parser.add_argument('cfgfile', type=str,
-            help='path to the input excel configuration file')
+        parser.add_argument("cfgfile", type=str,
+            help="path to the input excel configuration file")
 
     def add_default_arguments(self, parser: argparse.ArgumentParser) -> None:
         """Add the default arguments to the given parser.
         """
         self.add_config_file(parser)
-        parser.add_argument('--conference-name', type=str, default='16th Pisa Meeting on Advanced Detectors',
-            help='the conference name')
-        parser.add_argument('--conference-dates', type=str, default='La Biodola, Isola d\'Elba',
-            help='the conference dates')
-        parser.add_argument('--conference-location', type=str, default='May 26-June 1, 2024',
-            help='the conference location')
+        parser.add_argument("--conference-name", type=str, default="16th Pisa Meeting on Advanced Detectors",
+            help="the conference name")
+        parser.add_argument("--conference-dates", type=str, default="La Biodola, Isola d'Elba",
+            help="the conference dates")
+        parser.add_argument("--conference-location", type=str, default="May 26-June 1, 2024",
+            help="the conference location")
 
     def add_geometry(self, parser: argparse.ArgumentParser, default_header_height: int=310):
         """Add all the geometry options.
         """
-        parser.add_argument('--mode', type=str, default='fullscreen', choices=VALID_DISPLAY_MODES,
-            help='display geometry')
-        parser.add_argument('--poster-width', type=int, default=None,
-            help='width of the poster display (taken from the screen size by default)')
-        parser.add_argument('--header-height', type=int, default=default_header_height,
-            help='height of the poster header')
-        parser.add_argument('--portrait-height', type=int, default=132,
-            help='height of the presenter portraits and QR codes')
+        parser.add_argument("--mode", type=str, default="fullscreen", choices=VALID_DISPLAY_MODES,
+            help="display geometry")
+        parser.add_argument("--poster-width", type=int, default=None,
+            help="width of the poster display (taken from the screen size by default)")
+        parser.add_argument("--header-height", type=int, default=default_header_height,
+            help="height of the poster header")
+        parser.add_argument("--portrait-height", type=int, default=132,
+            help="height of the presenter portraits and QR codes")
 
     @staticmethod
     def add_datetime(parser: argparse.ArgumentParser) -> None:
         """Add an option to fake a different running date.
         """
-        parser.add_argument('--display-date', type=str, default=None,
-            help='optional date, e.g., 23/05/2022')
-        parser.add_argument('--display-time', type=str, default='12:00',
-            help='optional time, e.g., 12:00')
+        parser.add_argument("--display-date", type=str, default=None,
+            help="optional date, e.g., 23/05/2022")
+        parser.add_argument("--display-time", type=str, default="12:00",
+            help="optional time, e.g., 12:00")
 
     @staticmethod
     def add_pause(parser: argparse.ArgumentParser, default: float=300.) -> None:
         """Add the pause interval option.
         """
-        parser.add_argument('--pause-interval', type=float, default=default,
-             help='pause time interval [s]')
+        parser.add_argument("--pause-interval", type=float, default=default,
+             help="pause time interval [s]")
 
     @staticmethod
     def add_advance(parser: argparse.ArgumentParser, default: float=30.) -> None:
         """Add the advance interval option.
         """
-        parser.add_argument('--advance-interval', type=float, default=default,
-             help='pause time interval [s]')
+        parser.add_argument("--advance-interval", type=float, default=default,
+             help="pause time interval [s]")
 
     @staticmethod
     def add_fading(parser: argparse.ArgumentParser) -> None:
         """Add the fading effect option.
         """
-        parser.add_argument('--fading', action='store_true',
-            help='enable the fading effect between posters')
-        parser.add_argument('--no-fading', action='store_false',
-            help='disable the fading effect between posters')
+        parser.add_argument("--fading", action="store_true",
+            help="enable the fading effect between posters")
+        parser.add_argument("--no-fading", action="store_false",
+            help="disable the fading effect between posters")
         parser.set_defaults(fading=False)
 
     @staticmethod
@@ -212,10 +212,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         app = QApplication(sys.argv)
         # Determine the appropriate poster width from the screen size unless this is
         # explicitly overridden via command-line options.
-        if kwargs.get('poster_width') is None:
+        if kwargs.get("poster_width") is None:
             poster_width = app.screens()[0].size().width() - 20
-            logger.info('Setting posted width to %d (based on the screen size)', poster_width)
-            kwargs['poster_width'] = poster_width
+            logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
+            kwargs["poster_width"] = poster_width
         window = SlideShow(**kwargs)
         sys.exit(app.exec_())
 
@@ -225,10 +225,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         app = QApplication(sys.argv)
         # Determine the appropriate poster width from the screen size unless this is
         # explicitly overridden via command-line options.
-        if kwargs.get('poster_width') is None:
+        if kwargs.get("poster_width") is None:
             poster_width = app.screens()[0].size().width() - 20
-            logger.info('Setting posted width to %d (based on the screen size)', poster_width)
-            kwargs['poster_width'] = poster_width
+            logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
+            kwargs["poster_width"] = poster_width
         window = ProgramBrowser(**kwargs)
         sys.exit(app.exec_())
 
@@ -238,17 +238,17 @@ class CliArgumentParser(argparse.ArgumentParser):
         app = QApplication(sys.argv)
         # Determine the appropriate poster width from the screen size unless this is
         # explicitly overridden via command-line options.
-        if kwargs.get('poster_width') is None:
+        if kwargs.get("poster_width") is None:
             poster_width = app.screens()[0].size().width() - 20
-            logger.info('Setting posted width to %d (based on the screen size)', poster_width)
-            kwargs['poster_width'] = poster_width
+            logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
+            kwargs["poster_width"] = poster_width
         window = SessionDirectory(**kwargs)
         sys.exit(app.exec_())
 
     def dump_report(self, **kwargs) -> None:
         """Dump a text report on the program.
         """
-        program = PosterProgram(kwargs.get('cfgfile'))
+        program = PosterProgram(kwargs.get("cfgfile"))
         program.dump_report()
 
     def run(self) -> None:
