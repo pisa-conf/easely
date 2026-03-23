@@ -31,7 +31,7 @@ def generate_qrcode(data, file_path, overwrite=False):
         logger.info(f"File {file_path} exists, skipping...")
         return
     #pylint: disable=invalid-name
-    logger.info(f"Generating QR code for "{data}"...")
+    logger.info(f"Generating QR code for \"{data}\"...")
     qr = qrcode.QRCode(version=1, box_size=10, border=0)
     qr.add_data(data)
     qr.make(fit=True)

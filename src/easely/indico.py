@@ -62,17 +62,17 @@ def retrieve_info(url: str, file_path: str , detail: str = 'sessions', overwrite
     overwrite : bool
         Overwrite the output file.
     """
-    assert file_path.endswith('.json')
+    assert str(file_path).endswith('.json')
     if os.path.exists(file_path) and overwrite is False:
-        logger.info(f'File {file_path} exists, skipping (delete it or set overwrite=False)...')
+        logger.info(f"File {file_path} exists, skipping (delete it or set overwrite=False)...")
         return
-    logger.info(f'Retrieving program from {url}...')
-    resp = requests.get(f'{url}?detail={detail}&pretty=yes')
+    logger.info(f"Retrieving program from {url}...")
+    resp = requests.get(f"{url}?detail={detail}&pretty=yes")
     data = resp.json()
-    logger.info(f'Saving data to {file_path}...')
+    logger.info(f"Saving data to {file_path}...")
     with open(file_path, 'w') as f:
         json.dump(data, f)
-    logger.info('Done.')
+    logger.info("Done.")
 
 
 
