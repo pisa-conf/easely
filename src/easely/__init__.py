@@ -1,5 +1,4 @@
-#
-# Copyright (C) 2021, luca.baldini@pi.infn.it
+# Copyright (C) 2021--2026 the easely team.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,19 +14,47 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
-"""Program-wise facilities.
+"""Minimal __init__ file.
 """
 
+import pathlib
+import subprocess
 
-import logging
+from ._version import __version__ as __base_version__
+
+
+def _git_suffix() -> str:
+    """If we are in a git repo, we want to add the necessary information to the
+    version string.
+
+    This will return something along the lines of ``+gf0f18e6.dirty``.
+    """
+    # pylint: disable=broad-except
+    kwargs = dict(cwd=pathlib.Path(__file__).parent, stderr=subprocess.DEVNULL)
+    try:
+        # Retrieve the git short sha to be appended to the base version string.
+        args = ["git", "rev-parse", "--short", "HEAD"]
+        sha = subprocess.check_output(args, **kwargs).decode().strip()
+        suffix = f"+g{sha}"
+        # If we have uncommitted changes, append a `.dirty` to the version suffix.
+        args = ["git", "diff", "--quiet"]
+        if subprocess.call(args, stdout=subprocess.DEVNULL, **kwargs) != 0:
+            suffix = f"{suffix}.dirty"
+        return suffix
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return ""
+
+
+__version__ = f"{__base_version__}{_git_suffix()}"
+
+
 import os
-import shutil
-import sys
+# import shutil
+# import sys
 
-#
-# System-wide environment settings.
-#
+# #
+# # System-wide environment settings.
+# #
 PACKAGE_NAME = 'easely'
 PISAMEET_ROOT = os.path.abspath(os.path.dirname(__file__))
 PISAMEET_BASE = os.path.abspath(os.path.join(PISAMEET_ROOT, os.pardir, os.pardir))
@@ -42,77 +69,34 @@ MISSING_QRCODE_PATH = os.path.join(PISAMEET_GRAPHICS, 'unknown_qrcode.png')
 MAGIC_FILE_PATH = os.path.join(PISAMEET_BASE, '.reload')
 
 
-class TerminalColors:
-
-    """Terminal facilities for printing text in colors.
-    """
-
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-    @staticmethod
-    def _color(text, color):
-        """Process a piece of tect to be printed out in color.
-        """
-        return '%s%s%s' % (color, text, TerminalColors.ENDC)
-
-    @staticmethod
-    def red(text):
-        """Process a piece of text to be printed out in red.
-        """
-        return TerminalColors._color(text, TerminalColors.RED)
-
-    @staticmethod
-    def yellow(text):
-        """Process a piece of text to be printed out in yellow.
-        """
-        return TerminalColors._color(text, TerminalColors.YELLOW)
-
-    @staticmethod
-    def green(text):
-        """Process a piece of text to be printed out in green.
-        """
-        return TerminalColors._color(text, TerminalColors.GREEN)
-
-
-def abort(msg=''):
-    """Abort the execution of the program.
-    """
-    sys.exit(TerminalColors.red(f'Abort: {msg}'))
 
 
 
-class TerminalFormatter(logging.Formatter):
+# class TerminalFormatter(logging.Formatter):
 
-    """Logging terminal formatter class.
-    """
+#     """Logging terminal formatter class.
+#     """
 
-    def format(self, record):
-        """Overloaded format method.
-        """
-        text = ('>>> %s' % record.msg)
-        if len(record.args) > 0:
-            text = text % record.args
-        if record.levelno >= logging.ERROR:
-            text = TerminalColors.red(text)
-        elif record.levelno == logging.WARNING:
-            text = TerminalColors.yellow(text)
-        return text
+#     def format(self, record):
+#         """Overloaded format method.
+#         """
+#         text = ('>>> %s' % record.msg)
+#         if len(record.args) > 0:
+#             text = text % record.args
+#         if record.levelno >= logging.ERROR:
+#             text = TerminalColors.red(text)
+#         elif record.levelno == logging.WARNING:
+#             text = TerminalColors.yellow(text)
+#         return text
 
 
-#Configure the main terminal logger.
-logger = logging.getLogger('easely')
-logger.setLevel(logging.DEBUG)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(TerminalFormatter())
-logger.addHandler(console_handler)
+# #Configure the main terminal logger.
+# logger = logging.getLogger('easely')
+# logger.setLevel(logging.DEBUG)
+# console_handler = logging.StreamHandler()
+# console_handler.setLevel(logging.DEBUG)
+# console_handler.setFormatter(TerminalFormatter())
+# logger.addHandler(console_handler)
 
 
 # Relevant files for setting up the screen ID.

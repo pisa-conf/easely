@@ -26,7 +26,7 @@ try:
 except ImportError:
     psutil = None
 
-from easely import logger
+from .logging_ import logger
 
 
 NO_PSUTIL_MSG = 'No system information available.'

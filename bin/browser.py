@@ -25,7 +25,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from easely import logger
+from easely.logging_ import logger
 from easely.gui import ProgramBrowser
 from easely.options import ArgumentParser
 

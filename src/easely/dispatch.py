@@ -25,7 +25,7 @@ import shutil
 
 import pdfrw
 
-from . import logger
+from .logging_ import logger
 
 
 def pdf_info(file_path: str):

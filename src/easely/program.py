@@ -27,7 +27,8 @@ import pandas as pd
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 
-from easely import logger, MISSING_PICTURE_PATH, MISSING_POSTER_PATH, MISSING_QRCODE_PATH
+from .logging_ import logger
+from easely import MISSING_PICTURE_PATH, MISSING_POSTER_PATH, MISSING_QRCODE_PATH
 
 
 

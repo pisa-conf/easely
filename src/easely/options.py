@@ -20,9 +20,6 @@
 
 import argparse
 from enum import Enum
-import os
-
-from easely import PISAMEET_BASE
 
 
 class DisplayMode(Enum):

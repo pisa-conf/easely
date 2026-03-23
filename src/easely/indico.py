@@ -27,7 +27,7 @@ import os
 import pandas as pd
 import requests
 
-from easely import logger
+from .logging_ import logger
 from easely.program import PosterCollectionBase, DATETIME_FORMAT
 from easely.qrcode_ import generate_qrcode
 

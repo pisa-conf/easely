@@ -21,7 +21,7 @@ import os
 
 import qrcode
 
-from easely import logger, MISSING_QRCODE_PATH
+from .logging_ import logger
 
 
 def generate_qrcode(data, file_path, overwrite=False):
