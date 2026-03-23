@@ -21,15 +21,12 @@
 """
 
 import argparse
-import sys
 from enum import Enum
-
-from loguru import logger
-from PyQt5.QtWidgets import QApplication
 
 from easely import __name__ as __package_name__
 from easely import __version__, logging_
 from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
+from easely.__qt__ import bootstrap_window
 
 
 def start_message() -> None:
@@ -213,41 +210,17 @@ class CliArgumentParser(argparse.ArgumentParser):
     def start_slideshow(self, **kwargs) -> None:
         """Start the poster slideshow.
         """
-        app = QApplication(sys.argv)
-        # Determine the appropriate poster width from the screen size unless this is
-        # explicitly overridden via command-line options.
-        if kwargs.get("poster_width") is None:
-            poster_width = app.screens()[0].size().width() - 20
-            logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
-            kwargs["poster_width"] = poster_width
-        _ = SlideShow(**kwargs)
-        sys.exit(app.exec_())
+        return bootstrap_window(SlideShow, **kwargs)
 
     def start_browser(self, **kwargs) -> None:
         """Start the program browser.
         """
-        app = QApplication(sys.argv)
-        # Determine the appropriate poster width from the screen size unless this is
-        # explicitly overridden via command-line options.
-        if kwargs.get("poster_width") is None:
-            poster_width = app.screens()[0].size().width() - 20
-            logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
-            kwargs["poster_width"] = poster_width
-        _ = ProgramBrowser(**kwargs)
-        sys.exit(app.exec_())
+        return bootstrap_window(ProgramBrowser, **kwargs)
 
     def start_directory(self, **kwargs) -> None:
         """Start the session directory.
         """
-        app = QApplication(sys.argv)
-        # Determine the appropriate poster width from the screen size unless this is
-        # explicitly overridden via command-line options.
-        if kwargs.get("poster_width") is None:
-            poster_width = app.screens()[0].size().width() - 20
-            logger.info(f"Setting poster width to {poster_width} (based on the screen size)")
-            kwargs["poster_width"] = poster_width
-        _ = SessionDirectory(**kwargs)
-        sys.exit(app.exec_())
+        return bootstrap_window(SessionDirectory, **kwargs)
 
     def dump_report(self, **kwargs) -> None:
         """Dump a text report on the program.
@@ -259,12 +232,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Run the actual command tied to the specific options.
         """
         kwargs = vars(self.parse_args())
-        # Setup logging.
         logging_.setup_logger(kwargs.pop("logging_level"))
-        # Call the appropriate runner function.
         runner = kwargs.pop("runner")
         return runner(**kwargs)
-
 
 
 def main() -> None:
