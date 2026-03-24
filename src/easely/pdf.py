@@ -28,7 +28,8 @@ from .logging_ import logger
 from .typing_ import PathLike
 
 
-# Reference density for rasterization, in dpi.
+# Reference density for rasterization, in dpi, see
+# https://imagemagick.org/script/command-line-options.php
 _DEFAULT_RESOLUTION = 72.
 
 
@@ -60,7 +61,7 @@ def _sanitize_file_path(file_path: PathLike, suffix: str, check_exists: bool = T
     return file_path
 
 
-def pdf_page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
+def page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
     """Return the page size for a given page of a given pdf document.
 
     Arguments
@@ -90,8 +91,8 @@ def pdf_page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, flo
     return width, height
 
 
-def pdf_to_png(input_file_path: PathLike, output_file_path: PathLike,
-               density: float = _DEFAULT_RESOLUTION, compression_level: int = 0) -> pathlib.Path:
+def _run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
+                     target_width: int, compression_level: int = 0) -> pathlib.Path:
     """Convert a .pdf file to a .png file using imagemagick convert under the hood.
 
     Note the `convert` command is deprecated in IMv7 in favor of `magick` or
@@ -108,41 +109,27 @@ def pdf_to_png(input_file_path: PathLike, output_file_path: PathLike,
     output_file_path : PathLike
         The path to the output rasterized (png) file.
 
-    density : float, optional
-        The density (in dpi) to be passed to convert.
+    target_width : int
+        The target width for the output png file in pixels.
 
     compression_level : int, optional
         The PNG compression level to be passed to convert.
         Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
         Note the compression only affects size, not image quality.
     """
+    # Sanitize the input and output file paths.
     input_file_path = _sanitize_file_path(input_file_path, ".pdf")
     output_file_path = _sanitize_file_path(output_file_path, ".png", check_exists=False)
-    logger.debug(f"Converting {input_file_path} to {output_file_path} @{density:.3f} dpi...")
+    # Calculate the density to be passed to convert, given the target width and the
+    # original page size.
+    page_width, _ = page_size(input_file_path)
+    density = target_width / page_width * _DEFAULT_RESOLUTION
+    # Run imagemagick convert to raster the pdf file and save it as a png file.
+    logger.info(f"Converting {input_file_path} to {output_file_path} @{density:.3f} dpi...")
     subprocess.run(["magick", "-density", f"{density}", "-define",
         f"png:compression-level={compression_level}", input_file_path, output_file_path],
         check=True)
     return output_file_path
-
-
-def _calculate_density(target_width: int, original_width: float) -> float:
-    """Calculate the density (in dpi) to be passed to convert, given the target width
-    and the original width of the page.
-
-    Arguments
-    ---------
-    target_width : int
-        The target width for the output png file.
-
-    original_width : float
-        The original width of the page, in points (1/72 inch).
-
-    Returns
-    -------
-    float
-        The density (in dpi) to be passed to convert.
-    """
-    return target_width / original_width * _DEFAULT_RESOLUTION
 
 
 def raster_pdf(input_file_path: PathLike, output_file_path: PathLike, target_width: int,
@@ -195,23 +182,26 @@ def raster_pdf(input_file_path: PathLike, output_file_path: PathLike, target_wid
     pathlib.Path
         The path to the output rasterized (png) file.
     """
+    # Sanitize the input and output file paths, and check if the output file already exists.
     input_file_path = _sanitize_file_path(input_file_path, ".pdf")
     output_file_path = _sanitize_file_path(output_file_path, ".png", check_exists=False)
     logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
     if output_file_path.exists() and not overwrite:
         logger.info(f"Output file {output_file_path} exists, skipping...")
         return output_file_path
-    # Get the original page size and aspect ratio from the pdf file.
-    original_width, original_height = pdf_page_size(input_file_path)
-    aspect_ratio = original_height / original_width
-    # Are we skipping the intermediate rastering?
+    # Run imagemagick to convert the pdf to png---note this is slightly different
+    # depending on whether we want to perform an intermediate rasterization step or not.
     if intermediate_width is None or intermediate_width <= target_width:
-        logger.debug('Skipping intermediate rastering...')
-        density = _calculate_density(target_width, original_width)
-        return pdf_to_png(input_file_path, output_file_path, density)
-    logger.debug('Performing intermediate rastering...')
-    density = _calculate_density(intermediate_width, original_width)
-    file_path = pdf_to_png(input_file_path, output_file_path, density)
+        return _run_imagemagick(input_file_path, output_file_path, target_width)
+    file_path = _run_imagemagick(input_file_path, output_file_path, intermediate_width)
+
+    # Need some significant refactoring, here. We should open the image file once,
+    # and then operate on the PIL.Image object in memory, instead of saving intermediate
+    # results to disk and reopening them. More or less all the facilities should be
+    # in the raster2.py module. Once we do that, we will not need to recalculate the
+    # page size.
+    original_width, original_height = page_size(input_file_path)
+    aspect_ratio = original_height / original_width
     if autocrop:
         raster.png_horizontal_autocrop(file_path, file_path)
     elif aspect_ratio > max_aspect_ratio:
