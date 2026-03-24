@@ -23,7 +23,6 @@ from typing import Tuple
 
 import pdfrw
 
-from . import raster
 from .logging_ import logger
 from .typing_ import PathLike
 
@@ -91,8 +90,8 @@ def page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
     return width, height
 
 
-def _run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
-                     target_width: int, compression_level: int = 0) -> pathlib.Path:
+def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
+                    target_width: int, compression_level: int = 0) -> pathlib.Path:
     """Convert a .pdf file to a .png file using imagemagick convert under the hood.
 
     Note the `convert` command is deprecated in IMv7 in favor of `magick` or
@@ -130,82 +129,3 @@ def _run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
         f"png:compression-level={compression_level}", input_file_path, output_file_path],
         check=True)
     return output_file_path
-
-
-def raster_pdf(input_file_path: PathLike, output_file_path: PathLike, target_width: int,
-               intermediate_width: int = None, overwrite: bool = False,
-               autocrop: bool = False, max_aspect_ratio=1.52) -> pathlib.Path:
-    """Raster a pdf file and convert it to a png.
-
-    This is the main function to convert a poster pdf file to a png file. Since
-    posters are typically shown on a screen with a portrait orientation, all the
-    process is driven by the target width of the final image---ideally we want an
-    a rastered image with the same number of pixels as the physical QPixmap object
-    on the screen, so that we don't have to perform any resizing at runtime.
-
-    In order to maximize the quality of the final image, we offer the possibility
-    to perform an intermediate rasterization step at a higher resolution, followed
-    by a resizing to the target width where we can take advantage of the high-quality
-    resampling algorithms available in PIL. An intermediate rasterization at twice
-    the target width, e.g., is typically very effective.
-
-    Additionally, the function provides an option to automatically crop the rastered
-    image to its content (horizontally), which allows for maximizing the screen use.
-
-    Arguments
-    ---------
-    input_file_path : PathLike
-        The path to the input pdf file.
-
-    output_file_path : PathLike
-        The path to the output rasterized (png) file.
-
-    target_width : int
-        The target width for the output png file.
-
-    intermediate_width : int, optional
-        The intermediate width to be used for the initial rasterization step. If None
-        or smaller than target_width, the intermediate rasterization step is skipped.
-
-    overwrite : bool, optional
-        Whether to overwrite the output file if it already exists (default False).
-
-    autocrop : bool, optional
-        Whether to perform an horizontal autocrop after the initial rasterization
-        step (default False).
-
-    max_aspect_ratio : float, optional
-        The maximum aspect ratio (height / width) allowed for the final image.
-
-    Returns
-    -------
-    pathlib.Path
-        The path to the output rasterized (png) file.
-    """
-    # Sanitize the input and output file paths, and check if the output file already exists.
-    input_file_path = _sanitize_file_path(input_file_path, ".pdf")
-    output_file_path = _sanitize_file_path(output_file_path, ".png", check_exists=False)
-    logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
-    if output_file_path.exists() and not overwrite:
-        logger.info(f"Output file {output_file_path} exists, skipping...")
-        return output_file_path
-    # Run imagemagick to convert the pdf to png---note this is slightly different
-    # depending on whether we want to perform an intermediate rasterization step or not.
-    if intermediate_width is None or intermediate_width <= target_width:
-        return _run_imagemagick(input_file_path, output_file_path, target_width)
-    file_path = _run_imagemagick(input_file_path, output_file_path, intermediate_width)
-
-    # Need some significant refactoring, here. We should open the image file once,
-    # and then operate on the PIL.Image object in memory, instead of saving intermediate
-    # results to disk and reopening them. More or less all the facilities should be
-    # in the raster2.py module. Once we do that, we will not need to recalculate the
-    # page size.
-    original_width, original_height = page_size(input_file_path)
-    aspect_ratio = original_height / original_width
-    if autocrop:
-        raster.png_horizontal_autocrop(file_path, file_path)
-    elif aspect_ratio > max_aspect_ratio:
-        logger.warning(f'Aspect ratio ({aspect_ratio:.3f}) is too large for {input_file_path}!')
-        raster.png_horizontal_padding(file_path, file_path)
-    logger.debug('Resizing to target width...')
-    return raster.png_resize_to_width(file_path, file_path, target_width)

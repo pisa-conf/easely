@@ -1,6 +1,8 @@
 # Specific easely files
 src/easely/screen.cfg
 
+.vscode
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
