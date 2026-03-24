@@ -19,74 +19,19 @@
 
 import os
 import pathlib
-import subprocess
 
 import cv2
 from loguru import logger
 import numpy as np
-import pdfrw
 import PIL
 import PIL.Image
 
 _OPENCV_DATA_FOLDER_PATH = pathlib.Path(__file__).parent.parent.parent / "data"
 
-REFERENCE_DENSITY = 72.
 EXIF_ORIENTATION_TAG = 274
 EXIF_ROTATION_DICT = {3: 180, 6: 270, 8: 90}
 HAARCASCADE_FILE_PATH = _OPENCV_DATA_FOLDER_PATH / 'haarcascade_frontalface_default.xml'
 
-
-def pdf_page_size(file_path: str, page_number: int=0) -> tuple[int, int]:
-    """Return the page size for a given page of a given pdf document.
-
-    Arguments
-    ---------
-    file_path : str
-        The path to the input pdf file.
-
-    page_number : int
-        The target page number (starting from zero).
-    """
-    if not file_path.endswith('.pdf'):
-        raise RuntimeError(f'{file_path} not a pdf file?')
-    logger.debug(f'Retrieving page {page_number} size from {file_path}...')
-    document = pdfrw.PdfReader(file_path)
-    page = document.pages[page_number]
-    # This is a list of strings, e.g., ['0', '0', '1683.72', '2383.92']...
-    bbox = page.MediaBox or page.Parent.MediaBox
-    # ... which we convert to a list of float, e.g., [0, 0, 1683.72, 2383.92]
-    bbox = [float(val) for val in bbox]
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-    logger.debug(f'Page size: ({width}, {height}).')
-    return width, height
-
-
-def pdf_to_png(input_file_path: str, output_file_path: str, density: float = REFERENCE_DENSITY,
-    compression_level: int = 0) -> str:
-    """Convert a .pdf file to a .png file using imagemagick convert under the hood.
-
-    See https://imagemagick.org/script/command-line-options.php for some basic
-    information about convert's internals.
-
-    Arguments
-    ---------
-    input_file_path : str
-        The path to the input pdf file.
-
-    output_file_path : str
-        The path to the output rasterized file.
-
-    density : int
-        The density (in dpi) to be passed to convert.
-    """
-    if not input_file_path.endswith('.pdf'):
-        raise RuntimeError(f'{input_file_path} not a pdf file?')
-    logger.info(f'Converting {input_file_path} to {output_file_path} @{density:.3f} dpi...')
-    subprocess.run(['convert', '-density', f'{density}', '-define',
-        f'png:compression-level={compression_level}', input_file_path, output_file_path],
-        check=True)
-    return output_file_path
 
 
 def resize_image(img, width, height, output_file_path=None, resample=PIL.Image.LANCZOS,
@@ -163,34 +108,6 @@ def png_horizontal_padding(input_file_path: str, output_file_path: str, aspect_r
         output = PIL.Image.new(img.mode, (target_width, height), (255, 255, 255))
         output.paste(img, (delta // 2, 0))
         output.save(output_file_path)
-
-
-def raster_pdf(input_file_path: str, output_file_path: str, target_width: int,
-    intermediate_width: int = None, overwrite: bool = False, autocrop: bool = False,
-    max_aspect_ratio=1.52) -> str:
-    """Raster a pdf file and convert it to a png.
-    """
-    if os.path.exists(output_file_path) and not overwrite:
-        logger.info(f'Output file {output_file_path} exists, skipping...')
-        return
-    logger.info(f'Rastering {input_file_path}...')
-    original_width, original_height = pdf_page_size(input_file_path)
-    aspect_ratio = original_height / original_width
-    # Are we skipping the intermediate rastering?
-    if intermediate_width is None or intermediate_width <= target_width:
-        logger.debug('Skipping intermediate rastering...')
-        density = target_width / original_width * REFERENCE_DENSITY
-        return pdf_to_png(input_file_path, output_file_path, density)
-    logger.debug('Performing intermediate rastering...')
-    density = intermediate_width / original_width * REFERENCE_DENSITY
-    file_path = pdf_to_png(input_file_path, output_file_path, density)
-    if autocrop:
-        png_horizontal_autocrop(file_path, file_path)
-    elif aspect_ratio > max_aspect_ratio:
-        logger.warning(f'Aspect ratio ({aspect_ratio:.3f}) is too large for {input_file_path}!')
-        png_horizontal_padding(file_path, file_path)
-    logger.debug('Resizing to target width...')
-    return png_resize_to_width(file_path, file_path, target_width)
 
 
 def face_bbox(file_path: str, min_frac_size: float = 0.145, padding: float = 1.85):
