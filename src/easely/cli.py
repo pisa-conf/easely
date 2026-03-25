@@ -27,6 +27,7 @@ from easely import __name__ as __package_name__
 from easely import __version__, logging_
 from easely.__qt__ import bootstrap_window
 from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
+from easely import tasks
 
 
 def start_message() -> None:
@@ -132,6 +133,31 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(report)
         report.set_defaults(runner=self.dump_report)
 
+        # Rasterize one or more posters.
+        rasterize = subparsers.add_parser("rasterize",
+            help="rasterize one or more posters",
+            formatter_class=self._FORMATTER_CLASS)
+        rasterize.add_argument("input_files", nargs="+", type=str,
+            help="path to the input pdf file(s)")
+        rasterize.add_argument("--output-folder", type=str,
+            default=tasks.DEFAULT_OUTPUT_DIR,
+            help="the output folder for the generated png file(s)")
+        rasterize.add_argument("--target-width", type=int,
+            default=tasks.RasterizeDefaults.target_width,
+            help="the target width for the generated png file(s)")
+        rasterize.add_argument("--intermediate-width", type=int,
+            default=tasks.RasterizeDefaults.intermediate_width,
+            help="the intermediate width for the generated png file(s)")
+        rasterize.add_argument("--autocrop", action="store_true",
+            help="perform an horizontal autocrop after the initial rasterization step")
+        rasterize.add_argument("--max-aspect-ratio", type=float,
+            default=tasks.RasterizeDefaults.max_aspect_ratio,
+            help="the maximum aspect ratio for the generated png file(s)")
+        rasterize.add_argument("--overwrite", action="store_true",
+            help="overwrite existing output files")
+        self.add_logging_level(rasterize)
+        rasterize.set_defaults(runner=self.rasterize)
+
     @staticmethod
     def add_config_file(parser: argparse.ArgumentParser) -> None:
         """Add an option for the input configuration file.
@@ -227,6 +253,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         program = PosterProgram(kwargs.get("cfgfile"))
         program.dump_report()
+
+    def rasterize(self, **kwargs) -> None:
+        """Rasterize one or more posters.
+        """
+        for file_path in kwargs.pop("input_files"):
+            tasks.rasterize(file_path, **kwargs)
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.

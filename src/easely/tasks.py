@@ -60,7 +60,7 @@ def sanitize_path(path: PathLike, suffix: str = None, check_exists: bool = True)
 
 
 @dataclass(frozen=True)
-class RasterDefaults:
+class RasterizeDefaults:
     """Default values for rasterization parameters.
     """
     output_folder: PathLike = DEFAULT_OUTPUT_DIR
@@ -72,15 +72,15 @@ class RasterDefaults:
     autocrop: bool = True
 
 
-def raster(
+def rasterize(
         input_file_path: PathLike,
-        output_folder: PathLike = RasterDefaults.output_folder,
-        output_file_name: str = RasterDefaults.output_file_name,
-        target_width: int = RasterDefaults.target_width,
-        intermediate_width: int = RasterDefaults.intermediate_width,
-        max_aspect_ratio: float = RasterDefaults.max_aspect_ratio,
-        overwrite: bool = RasterDefaults.overwrite,
-        autocrop: bool = RasterDefaults.autocrop,
+        output_folder: PathLike = RasterizeDefaults.output_folder,
+        output_file_name: str = RasterizeDefaults.output_file_name,
+        target_width: int = RasterizeDefaults.target_width,
+        intermediate_width: int = RasterizeDefaults.intermediate_width,
+        autocrop: bool = RasterizeDefaults.autocrop,
+        max_aspect_ratio: float = RasterizeDefaults.max_aspect_ratio,
+        overwrite: bool = RasterizeDefaults.overwrite
         ) -> pathlib.Path:
     """Raster a pdf file and convert it to a png.
 
@@ -117,15 +117,15 @@ def raster(
         The intermediate width to be used for the initial rasterization step. If None
         or smaller than target_width, the intermediate rasterization step is skipped.
 
-    overwrite : bool, optional
-        Whether to overwrite the output file if it already exists (default False).
-
     autocrop : bool, optional
         Whether to perform an horizontal autocrop after the initial rasterization
         step (default False).
 
     max_aspect_ratio : float, optional
         The maximum aspect ratio (height / width) allowed for the final image.
+
+    overwrite : bool, optional
+        Whether to overwrite the output file if it already exists (default False).
 
     Returns
     -------
