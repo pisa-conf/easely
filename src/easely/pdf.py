@@ -32,34 +32,6 @@ from .typing_ import PathLike
 _DEFAULT_RESOLUTION = 72.
 
 
-def _sanitize_file_path(file_path: PathLike, suffix: str, check_exists: bool = True) -> pathlib.Path:
-    """Sanitize the input file path, i.e, convert it to a pathlib.Path object,
-    ensuring it exists and has the correct suffix.
-
-    Arguments
-    ---------
-    file_path : PathLike
-        The input file path (either a string or a pathlib.Path object).
-
-    suffix : str
-        The expected file suffix (None to disengage the check).
-
-    check_exists : bool
-        Whether to check if the file exists (default True).
-
-    Returns
-    -------
-    pathlib.Path
-        The sanitized file path, as a pathlib.Path object.
-    """
-    file_path = pathlib.Path(file_path)
-    if check_exists and not file_path.is_file():
-        raise RuntimeError(f"{file_path} does not exist or is not a file")
-    if suffix is not None and file_path.suffix != suffix:
-        raise RuntimeError(f"{file_path} is not a {suffix} file")
-    return file_path
-
-
 def page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
     """Return the page size for a given page of a given pdf document.
 
@@ -76,7 +48,6 @@ def page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
     Tuple[float, float]
         The page size, as a tuple of (width, height).
     """
-    file_path = _sanitize_file_path(file_path, ".pdf")
     logger.debug(f"Retrieving page {page_number} size from {file_path}...")
     document = pdfrw.PdfReader(file_path)
     page = document.pages[page_number]
@@ -116,11 +87,7 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
         Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
         Note the compression only affects size, not image quality.
     """
-    # Sanitize the input and output file paths.
-    input_file_path = _sanitize_file_path(input_file_path, ".pdf")
-    output_file_path = _sanitize_file_path(output_file_path, ".png", check_exists=False)
-    # Calculate the density to be passed to convert, given the target width and the
-    # original page size.
+    # Calculate the density to be passed to convert.
     page_width, _ = page_size(input_file_path)
     density = target_width / page_width * _DEFAULT_RESOLUTION
     # Run imagemagick convert to raster the pdf file and save it as a png file.
