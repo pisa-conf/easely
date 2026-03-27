@@ -109,6 +109,21 @@ def download(
 
 
 @dataclass(frozen=True)
+class DispatchDefaults:
+
+    """Default values for dispatch task parameters.
+    """
+
+    pass
+
+
+def dispatch() -> None:
+    """Dispatch.
+    """
+    pass
+
+
+@dataclass(frozen=True)
 class RasterizeDefaults:
 
     """Default values for rasterization task parameters.
@@ -213,3 +228,18 @@ def rasterize(
         img.png_horizontal_padding(file_path, file_path)
     logger.debug('Resizing to target width...')
     return img.png_resize_to_width(file_path, file_path, target_width)
+
+
+@dataclass(frozen=True)
+class FacecropDefaults:
+
+    """Default values for face cropping task parameters.
+    """
+
+    pass
+
+
+def facecrop() -> None:
+    """Face crop.
+    """
+    pass
