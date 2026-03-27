@@ -19,9 +19,11 @@
 
 import pathlib
 from dataclasses import dataclass
+from typing import Tuple
 
 from . import pdf
 from . import img
+from . import indico
 from . import __name__ as __package_name__
 from .logging_ import logger
 from .typing_ import PathLike
@@ -59,10 +61,59 @@ def sanitize_path(path: PathLike, suffix: str = None, check_exists: bool = True)
     return path
 
 
+def create_folder(path: PathLike) -> pathlib.Path:
+    """Create the output folder if it does not exist.
+
+    Arguments
+    ---------
+    path : PathLike
+        The path to the output folder.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the output folder, as a pathlib.Path object.
+    """
+    path = pathlib.Path(path)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+@dataclass(frozen=True)
+class DownloadDefaults:
+
+    """Default values for the download task parameters.
+    """
+
+    output_folder: PathLike = DEFAULT_OUTPUT_DIR
+    info_file_name: str = "program"
+    filters: Tuple[str] = ("pdf", "ppt", "pptx", "png", "jpg", "jpeg")
+    #overwrite_info: bool = False
+    #overwrite_attachments: bool = False
+
+
+def download(
+        url: str,
+        *sessions: int,
+        output_folder: PathLike = DownloadDefaults.output_folder,
+        info_file_name: str = DownloadDefaults.info_file_name,
+        filters: Tuple[str] = DownloadDefaults.filters,
+        ) -> None:
+    """Download.
+    """
+    output_folder = create_folder(output_folder)
+    file_path = output_folder / f"{info_file_name}.json"
+    indico.retrieve_info(url, file_path, overwrite=True)
+    info = indico.ConferenceInfo(file_path)
+    info.download_attachments(output_folder, filters=filters)
+
+
 @dataclass(frozen=True)
 class RasterizeDefaults:
-    """Default values for rasterization parameters.
+
+    """Default values for rasterization task parameters.
     """
+
     output_folder: PathLike = DEFAULT_OUTPUT_DIR
     output_file_name: str = None
     target_width: int = 2120
@@ -134,7 +185,7 @@ def rasterize(
     """
     # Sanitize the input and output file paths, and check if the output file already exists.
     input_file_path = sanitize_path(input_file_path, ".pdf")
-    output_folder = sanitize_path(output_folder)
+    output_folder = create_folder(output_folder)
     if output_file_name is None:
         output_file_name = input_file_path.stem + ".png"
     output_file_path = output_folder / output_file_name

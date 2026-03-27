@@ -90,6 +90,43 @@ class CliArgumentParser(argparse.ArgumentParser):
         # See https://stackoverflow.com/questions/8757338/
         subparsers._parser_class = argparse.ArgumentParser
 
+        # Download the indico stuff.
+        download = subparsers.add_parser("download",
+            help="download the program information from indico",
+            formatter_class=self._FORMATTER_CLASS)
+        download.add_argument("url", type=str,
+            help="the indico url for the conference, e.g., https://indico.cern.ch/event/12345/")
+        download.add_argument("--output-folder", type=str,
+            default=tasks.DownloadDefaults.output_folder,
+            help="the output folder for the generated files")
+        self.add_logging_level(download)
+        download.set_defaults(runner=self.download)
+
+        # Rasterize one or more posters.
+        rasterize = subparsers.add_parser("rasterize",
+            help="rasterize one or more posters",
+            formatter_class=self._FORMATTER_CLASS)
+        rasterize.add_argument("input_files", nargs="+", type=str,
+            help="path to the input pdf file(s)")
+        rasterize.add_argument("--output-folder", type=str,
+            default=tasks.DEFAULT_OUTPUT_DIR,
+            help="the output folder for the generated png file(s)")
+        rasterize.add_argument("--target-width", type=int,
+            default=tasks.RasterizeDefaults.target_width,
+            help="the target width for the generated png file(s)")
+        rasterize.add_argument("--intermediate-width", type=int,
+            default=tasks.RasterizeDefaults.intermediate_width,
+            help="the intermediate width for the generated png file(s)")
+        rasterize.add_argument("--autocrop", action="store_true",
+            help="perform an horizontal autocrop after the initial rasterization step")
+        rasterize.add_argument("--max-aspect-ratio", type=float,
+            default=tasks.RasterizeDefaults.max_aspect_ratio,
+            help="the maximum aspect ratio for the generated png file(s)")
+        rasterize.add_argument("--overwrite", action="store_true",
+            help="overwrite existing output files")
+        self.add_logging_level(rasterize)
+        rasterize.set_defaults(runner=self.rasterize)
+
         # Poster slideshow.
         slideshow = subparsers.add_parser("slideshow",
             help="run the poster slideshow",
@@ -132,31 +169,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_config_file(report)
         self.add_logging_level(report)
         report.set_defaults(runner=self.dump_report)
-
-        # Rasterize one or more posters.
-        rasterize = subparsers.add_parser("rasterize",
-            help="rasterize one or more posters",
-            formatter_class=self._FORMATTER_CLASS)
-        rasterize.add_argument("input_files", nargs="+", type=str,
-            help="path to the input pdf file(s)")
-        rasterize.add_argument("--output-folder", type=str,
-            default=tasks.DEFAULT_OUTPUT_DIR,
-            help="the output folder for the generated png file(s)")
-        rasterize.add_argument("--target-width", type=int,
-            default=tasks.RasterizeDefaults.target_width,
-            help="the target width for the generated png file(s)")
-        rasterize.add_argument("--intermediate-width", type=int,
-            default=tasks.RasterizeDefaults.intermediate_width,
-            help="the intermediate width for the generated png file(s)")
-        rasterize.add_argument("--autocrop", action="store_true",
-            help="perform an horizontal autocrop after the initial rasterization step")
-        rasterize.add_argument("--max-aspect-ratio", type=float,
-            default=tasks.RasterizeDefaults.max_aspect_ratio,
-            help="the maximum aspect ratio for the generated png file(s)")
-        rasterize.add_argument("--overwrite", action="store_true",
-            help="overwrite existing output files")
-        self.add_logging_level(rasterize)
-        rasterize.set_defaults(runner=self.rasterize)
 
     @staticmethod
     def add_config_file(parser: argparse.ArgumentParser) -> None:
@@ -233,6 +245,17 @@ class CliArgumentParser(argparse.ArgumentParser):
                             default="INFO",
                             help="logging level")
 
+    def download(self, **kwargs) -> None:
+        """Download the program information and associated attachments from indico.
+        """
+        tasks.download(**kwargs)
+
+    def rasterize(self, **kwargs) -> None:
+        """Rasterize one or more posters.
+        """
+        for file_path in kwargs.pop("input_files"):
+            tasks.rasterize(file_path, **kwargs)
+
     def start_slideshow(self, **kwargs) -> None:
         """Start the poster slideshow.
         """
@@ -253,12 +276,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         program = PosterProgram(kwargs.get("cfgfile"))
         program.dump_report()
-
-    def rasterize(self, **kwargs) -> None:
-        """Rasterize one or more posters.
-        """
-        for file_path in kwargs.pop("input_files"):
-            tasks.rasterize(file_path, **kwargs)
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
