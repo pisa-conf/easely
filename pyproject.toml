@@ -40,6 +40,7 @@ dependencies = [
   "pdfrw",
   "PyQt5",
   "qrcode",
+  "requests",
   ]
 
 # Optional dependencies are listed here, grouped into logical sections.
