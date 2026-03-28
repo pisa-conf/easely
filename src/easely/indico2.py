@@ -83,24 +83,6 @@ def download_event_data(url: str, file_path: PathLike, detail: str = "sessions",
     return file_path
 
 
-def _parse_date(data: dict) -> datetime.datetime:
-    """Parse a date/time dictionary as retrieved from the indico API, e.g.,
-    {'date': '2015-05-28', 'time': '15:45:00', 'tz': 'Europe/Rome'}.
-
-    Arguments
-    ---------
-    date : dict
-        The date dictionary to parse.
-
-    Returns
-    -------
-    datetime.datetime
-        The datetime object corresponding to the input date dictionary.
-    """
-    naive = datetime.datetime.strptime(f"{data['date']} {data['time']}", _DATETIME_FORMAT)
-    return naive.replace(tzinfo=ZoneInfo(data['tz']))
-
-
 class AbstractIndicoObject(ABC):
 
     """Abstract class to represent an indico object, as retrieved from the indico API.
@@ -108,6 +90,24 @@ class AbstractIndicoObject(ABC):
     This defines a single abstract method, `from_json_dict`, to create an indico object
     from a fragment of the .json file retrieved from the indico API, as a Python dictionary.
     """
+
+    @staticmethod
+    def parse_date(date: dict) -> datetime.datetime:
+        """Parse a date/time dictionary as retrieved from the indico API, e.g.,
+        {'date': '2015-05-28', 'time': '15:45:00', 'tz': 'Europe/Rome'}.
+
+        Arguments
+        ---------
+        date : dict
+            The date dictionary to parse.
+
+        Returns
+        -------
+        datetime.datetime
+            The datetime object corresponding to the input date dictionary.
+        """
+        naive = datetime.datetime.strptime(f"{date['date']} {date['time']}", _DATETIME_FORMAT)
+        return naive.replace(tzinfo=ZoneInfo(date['tz']))
 
     @classmethod
     @abstractmethod
@@ -296,7 +296,7 @@ class Session(AbstractIndicoObject):
     def from_json_dict(cls, data: dict):
         """Implementation of the AbstractIndicoObject abstract method.
         """
-        args = _parse_date(data["startDate"]), _parse_date(data["endDate"]), \
+        args = cls.parse_date(data["startDate"]), cls.parse_date(data["endDate"]), \
             data["title"], data["url"]
         session = cls(*args)
         # Populate the contributions from the contributions field, if any.
