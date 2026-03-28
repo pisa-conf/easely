@@ -23,60 +23,15 @@ from typing import Tuple
 
 from . import pdf
 from . import img
-from . import indico
+from . import indico2 as indico
 from . import __name__ as __package_name__
 from .logging_ import logger
+from .paths import sanitize_file_path, sanitize_folder_path
 from .typing_ import PathLike
 
 # Default output directory for generated files.
 DEFAULT_OUTPUT_DIR = pathlib.Path.home() / f"{__package_name__}data"
-DEFAULT_OUTPUT_DIR.mkdir(exist_ok=True)
-
-
-def sanitize_path(path: PathLike, suffix: str = None, check_exists: bool = True) -> pathlib.Path:
-    """Sanitize the input file path, i.e, convert it to a pathlib.Path object,
-    ensuring it exists and has the correct suffix.
-
-    Arguments
-    ---------
-    path : PathLike
-        The input file path (either a string or a pathlib.Path object).
-
-    suffix : str, optional
-        The expected file suffix (None to disengage the check).
-
-    check_exists : bool
-        Whether to check if the file exists (default True).
-
-    Returns
-    -------
-    pathlib.Path
-        The sanitized file path, as a pathlib.Path object.
-    """
-    path = pathlib.Path(path)
-    if check_exists and not path.exists():
-        raise RuntimeError(f"{path} does not exist")
-    if suffix is not None and path.suffix != suffix:
-        raise RuntimeError(f"{path} is not a {suffix} file")
-    return path
-
-
-def create_folder(path: PathLike) -> pathlib.Path:
-    """Create the output folder if it does not exist.
-
-    Arguments
-    ---------
-    path : PathLike
-        The path to the output folder.
-
-    Returns
-    -------
-    pathlib.Path
-        The path to the output folder, as a pathlib.Path object.
-    """
-    path = pathlib.Path(path)
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+DEFAULT_OUTPUT_DIR = sanitize_folder_path(DEFAULT_OUTPUT_DIR, create=True)
 
 
 @dataclass(frozen=True)
@@ -101,11 +56,12 @@ def download(
         ) -> None:
     """Download.
     """
-    output_folder = create_folder(output_folder)
+    output_folder = sanitize_folder_path(output_folder, create=True)
     file_path = output_folder / f"{info_file_name}.json"
-    indico.retrieve_info(url, file_path, overwrite=True)
-    info = indico.ConferenceInfo(file_path)
-    info.download_attachments(output_folder, filters=filters)
+    indico.download_event_data(url, file_path, overwrite=True)
+    event = indico.Event(file_path)
+    #info = indico.ConferenceInfo(file_path)
+    #info.download_attachments(output_folder, filters=filters)
 
 
 @dataclass(frozen=True)
@@ -198,9 +154,8 @@ def rasterize(
     pathlib.Path
         The path to the output rasterized (png) file.
     """
-    # Sanitize the input and output file paths, and check if the output file already exists.
-    input_file_path = sanitize_path(input_file_path, ".pdf")
-    output_folder = create_folder(output_folder)
+    input_file_path = sanitize_file_path(input_file_path, suffix=".pdf", check_exists=True)
+    output_folder = sanitize_folder_path(output_folder, create=True)
     if output_file_name is None:
         output_file_name = input_file_path.stem + ".png"
     output_file_path = output_folder / output_file_name
