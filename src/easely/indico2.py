@@ -19,11 +19,11 @@
 
 import datetime
 import json
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List
 from zoneinfo import ZoneInfo
 
-from cv2 import data
 import requests
 
 from .logging_ import logger
@@ -101,8 +101,35 @@ def _parse_date(data: dict) -> datetime.datetime:
     return naive.replace(tzinfo=ZoneInfo(data['tz']))
 
 
+class AbstractIndicoObject(ABC):
+
+    """Abstract class to represent an indico object, as retrieved from the indico API.
+
+    This defines a single abstract method, `from_json_dict`, to create an indico object
+    from a fragment of the .json file retrieved from the indico API, as a Python dictionary.
+    """
+
+    @classmethod
+    @abstractmethod
+    def from_json_dict(cls, data: dict):
+        """Create an indico object from a dictionary containing the relevant fields.
+
+        Arguments
+        ---------
+        data : dict
+            The dictionary containing the indico object data, as retrieved from the
+            indico API.
+
+        Returns
+        -------
+        AbstractIndicoObject
+            The indico object created from the given data.
+        """
+        pass
+
+
 @dataclass(frozen=True)
-class Presenter:
+class Presenter(AbstractIndicoObject):
 
     """Class to represent the information about a presenter of an indico event, as
     retrieved from the indico API.
@@ -126,26 +153,15 @@ class Presenter:
     affiliation: str = "N/A"
 
     @classmethod
-    def from_dict(cls, data: dict):
-        """Create a Presenter object from a dictionary containing the relevant fields.
-
-        Arguments
-        ---------
-        data : dict
-            The dictionary containing the presenter data, as retrieved from the
-            indico API.
-
-        Returns
-        -------
-        Presenter
-            The Presenter object created from the given data.
+    def from_json_dict(cls, data: dict):
+        """Implementation of the AbstractIndicoObject abstract method.
         """
         args = data["first_name"], data["last_name"], data["affiliation"]
         return cls(*args)
 
 
 @dataclass(frozen=True)
-class Contribution:
+class Contribution(AbstractIndicoObject):
 
     """Class to represent the information about a contribution of an indico event, as
     retrieved from the indico API.
@@ -213,24 +229,13 @@ class Contribution:
     attachment_timestamps: List[str] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict):
-        """Create a Contribution object from a dictionary containing the relevant
-        fields (typically from the program json file).
-
-        Arguments
-        ---------
-        data : dict
-            The dictionary containing the contribution data.
-
-        Returns
-        -------
-        Contribution
-            The Contribution object created from the given data.
+    def from_json_dict(cls, data: dict):
+        """Implementation of the AbstractIndicoObject abstract method.
         """
         # Need a try-except block here since some contributions do not have any speaker,
         # and the speakers field is an empty list in that case.
         try:
-            presenter = Presenter.from_dict(data["speakers"][0])
+            presenter = Presenter.from_json_dict(data["speakers"][0])
         except IndexError:
             presenter = Presenter()
         # Create the contribution object from the relevant fields.
@@ -251,7 +256,7 @@ class Contribution:
 
 
 @dataclass
-class Session:
+class Session(AbstractIndicoObject):
 
     """Class to represent the information about a session of an indico event, as
     retrieved from the indico API.
@@ -288,26 +293,15 @@ class Session:
     contributions: List[Contribution] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict):
-        """Create a Session object from a dictionary containing the relevant fields.
-
-        Arguments
-        ---------
-        data : dict
-            The dictionary containing the session data, as retrieved from the
-            indico API.
-
-        Returns
-        -------
-        Session
-            The Session object created from the given data.
+    def from_json_dict(cls, data: dict):
+        """Implementation of the AbstractIndicoObject abstract method.
         """
         args = _parse_date(data["startDate"]), _parse_date(data["endDate"]), \
             data["title"], data["url"]
         session = cls(*args)
         # Populate the contributions from the contributions field, if any.
         for contribution_data in data["contributions"]:
-            contribution = Contribution.from_dict(contribution_data)
+            contribution = Contribution.from_json_dict(contribution_data)
             session.contributions.append(contribution)
         return session
 
@@ -385,5 +379,5 @@ class Event:
         sessions = data["results"][0]["sessions"]
         logger.info(f"{len(sessions)} session(s) found.")
         for data in sessions:
-            session = Session.from_dict(data)
+            session = Session.from_json_dict(data)
             print(session)
