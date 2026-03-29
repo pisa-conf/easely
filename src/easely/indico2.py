@@ -22,14 +22,12 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List
-from zoneinfo import ZoneInfo
 
 import requests
 
 from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
-
 
 _DATE_FORMAT = "%Y-%m-%d"
 _TIME_FORMAT = "%H:%M:%S"
@@ -106,8 +104,7 @@ class AbstractIndicoObject(ABC):
         datetime.datetime
             The datetime object corresponding to the input date dictionary.
         """
-        naive = datetime.datetime.strptime(f"{date['date']} {date['time']}", _DATETIME_FORMAT)
-        return naive.replace(tzinfo=ZoneInfo(date['tz']))
+        return datetime.datetime.strptime(f"{date['date']} {date['time']}", _DATETIME_FORMAT)
 
     @classmethod
     @abstractmethod
