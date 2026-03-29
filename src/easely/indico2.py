@@ -26,7 +26,7 @@ from typing import List
 import requests
 
 from .logging_ import logger
-from .paths import sanitize_file_path
+from .paths import sanitize_file_path, sanitize_folder_path
 from .typing_ import PathLike
 
 _DATE_FORMAT = "%Y-%m-%d"
@@ -245,11 +245,64 @@ class Contribution(AbstractIndicoObject):
                 contribution.attachment_timestamps.append(attachment["modified_dt"])
         return contribution
 
-    def download_attachments(self, folder_path: PathLike) -> None:
+    def download_attachments(self, folder_path: PathLike, separator: str = '-',
+            file_types: tuple = None) -> int:
         """Download the attachments for this contribution, if any.
 
+        Since downloading a bunch of files for many contribution is an expensive
+        process, we provide a minimal mechanism to avoid downloading the same file
+        over and over again. More specifically, the metadata that come with the .json
+        file from indico include a timestamp for each attachment, which is updated
+        whenever the file is uploaded or modified, and we create a small text file with
+        the timestamp next to each file that we download so that we can check if the
+        file is up to date before downloading it again.
+
+        Arguments
+        ---------
+        folder_path : PathLike
+            The path to the folder where to save the attachments.
+
+        separator : str
+            The separator to use between the contribution id and the original file name
+            when saving the attachments.
+
+        file_types : tuple
+            The file types to download (None to download all attachments).
+
+        Returns
+        -------
+        int
+            The number of attachments downloaded.
         """
-        pass
+        folder_path = sanitize_folder_path(folder_path, create=True)
+        num_downloads = 0
+        for url, timestamp in zip(self.attachment_urls, self.attachment_timestamps):
+            # Check if the file type matches the specified file types, if any.
+            if file_types is not None and not url.endswith(file_types):
+                logger.debug(f"{url} does not match the specified file types, skipping...")
+                continue
+            file_name = f"{self.friendly_id:04d}{separator}{url.split('/')[-1]}"
+            file_path = folder_path / file_name
+            timestamp_file_path = file_path.with_suffix(".tstamp")
+            # If we have the file locally, and we have track of the timestamp, and that
+            # matches the one in the .json file, there is no point in downloading another
+            # identical copy.
+            if file_path.is_file() and timestamp_file_path.is_file():
+                if timestamp_file_path.read_text() == timestamp:
+                    logger.debug(f"{file_path} is up to date, skipping...")
+                    continue
+            # Otherwise we can go ahead and download the file.
+            logger.info(f"Downloading {url} -> {file_path}...")
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(file_path, "wb") as output_file:
+                output_file.write(response.content)
+            num_downloads += 1
+            # And, of course, we need to write the timestamp, as well.
+            logger.debug(f"Writing timestamp file to {timestamp_file_path}...")
+            with open(timestamp_file_path, "w") as timestamp_file:
+                timestamp_file.write(timestamp)
+        return num_downloads
 
 
 @dataclass
@@ -281,12 +334,39 @@ class Session(AbstractIndicoObject):
     * `slotTitle`
     * `address`
     * `conveners`
+
+    Note the `session` field is a dictionary containing some relevant information:
+
+    * `folders`
+    * `startDate`
+    * `endDate`
+    * `_type`
+    * `sessionConveners`
+    * `title`
+    * `color`
+    * `textColor`
+    * `description`
+    * `material`
+    * `isPoster`
+    * `type`
+    * `url`
+    * `roomFullname`
+    * `location`
+    * `address`
+    * `_fossil`
+    * `numSlots`
+    * `id`
+    * `db_id`
+    * `friendly_id`
+    * `room`
+    * `code`
     """
 
     start_date: datetime.datetime
     end_date: datetime.datetime
     title: str
     url: str
+    is_poster: bool
     contributions: List[Contribution] = field(default_factory=list)
 
     @classmethod
@@ -294,7 +374,7 @@ class Session(AbstractIndicoObject):
         """Implementation of the AbstractIndicoObject abstract method.
         """
         args = cls.parse_date(data["startDate"]), cls.parse_date(data["endDate"]), \
-            data["title"], data["url"]
+            data["title"], data["url"], data["session"]["isPoster"]
         session = cls(*args)
         # Populate the contributions from the contributions field, if any.
         for contribution_data in data["contributions"]:
@@ -377,4 +457,10 @@ class Event:
         logger.info(f"{len(sessions)} session(s) found.")
         for data in sessions:
             session = Session.from_json_dict(data)
-            print(session)
+            print(session.title, session.is_poster, len(session.contributions))
+
+    def download_attachments(self, folder_path: PathLike, separator: str = '-',
+        file_types: tuple = None) -> int:
+        """Download the attachments for this event, if any.
+        """
+        pass

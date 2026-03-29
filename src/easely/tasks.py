@@ -26,12 +26,8 @@ from . import img
 from . import indico2 as indico
 from . import __name__ as __package_name__
 from .logging_ import logger
-from .paths import sanitize_file_path, sanitize_folder_path
+from .paths import WorkspaceLayout, sanitize_file_path, sanitize_folder_path, PROGRAM_FILE_NAME
 from .typing_ import PathLike
-
-# Default output directory for generated files.
-DEFAULT_OUTPUT_DIR = pathlib.Path.home() / f"{__package_name__}data"
-DEFAULT_OUTPUT_DIR = sanitize_folder_path(DEFAULT_OUTPUT_DIR, create=True)
 
 
 @dataclass(frozen=True)
@@ -40,8 +36,7 @@ class DownloadDefaults:
     """Default values for the download task parameters.
     """
 
-    output_folder: PathLike = DEFAULT_OUTPUT_DIR
-    info_file_name: str = "program"
+    output_folder: PathLike = pathlib.Path.cwd()
     filters: Tuple[str] = ("pdf", "ppt", "pptx", "png", "jpg", "jpeg")
     #overwrite_info: bool = False
     #overwrite_attachments: bool = False
@@ -49,15 +44,13 @@ class DownloadDefaults:
 
 def download(
         url: str,
-        *sessions: int,
         output_folder: PathLike = DownloadDefaults.output_folder,
-        info_file_name: str = DownloadDefaults.info_file_name,
         filters: Tuple[str] = DownloadDefaults.filters,
         ) -> None:
     """Download.
     """
     output_folder = sanitize_folder_path(output_folder, create=True)
-    file_path = output_folder / f"{info_file_name}.json"
+    file_path = output_folder / f"{PROGRAM_FILE_NAME}.json"
     indico.download_event_data(url, file_path, overwrite=True)
     event = indico.Event(file_path)
     #info = indico.ConferenceInfo(file_path)
@@ -85,7 +78,7 @@ class RasterizeDefaults:
     """Default values for rasterization task parameters.
     """
 
-    output_folder: PathLike = DEFAULT_OUTPUT_DIR
+    output_folder: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS
     output_file_name: str = None
     target_width: int = 2120
     intermediate_width: int = 4240

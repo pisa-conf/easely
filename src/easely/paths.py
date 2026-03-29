@@ -18,9 +18,26 @@
 """
 
 import pathlib
+from enum import Enum
 
 from .logging_ import logger
 from .typing_ import PathLike
+
+
+PROGRAM_FILE_NAME = "program"
+
+
+class WorkspaceLayout(str, Enum):
+
+    """Small Enum class with the basic folder structure within each conference root folder.
+    """
+
+    ATTACHMENTS = "attachments"
+    POSTERS = "posters"
+    SLIDES = "slides"
+    HEADSHOTS = "headshots"
+    RASTERED_POSTERS = "rastered_posters"
+    CROPPED_HEADSHOTS = "cropped_headshots"
 
 
 def sanitize_file_path(path: PathLike, suffix: str = None, check_exists: bool = False) -> pathlib.Path:
