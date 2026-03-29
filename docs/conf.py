@@ -4,9 +4,7 @@
 
 import importlib.metadata
 
-#from easely import __version__, __name__ as __package_name__
-__version__ = "0.1.0"
-__package_name__ = "easely"
+from easely import __version__, __name__ as __package_name__
 
 
 # Get package metadata.

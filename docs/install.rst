@@ -1,40 +1,14 @@
 .. _install:
 
-Installation and usage
-======================
+Installation
+============
 
-Packaging and distribution are key aspects of any Python project, and two that
-underwent a significant evolution over the last few years.
-The bottomline is: you should ship a ``pyproject.toml`` file with your project.
-For reference, the one we are distributing with this repository looks like
+.. warning::
 
-.. literalinclude:: ../pyproject.toml
+    This is a work in progress, and the installation instructions are not
+    finalized yet. Please check back later for updates.
 
-pyproject files can be arbitrarily complex, and encompass any sort of meta
-information that goes along with your project, but, at the very basic level,
-they make your project `installable.` This means that including a properly
-formatted ``pyproject.toml`` file will allow a user to, e.g., ``pip install`` your
-package transprently---directly from PyPI, if you have added your package there,
-
-.. code-block:: shell
-
-    pip install package
-
-or locally at the very minimum
-
-.. code-block:: shell
-
-    pip install .
-
-This is it. All the files get copied into a place where they can be imported from,
-and it is the ``pyproject.toml`` file that makes that possible.
-
-
-.. note::
-
-    If you have never heard about pip, the  `pip repo <https://github.com/pypa/pip>`_
-    is a good starting point, and also a good example of a non-trivial Python package
-    that you can take as an inspiration for your own endeavors.
+    The thing should go on pypi soon.
 
 
 Editable installation

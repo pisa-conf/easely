@@ -16,8 +16,13 @@ Add docs.
    :caption: Contents:
 
    install
-   api
    files
    preprocessing
    raspberry
    license
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API Reference:
+
+   indico
