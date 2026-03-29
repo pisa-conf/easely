@@ -53,8 +53,8 @@ def download(
     file_path = output_folder / f"{PROGRAM_FILE_NAME}.json"
     indico.download_event_data(url, file_path, overwrite=True)
     event = indico.Event(file_path)
-    #info = indico.ConferenceInfo(file_path)
-    #info.download_attachments(output_folder, filters=filters)
+    attachments_folder = output_folder / WorkspaceLayout.ATTACHMENTS
+    event.download_poster_attachments(attachments_folder, file_types=filters)
 
 
 @dataclass(frozen=True)

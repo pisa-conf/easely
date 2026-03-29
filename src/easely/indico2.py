@@ -362,6 +362,7 @@ class Session(AbstractIndicoObject):
     * `code`
     """
 
+    id: int
     start_date: datetime.datetime
     end_date: datetime.datetime
     title: str
@@ -373,7 +374,7 @@ class Session(AbstractIndicoObject):
     def from_json_dict(cls, data: dict):
         """Implementation of the AbstractIndicoObject abstract method.
         """
-        args = cls.parse_date(data["startDate"]), cls.parse_date(data["endDate"]), \
+        args = data["id"], cls.parse_date(data["startDate"]), cls.parse_date(data["endDate"]), \
             data["title"], data["url"], data["session"]["isPoster"]
         session = cls(*args)
         # Populate the contributions from the contributions field, if any.
@@ -381,6 +382,11 @@ class Session(AbstractIndicoObject):
             contribution = Contribution.from_json_dict(contribution_data)
             session.contributions.append(contribution)
         return session
+
+    def __len__(self) -> int:
+        """Return the number of contributions in the session.
+        """
+        return len(self.contributions)
 
 
 class Event:
@@ -453,14 +459,19 @@ class Event:
         if data["count"] != 1:
             raise RuntimeError(f"Expected count=1 in {file_path}, got {data['count']}")
         self.url = data["url"]
-        sessions = data["results"][0]["sessions"]
-        logger.info(f"{len(sessions)} session(s) found.")
-        for data in sessions:
-            session = Session.from_json_dict(data)
-            print(session.title, session.is_poster, len(session.contributions))
+        self.session_dict = {}
+        for session_data in data["results"][0]["sessions"]:
+            session = Session.from_json_dict(session_data)
+            self.session_dict[session.id] = session
+        logger.info(f"{len(self.session_dict)} session(s) found.")
 
-    def download_attachments(self, folder_path: PathLike, separator: str = '-',
+    def download_poster_attachments(self, folder_path: PathLike, separator: str = '-',
         file_types: tuple = None) -> int:
         """Download the attachments for this event, if any.
         """
-        pass
+        for session in self.session_dict.values():
+            if session.is_poster and len(session) > 0:
+                logger.info(f"Downloading attachments for session {session.id}: {session.title}...")
+                for contribution in session.contributions:
+                    contribution.download_attachments(folder_path, separator=separator,
+                        file_types=file_types)
