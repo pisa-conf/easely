@@ -1,3 +1,0 @@
-
-Advanced Programming Interfaces
-===============================
