@@ -29,6 +29,7 @@ import requests
 from .logging_ import logger
 from .paths import sanitize_file_path, sanitize_folder_path
 from .program import PosterCollectionBase, DATETIME_FORMAT
+from .qrcode_ import generate_qrcode
 from .typing_ import PathLike
 
 _DATE_FORMAT = "%Y-%m-%d"
@@ -224,6 +225,7 @@ class Contribution(AbstractIndicoObject):
     friendly_id: int
     title: str
     presenter: Presenter
+    url: str
     attachment_urls: List[str] = field(default_factory=list)
     attachment_timestamps: List[str] = field(default_factory=list)
 
@@ -238,7 +240,7 @@ class Contribution(AbstractIndicoObject):
         except IndexError:
             presenter = Presenter()
         # Create the contribution object from the relevant fields.
-        args = data["db_id"], data["friendly_id"], data["title"], presenter
+        args = data["db_id"], data["friendly_id"], data["title"], presenter, data["url"]
         contribution = cls(*args)
         # Populate the attachment urls and timestamps from the folders field, if any.
         for folder in data["folders"]:
@@ -246,6 +248,17 @@ class Contribution(AbstractIndicoObject):
                 contribution.attachment_urls.append(attachment["download_url"])
                 contribution.attachment_timestamps.append(attachment["modified_dt"])
         return contribution
+
+    def file_name(self, file_type: str) -> str:
+        """Generate a file name for the contribution based on its ID and the specified
+        file type.
+
+        Arguments
+        ---------
+        file_type : str
+            The file type to use for the file name, e.g., "png".
+        """
+        return f"{self.friendly_id:04d}.{file_type}"
 
     def download_attachments(self, folder_path: PathLike, separator: str = '-',
             file_types: tuple = None, overwrite: bool = False) -> int:
@@ -582,7 +595,24 @@ class Event:
         logger.info(f"Done, {num_downloads} file(s) downloaded.")
         return num_downloads
 
-    def generate_poster_qrcodes(self, folder_path: PathLike) -> None:
+    def generate_poster_qrcodes(self, folder_path: PathLike, overwrite: bool = False) -> None:
+        """Generate the QR codes for all the poster sessions in the event.
+
+        Arguments
+        ---------
+        folder_path : PathLike
+            The path to the folder where to save the QR code images.
+
+        overwrite : bool
+            Whether to overwrite existing output files.
         """
-        """
+        folder_path = sanitize_folder_path(folder_path, create=True)
         logger.info(f"Generating QR codes for all poster sessions in the event...")
+        for session in self.poster_sessions():
+            for contribution in session.contributions:
+                file_path = folder_path / contribution.file_name("png")
+                if file_path.is_file() and not overwrite:
+                    logger.info(f"QR code for contribution {contribution.friendly_id} already exists, skipping...")
+                    continue
+                generate_qrcode(contribution.url, file_path)
+        logger.info("Done.")

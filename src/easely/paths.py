@@ -33,6 +33,7 @@ class WorkspaceLayout(str, Enum):
     """
 
     ATTACHMENTS = "attachments"
+    QRCODES = "qrcodes"
     POSTERS = "posters"
     SLIDES = "slides"
     HEADSHOTS = "headshots"

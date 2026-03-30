@@ -106,6 +106,40 @@ def roster(
 
 
 @dataclass(frozen=True)
+class QrcodesDefaults:
+
+    """Default values for QR code generation task parameters.
+    """
+
+    file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.json"
+    folder_path: PathLike = pathlib.Path.cwd() / WorkspaceLayout.QRCODES
+    overwrite: bool = False
+
+
+def qrcodes(
+        file_path: PathLike = QrcodesDefaults.file_path,
+        folder_path: PathLike = QrcodesDefaults.folder_path,
+        overwrite: bool = QrcodesDefaults.overwrite
+        ) -> None:
+    """Generate QR codes for the poster attachments.
+
+    Arguments
+    ---------
+    file_path : PathLike
+        The path to the .json file with the event data.
+
+    folder_path : PathLike
+        The path to the output folder for the QR codes.
+
+    overwrite : bool
+        Whether to overwrite the output files if they already exist (default False).
+    """
+    file_path = sanitize_file_path(file_path, suffix=".json", check_exists=True)
+    output_folder = sanitize_folder_path(folder_path, create=True)
+    indico.Event(file_path).generate_poster_qrcodes(output_folder, overwrite=overwrite)
+
+
+@dataclass(frozen=True)
 class DispatchDefaults:
 
     """Default values for dispatch task parameters.

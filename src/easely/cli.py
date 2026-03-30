@@ -107,6 +107,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(download)
         download.set_defaults(runner=tasks.download)
 
+        # Generate the excel roster.
         roster = subparsers.add_parser("roster",
             help="dump the poster roster to an excel file",
             formatter_class=self._FORMATTER_CLASS)
@@ -117,6 +118,18 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="overwrite existing output files")
         self.add_logging_level(roster)
         roster.set_defaults(runner=tasks.roster)
+
+        # Generate QR codes for the poster attachments.
+        qrcodes = subparsers.add_parser("qrcodes",
+            help="generate QR codes for the poster attachments",
+            formatter_class=self._FORMATTER_CLASS)
+        qrcodes.add_argument("--file-path", type=str,
+            default=tasks.QrcodesDefaults.file_path,
+            help="the input .json file with the event data")
+        qrcodes.add_argument("--overwrite", action="store_true",
+            help="overwrite existing output files")
+        self.add_logging_level(qrcodes)
+        qrcodes.set_defaults(runner=tasks.qrcodes)
 
         # Rasterize one or more posters.
         rasterize = subparsers.add_parser("rasterize",
