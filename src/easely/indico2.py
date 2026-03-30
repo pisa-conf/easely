@@ -489,6 +489,18 @@ class Event:
             sessions = [session for session in sessions if len(session) > 0]
         return sessions
 
+    @staticmethod
+    def _write_xls(writer: pd.ExcelWriter, sheet_name: str, col_names: list, data: list,
+        col_widths: list = None) -> None:
+        """Convenience function to write a sheet in the .xls file with the given arguments.
+        """
+        data_frame = pd.DataFrame(data, columns=col_names)
+        data_frame.to_excel(writer, sheet_name=sheet_name, index=False)
+        if col_widths is not None:
+            sheet = writer.sheets[sheet_name]
+            for i, width in enumerate(col_widths):
+                sheet.set_column(i, i, width)
+
     def generate_poster_roster(self, file_path: PathLike, overwrite: bool = False) -> None:
         """Generate the .xls file with the poster roster, i.e., the file that
         is consumed by the GUI elements for the actual display.
@@ -501,46 +513,34 @@ class Event:
         logger.info(f"Writing poster roster to {file_path}...")
         writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
         sessions = self.poster_sessions()
-
         # Write the program sheet with the session data.
         sheet_name = PosterCollectionBase.PROGRAM_SHEET_NAME
         col_names = PosterCollectionBase.PROGRAM_COL_NAMES
-        #df = pd.DataFrame(
-        #[(s.id, s.title, s.start_date, s.end_date) for s in sessions],
-        #columns=["id", "title", "start_date", "end_date"]
-        #)
-        # Also, fix the date format.
-        _id = [session.id for session in sessions]
-        _title = [session.title for session in sessions]
-        _start_date = [session.start_date for session in sessions]
-        _end_date = [session.end_date for session in sessions]
-        data = _id, _title, _start_date, _end_date
-        df = pd.DataFrame({key: val for key, val in zip(col_names, data)})
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-        sheet = writer.sheets[sheet_name]
-        sheet.set_column(0, 0, 15)
-        sheet.set_column(1, 1, 100)
-        sheet.set_column(2, 3, 20)
+        data = [
+            (session.id,
+             session.title,
+             session.start_date.strftime(DATETIME_FORMAT),
+             session.end_date.strftime(DATETIME_FORMAT)
+             )
+            for session in sessions
+        ]
+        self._write_xls(writer, sheet_name, col_names, data, col_widths=[12, 100, 20, 20])
         # Create the ancillary sheets with the actual contributions.
         col_names = PosterCollectionBase.SESSION_COL_NAMES
         for session in sessions:
             contributions = session.contributions
-            _id = [contribution.db_id for contribution in contributions]
-            _friendly_id = [contribution.friendly_id for contribution in contributions]
-            _hostname = [""] * len(contributions)
-            _title = [contribution.title for contribution in contributions]
-            _presenter_first_name = [contribution.presenter.first_name for contribution in contributions]
-            _presenter_last_name = [contribution.presenter.last_name for contribution in contributions]
-            _presenter_affiliation = [contribution.presenter.affiliation for contribution in contributions]
-            data = _friendly_id, _id, _hostname, _title, _presenter_first_name, _presenter_last_name, _presenter_affiliation
-            df = pd.DataFrame({key: val for key, val in zip(col_names, data)})
-            sheet_name = str(session.id)
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-            sheet = writer.sheets[sheet_name]
-            sheet.set_column(0, 2, 12)
-            sheet.set_column(3, 3, 100)
-            sheet.set_column(4, 5, 20)
-            sheet.set_column(6, 6, 60)
+            data = [
+                (contribution.db_id,
+                 contribution.friendly_id,
+                 "",
+                 contribution.title,
+                 contribution.presenter.first_name,
+                 contribution.presenter.last_name,
+                 contribution.presenter.affiliation
+                 )
+                for contribution in contributions
+            ]
+            self._write_xls(writer, f"{session.id}", col_names, data, col_widths=[12, 12, 12, 100, 20, 20, 60])
         # Close the output file.
         writer.close()
         logger.info("Done.")
