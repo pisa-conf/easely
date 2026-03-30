@@ -42,7 +42,7 @@ def start_message() -> None:
     This is free software, and you are welcome to redistribute it under certain
     conditions. See the LICENSE file for details.
 
-    Visit https://github.com/lucabaldini/{__package_name__} for more information.
+    Visit https://github.com/pisa-conf/{__package_name__} for more information.
     """
     print(msg)
 
