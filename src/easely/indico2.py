@@ -468,6 +468,11 @@ class Event:
             self.session_dict[session.id] = session
         logger.info(f"{len(self.session_dict)} session(s) found.")
 
+    def write_poster_roster_file(self, folder_path: PathLike) -> None:
+        """
+        """
+        pass
+
     def download_poster_attachments(self, folder_path: PathLike, file_types: tuple = None,
             overwrite: bool = False) -> int:
         """Download the attachments for all the poster sessions in the event.
@@ -498,3 +503,8 @@ class Event:
                     num_downloads += contribution.download_attachments(**kwargs)
         logger.info(f"Done, {num_downloads} file(s) downloaded.")
         return num_downloads
+
+    def generate_poster_qrcodes(self, folder_path: PathLike) -> None:
+        """
+        """
+        logger.info(f"Generating QR codes for all poster sessions in the event...")
