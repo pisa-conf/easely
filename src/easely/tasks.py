@@ -23,7 +23,7 @@ from typing import Tuple
 
 from . import pdf
 from . import img
-from . import indico2 as indico
+from . import indico
 from . import __name__ as __package_name__
 from .logging_ import logger
 from .paths import WorkspaceLayout, sanitize_file_path, sanitize_folder_path, PROGRAM_FILE_NAME

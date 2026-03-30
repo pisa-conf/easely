@@ -27,4 +27,4 @@ all inheriting from the abstract base class `IndicoObject`, most notably:
 Module documentation
 --------------------
 
-.. automodule:: easely.indico2
+.. automodule:: easely.indico

@@ -15,36 +15,40 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 """INDICO interface.
-
-This is using the INDICO API to help accessing the conference content, see
-https://docs.getindico.io/en/stable/
 """
 
 import datetime
 import json
-import os
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import List
 
 import pandas as pd
 import requests
 
 from .logging_ import logger
-from easely.program import PosterCollectionBase, DATETIME_FORMAT
-from easely.qrcode_ import generate_qrcode
+from .paths import sanitize_file_path, sanitize_folder_path
+from .program import PosterCollectionBase, DATETIME_FORMAT
+from .qrcode_ import generate_qrcode
+from .typing_ import PathLike
+
+_DATE_FORMAT = "%Y-%m-%d"
+_TIME_FORMAT = "%H:%M:%S"
+_DATETIME_FORMAT = f"{_DATE_FORMAT} {_TIME_FORMAT}"
 
 
-# pylint: disable=invalid-name
+def download_event_data(url: str, file_path: PathLike, detail: str = "sessions",
+                        overwrite: bool = True):
+    """Download all the event data from indico and save it to a .json file.
 
-
-
-def retrieve_info(url: str, file_path: str , detail: str = "sessions", overwrite: bool = False):
-    """Retrieve the contributions, grouped by session for a given conference,
+    Retrieve the contributions, grouped by session for a given conference,
     following the instructions at
     https://docs.getindico.io/en/stable/http-api/exporters/event/#sessions
 
     According to the documentation, this setting details to "sessions" includes
     details about the different sessions and groups contributions by sessions.
     The top-level contributions list only contains contributions which are not
-    assigned to any session. Subcontributions are included in this details level,
+    assigned to any session. Sub-contributions are included in this details level,
     too.
 
     Arguments
@@ -52,7 +56,7 @@ def retrieve_info(url: str, file_path: str , detail: str = "sessions", overwrite
     url : str
         The indico url for the conference, e.g., https://agenda.infn.it/export/event/8397.json
 
-    file_path : str
+    file_path : PathLike
         The path for the output .json file
 
     detail : str
@@ -61,302 +65,554 @@ def retrieve_info(url: str, file_path: str , detail: str = "sessions", overwrite
 
     overwrite : bool
         Overwrite the output file.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the output .json file.
     """
-    assert str(file_path).endswith(".json")
-    if os.path.exists(file_path) and overwrite is False:
-        logger.info(f"File {file_path} exists, skipping (delete it or set overwrite=False)...")
-        return
-    logger.info(f"Retrieving program from {url}...")
+    file_path = sanitize_file_path(file_path, suffix=".json", check_exists=False)
+    if file_path.exists() and overwrite is False:
+        print(f"File {file_path} exists, skipping (delete it or set overwrite=True)...")
+        return file_path
+    logger.info(f"Retrieving event data from {url}...")
     resp = requests.get(f"{url}?detail={detail}&pretty=yes")
     data = resp.json()
-    logger.info(f"Saving data to {file_path}...")
-    with open(file_path, "w") as f:
-        json.dump(data, f)
-    logger.info("Done.")
+    with open(file_path, "w") as output_file:
+        json.dump(data, output_file, indent=4)
+    logger.info(f"Event data saved to {file_path}...")
+    return file_path
 
 
+class AbstractIndicoObject(ABC):
+
+    """Abstract class to represent an indico object, as retrieved from the indico API.
+
+    This defines a single abstract method, `from_json_dict`, to create an indico object
+    from a fragment of the .json file retrieved from the indico API, as a Python dictionary.
+    """
+
+    @staticmethod
+    def parse_date(date: dict) -> datetime.datetime:
+        """Parse a date/time dictionary as retrieved from the indico API, e.g.,
+        {'date': '2015-05-28', 'time': '15:45:00', 'tz': 'Europe/Rome'}.
+
+        Arguments
+        ---------
+        date : dict
+            The date dictionary to parse.
+
+        Returns
+        -------
+        datetime.datetime
+            The datetime object corresponding to the input date dictionary.
+        """
+        return datetime.datetime.strptime(f"{date['date']} {date['time']}", _DATETIME_FORMAT)
+
+    @classmethod
+    @abstractmethod
+    def from_json_dict(cls, data: dict):
+        """Create an indico object from a dictionary containing the relevant fields.
+
+        Arguments
+        ---------
+        data : dict
+            The dictionary containing the indico object data, as retrieved from the
+            indico API.
+
+        Returns
+        -------
+        AbstractIndicoObject
+            The indico object created from the given data.
+        """
+        pass
 
 
-class ConferenceInfo(dict):
+@dataclass(frozen=True)
+class Presenter(AbstractIndicoObject):
 
-    """Small convenience class describing the full list of contributions for a
-    conference, see https://docs.getindico.io/en/stable/api/contribution/
+    """Class to represent the information about a presenter of an indico event, as
+    retrieved from the indico API.
 
     The underlying .json file is parsed as a Python dictionary containing the
     following keys at the top level:
-    ['ts', 'url', 'additionalInfo', 'count', 'results', '_type']
 
-    (If I understand correctly `count` is typically 1 and indicates the length
-    of the `results` field, which is a list whose first element contains
-    the actual data.)
+    * `_type`
+    * `_fossil`
+    * `first_name`
+    * `last_name`
+    * `fullName`
+    * `affiliation`
+    * `emailHash`
+    * `db_id`
+    * `person_id`
+    """
 
-    Now, `results[0]` is another dictionary whose keys are
-    ['_type', 'id', 'title', 'description', 'startDate', 'timezone', 'endDate',
-    'room', 'location', 'address', 'type', 'references', '_fossil', 'categoryId',
-    'category', 'note', 'roomFullname', 'url', 'creationDate', 'creator',
-    'hasAnyProtection', 'roomMapURL', 'folders', 'chairs', 'material', 'keywords',
-    'visibility', 'contributions', 'sessions']
+    first_name: str = "N/A"
+    last_name: str = "N/A"
+    affiliation: str = "N/A"
+
+    @classmethod
+    def from_json_dict(cls, data: dict):
+        """Implementation of the AbstractIndicoObject abstract method.
+        """
+        args = data["first_name"], data["last_name"], data["affiliation"]
+        return cls(*args)
+
+
+@dataclass(frozen=True)
+class Contribution(AbstractIndicoObject):
+
+    """Class to represent the information about a contribution of an indico event, as
+    retrieved from the indico API.
+
+    The underlying .json file is parsed as a Python dictionary containing the
+    following keys at the top level:
+
+    * '_type'
+    * `_fossil`
+    * `id`
+    * `db_id`
+    * `friendly_id`
+    * `title`
+    * `startDate`
+    * `endDate`
+    * `duration`
+    * `roomFullname`
+    * `room`
+    * `note`
+    * `location`
+    * `type`
+    * `description`
+    * `folders`
+    * `url`
+    * `material`
+    * `speakers`
+    * `primaryauthors`
+    * `coauthors`
+    * `keywords`
+    * `track`
+    * `session`
+    * `references`
+    * `board_number`
+
+    The `folders` field of the contribution is a list of dictionaries, each containing
+    the following keys:
+
+    * `_type`
+    * `id`
+    * `title`
+    * `description`
+    * `attachments`
+
+    The latter, in turn, is a list of dictionaries, each one containing the following keys
+
+    * `_type`
+    * `id`
+    * `download_url`
+    * `title`
+    * `description`
+    * `modified_dt`
+    * `type`
+    * `is_protected`
+    * `filename`
+    * `content_type`
+    * `size`
+    * `checksum`
+    """
+
+    db_id: int
+    friendly_id: int
+    title: str
+    presenter: Presenter
+    url: str
+    attachment_urls: List[str] = field(default_factory=list)
+    attachment_timestamps: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_json_dict(cls, data: dict):
+        """Implementation of the AbstractIndicoObject abstract method.
+        """
+        # Need a try-except block here since some contributions do not have any speaker,
+        # and the speakers field is an empty list in that case.
+        try:
+            presenter = Presenter.from_json_dict(data["speakers"][0])
+        except IndexError:
+            presenter = Presenter()
+        # Create the contribution object from the relevant fields.
+        args = data["db_id"], data["friendly_id"], data["title"], presenter, data["url"]
+        contribution = cls(*args)
+        # Populate the attachment urls and timestamps from the folders field, if any.
+        for folder in data["folders"]:
+            for attachment in folder["attachments"]:
+                contribution.attachment_urls.append(attachment["download_url"])
+                contribution.attachment_timestamps.append(attachment["modified_dt"])
+        return contribution
+
+    def file_name(self, file_type: str) -> str:
+        """Generate a file name for the contribution based on its ID and the specified
+        file type.
+
+        Arguments
+        ---------
+        file_type : str
+            The file type to use for the file name, e.g., "png".
+        """
+        return f"{self.friendly_id:04d}.{file_type}"
+
+    def download_attachments(self, folder_path: PathLike, separator: str = '-',
+            file_types: tuple = None, overwrite: bool = False) -> int:
+        """Download the attachments for this contribution, if any.
+
+        Since downloading a bunch of files for many contribution is an expensive
+        process, we provide a minimal mechanism to avoid downloading the same file
+        over and over again. More specifically, the metadata that come with the .json
+        file from indico include a timestamp for each attachment, which is updated
+        whenever the file is uploaded or modified, and we create a small text file with
+        the timestamp next to each file that we download so that we can check if the
+        file is up to date before downloading it again.
+
+        Arguments
+        ---------
+        folder_path : PathLike
+            The path to the folder where to save the attachments.
+
+        separator : str
+            The separator to use between the contribution id and the original file name
+            when saving the attachments.
+
+        file_types : tuple
+            The file types to download (None to download all attachments).
+
+        overwrite : bool
+            Whether to overwrite the files if they already exist and are up to date.
+
+        Returns
+        -------
+        int
+            The number of attachments downloaded.
+        """
+        folder_path = sanitize_folder_path(folder_path, create=True)
+        num_downloads = 0
+        for url, timestamp in zip(self.attachment_urls, self.attachment_timestamps):
+            # Check if the file type matches the specified file types, if any.
+            if file_types is not None and not url.endswith(file_types):
+                logger.debug(f"{url} does not match the specified file types, skipping...")
+                continue
+            file_name = f"{self.friendly_id:04d}{separator}{url.split('/')[-1]}"
+            file_path = folder_path / file_name
+            timestamp_file_path = file_path.with_suffix(".tstamp")
+            # If we have the file locally, and we have track of the timestamp, and that
+            # matches the one in the .json file, there is no point in downloading another
+            # identical copy.
+            if file_path.is_file() and timestamp_file_path.is_file() and not overwrite:
+                if timestamp_file_path.read_text() == timestamp:
+                    logger.debug(f"{file_path} is up to date, skipping...")
+                    continue
+            # Otherwise we can go ahead and download the file.
+            logger.info(f"Downloading {url} -> {file_path}...")
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(file_path, "wb") as output_file:
+                output_file.write(response.content)
+            num_downloads += 1
+            # And, of course, we need to write the timestamp, as well.
+            logger.debug(f"Writing timestamp file to {timestamp_file_path}...")
+            with open(timestamp_file_path, "w") as timestamp_file:
+                timestamp_file.write(timestamp)
+        return num_downloads
+
+
+@dataclass
+class Session(AbstractIndicoObject):
+
+    """Class to represent the information about a session of an indico event, as
+    retrieved from the indico API.
+
+    The underlying .json file is parsed as a Python dictionary containing the
+    following keys at the top level:
+
+    * `_type`
+    * `_fossil`
+    * `id`
+    * `conference`
+    * `startDate`
+    * `endDate`
+    * `description`
+    * `title`
+    * `url`
+    * `contributions`
+    * `note`
+    * `session`
+    * `room`
+    * `roomFullname`
+    * `location`
+    * `inheritLoc`
+    * `inheritRoom`
+    * `slotTitle`
+    * `address`
+    * `conveners`
+
+    Note the `session` field is a dictionary containing some relevant information:
+
+    * `folders`
+    * `startDate`
+    * `endDate`
+    * `_type`
+    * `sessionConveners`
+    * `title`
+    * `color`
+    * `textColor`
+    * `description`
+    * `material`
+    * `isPoster`
+    * `type`
+    * `url`
+    * `roomFullname`
+    * `location`
+    * `address`
+    * `_fossil`
+    * `numSlots`
+    * `id`
+    * `db_id`
+    * `friendly_id`
+    * `room`
+    * `code`
+    """
+
+    id: int
+    start_date: datetime.datetime
+    end_date: datetime.datetime
+    title: str
+    url: str
+    is_poster: bool
+    contributions: List[Contribution] = field(default_factory=list)
+
+    @classmethod
+    def from_json_dict(cls, data: dict):
+        """Implementation of the AbstractIndicoObject abstract method.
+        """
+        args = data["id"], cls.parse_date(data["startDate"]), cls.parse_date(data["endDate"]), \
+            data["title"], data["url"], data["session"]["isPoster"]
+        session = cls(*args)
+        # Populate the contributions from the contributions field, if any.
+        for contribution_data in data["contributions"]:
+            contribution = Contribution.from_json_dict(contribution_data)
+            session.contributions.append(contribution)
+        return session
+
+    def __len__(self) -> int:
+        """Return the number of contributions in the session.
+        """
+        return len(self.contributions)
+
+
+class Event:
+
+    """Class to represent the information about an indico event, as retrieved from
+    the indico API.
+
+    The underlying .json file is parsed as a Python dictionary containing the
+    following keys at the top level:
+
+    * `count`
+    * `additionalInfo`
+    * `ts`
+    * `url`
+    * `results`
+    * `_type`
+
+    We assume that `count = 1` reflecting the length of the `results` field, which
+    is a list whose first element contains the actual data.
+
+    Now, `results[0]` is another dictionary whose keys are:
+
+    * `_type`
+    * `id`
+    * `title`
+    * `description`
+    * `startDate`
+    * `timezone`
+    * `endDate`
+    * `room`
+    * `location`
+    * `address`
+    * `type`
+    * `references`
+    * `_fossil`
+    * `categoryId`
+    * `category`
+    * `note`
+    * `roomFullname`
+    * `url`
+    * `creationDate`
+    * `creator`
+    * `hasAnyProtection`
+    * `roomMapURL`
+    * `folders`
+    * `chairs`
+    * `material`
+    * `keywords`
+    * `visibility`
+    * `contributions`
+    * `sessions`
 
     The last two are the relevant pieces of information, containing the sessions,
     as well as the orphan contributions, if any.
 
-    Each session is a dictionary with the following keys:
-    ['_type', '_fossil', 'id', 'conference', 'startDate', 'endDate', 'description',
-    'title', 'url', 'contributions', 'note', 'session', 'room', 'roomFullname',
-    'location', 'inheritLoc', 'inheritRoom', 'slotTitle', 'address', 'conveners'],
-    the most relevant fields being:
-
-    * 'startDate', e.g., "{'date': '2015-05-28', 'time': '15:45:00', 'tz': 'Europe/Rome'}"
-    * 'endDate', e.g., "{'date': '2015-05-28', 'time': '19:25:00', 'tz': 'Europe/Rome'}"
-    * 'title', e.g., "Front end, Trigger, DAQ and Data Management"
-    * 'url', e.g., "https://agenda.infn.it/event/8397/sessions/11528/"
-    * 'contributions', listing all the contributions of the session.
-
-    Finally, each entry in the list of contributions has the following keys:
-    ['_type', '_fossil', 'id', 'db_id', 'friendly_id', 'title', 'startDate',
-    'endDate', 'duration', 'roomFullname', 'room', 'note', 'location', 'type',
-    'description', 'folders', 'url', 'material', 'speakers', 'primaryauthors',
-    'coauthors', 'keywords', 'track', 'session', 'references', 'board_number']
-
     Arguments
     ---------
-    file_path : str
-        The path to the .json file containing all the contributions.
+    file_path : PathLike
+        The path to the .json file containing the event data, as retrieved from
+        the indico API.
     """
 
-    def __init__(self, file_path, session_dict: dict = None):
-        """Constructor.
+    def __init__(self, file_path: PathLike):
+        """Initialize the Event object by loading the data from the given .json file.
         """
-        super().__init__()
-        logger.info(f"Loading conference contributions from {file_path}...")
-        with open(file_path, "r") as f:
-            data = json.load(f)
-        # Parse the json hierarchy.
-        results = data["results"][0]
-        sessions = results["sessions"]
-        logger.info(f"{len(sessions)} session (s) found")
-        for session in sessions:
-            print(session["id"], session["title"])
-        # If we are passing a section dictionary of the form {session_id: session_title},
-        # we want to do a few things:
-        # * filter the sessions in the input json file and ;
-        # * sort the sessions by id in the dictionary;
-        # * tweak the session title is necessary.
-        if session_dict is not None:
-            logger.info("Filtering sessions...")
-            for _id, _title in session_dict.items():
-                for session in sessions:
-                    if session["id"] == _id:
-                        session["title"] = _title
-                        self[_title] = session
-        contributions = results["contributions"]
-        if len(contributions):
-            logger.warning(f"{len(contributions)} orphan contribution(s) found...")
-        else:
-            logger.info("No orphan contributions found...")
-        #logger.info(f"Program info:\n{self}")
+        file_path = sanitize_file_path(file_path, suffix=".json", check_exists=True)
+        logger.info(f"Reading event data from {file_path}...")
+        with open(file_path) as input_file:
+            data = json.load(input_file)
+        if data["count"] != 1:
+            raise RuntimeError(f"Expected count=1 in {file_path}, got {data['count']}")
+        self.url = data["url"]
+        self.session_dict = {}
+        for session_data in data["results"][0]["sessions"]:
+            session = Session.from_json_dict(session_data)
+            self.session_dict[session.id] = session
+        logger.info(f"{len(self.session_dict)} session(s) found.")
 
-    def contribution_ids(self):
-        """Return all the contribution ids.
-        """
-        logger.info("Retrieving all the contribution identifiers...")
-        ids = []
-        for session in self.values():
-            for contribution in session["contributions"]:
-                ids.append(int(contribution["id"]))
-        logger.info(f"Done, {len(ids)} contribution(s) found.")
-        ids.sort()
-        return ids
-
-    @staticmethod
-    def pretty_print(contribution):
-        """Pretty print.
-        """
-        identifier = contribution["friendly_id"]
-        try:
-            speaker = contribution["speakers"][0]
-            full_name = speaker["fullName"]
-        except IndexError:
-            logger.warning(f"Cannot retrieve speaker for contribution {identifier}")
-            full_name = "N/A"
-        title = contribution["title"]
-        return f"[{identifier}] {full_name}: \"{title}\""
-
-    @staticmethod
-    def _format_date(date_dict: str, fmt: str = DATETIME_FORMAT):
-        """Format a date in the .json file according to the date format in use
-        for the excel configuration file.
-
-        This means turning {'date': '2015-05-28', 'time': '15:45:00', 'tz': 'Europe/Rome'}
-        into 28/05/2015 15:45.
-        """
-        text = f"{date_dict['date']} {date_dict['time']}"
-        d = datetime.datetime.strptime(text, "%Y-%m-%d %H:%M:%S")
-        return d.strftime(fmt)
-
-    def dump_excel(self, file_path):
-        """Dump the contribution list as an excel file.
-        """
-        logger.info(f"Dumping conference info to {file_path}...")
-        writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
-
-        # Create the master sheet with the session data.
-        def _session_data(key, change_hour="13:30:00"):
-            """Small nested function to facilitate the session data retrival.
-            """
-            if key == "startDate":
-                _data = []
-                for session in self.values():
-                    date_dict = session[key]
-                    if int(date_dict["time"].split(":")[0]) < 13:
-                        date_dict["time"] = "00:01:00"
-                    else:
-                        date_dict["time"] = change_hour
-            if key == "endDate":
-                _data = []
-                for session in self.values():
-                    date_dict = session[key]
-                    if int(date_dict["time"].split(":")[0]) < 13:
-                        date_dict["time"] = change_hour
-                    else:
-                        date_dict["time"] = "21:00:00"
-            if key in ("startDate", "endDate"):
-                return [self._format_date(session[key]) for session in self.values()]
-            return [str(session[key]) for session in self.values()]
-
-        data = [_session_data(key) for key in ("id", "title", "startDate", "endDate")]
-        df = pd.DataFrame({key: val for key, val in zip(PosterCollectionBase.PROGRAM_COL_NAMES, data)})
-        df.to_excel(writer, sheet_name=PosterCollectionBase.PROGRAM_SHEET_NAME, index=False)
-        sheet = writer.sheets[PosterCollectionBase.PROGRAM_SHEET_NAME]
-        sheet.set_column(0, 0, 15)
-        sheet.set_column(1, 1, 100)
-        sheet.set_column(2, 3, 20)
-
-        # Create the ancillary sheets with the actual contributions.
-        def _warning_message(msg, contribution, max_title_length=30):
-            """Small nested function to provide useful diagnostics in case of missing data.
-            """
-            logger.warning(f"{msg} for contribution {contribution['id']} ({contribution['title'][:max_title_length]}...)")
-
-        # Loop over all the contributions in the session and retrieve the data.
-        # Note that, rather than doing this by column, we do it by row (i.e., by
-        # contribution), the basic idea being that we can provide more granular
-        # diagnostics if data are missing, at the expense of code beauty.
-        for session in self.values():
-            data = [[], [], [], [], [], []]
-            for contrib in session["contributions"]:
-                _id = contrib["id"]
-                _title = contrib["title"]
-                _url = contrib["url"]
-                _db_id = contrib["db_id"]
-                try:
-                    first_speaker = contrib["speakers"][0]
-                except IndexError as e:
-                    _warning_message("No speaker(s)", contrib)
-                    first_speaker = None
-                if first_speaker is not None:
-                    _first_name = first_speaker["first_name"]
-                    _last_name = first_speaker["last_name"]
-                    _affiliation = first_speaker["affiliation"]
-                    if _first_name == "":
-                        _warning_message("No first name", contrib)
-                    if _last_name == "":
-                        _warning_message("No last name", contrib)
-                    if _affiliation == "":
-                        _warning_message("No affiliation", contrib)
-                else:
-                    _first_name, _last_name, _affiliation = "N/A", "N/A", "N/A"
-                for col, val in zip(data, (_id, _db_id, _title, _first_name, _last_name, _affiliation)):
-                    col.append(val)
-
-            # Placeholder for the screen id.
-            screen_id = [i % 20 + 1 for i in range(len(session["contributions"]))]
-            data.insert(2, screen_id)
-            df = pd.DataFrame({key: val for key, val in zip(PosterCollectionBase.SESSION_COL_NAMES, data)})
-            sheet_name = str(session["id"])
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-            sheet = writer.sheets[sheet_name]
-            sheet.set_column(0, 2, 12)
-            sheet.set_column(3, 3, 100)
-            sheet.set_column(4, 5, 20)
-            sheet.set_column(6, 6, 60)
-        logger.info("Writing output file...")
-        writer.save()
-        logger.info("Done.")
-
-    @staticmethod
-    def download_urls(contribution, filters=("pdf", "ppt", "pptx")):
-        """Return the list of all download urls and fellow timestamp for
-        a given contribution.
-
-        This is looping over all the folders and all the files in the folders, and
-        filtering by file type.
+    def poster_sessions(self, remove_empty: bool = True) -> List[Session]:
+        """Return the list of poster sessions in the event, and by default remove
+        those with no contributions.
 
         Arguments
         ---------
-        contribution : dict
-            The conference contribution.
+        remove_empty : bool
+            Whether to remove the sessions with no contributions from the list (default True).
 
-        filters : tuple of str
-            The allowed file types.
+        Returns
+        -------
+        List[Session]
+            The list of poster sessions in the event.
         """
-        urls = []
-        for folder in contribution["folders"]:
-            for attachment in folder["attachments"]:
-                url = attachment["download_url"]
-                if url.split(".")[-1].lower() in filters:
-                    timestamp = attachment["modified_dt"]
-                    urls.append((url, timestamp))
-        if len(urls) == 0:
-            logger.warning(f"No attachment for \"{contribution['title']}\"")
-        return urls
+        sessions = [session for session in self.session_dict.values() if session.is_poster]
+        if remove_empty:
+            sessions = [session for session in sessions if len(session) > 0]
+        return sessions
 
-    def download_attachments(self, folder_path: str, separator: str = '-',
-        filters=("pdf", "ppt", "pptx", "png", "jpg", "jpeg"), dry_run: bool = False):
-        """Download all the files attached to the given conference program.
+    @staticmethod
+    def _write_xls(writer: pd.ExcelWriter, sheet_name: str, col_names: list, data: list,
+        col_widths: list = None) -> None:
+        """Convenience function to write a sheet in the .xls file with the given arguments.
         """
-        logger.info("Downloading files...")
+        data_frame = pd.DataFrame(data, columns=col_names)
+        data_frame.to_excel(writer, sheet_name=sheet_name, index=False)
+        if col_widths is not None:
+            sheet = writer.sheets[sheet_name]
+            for i, width in enumerate(col_widths):
+                sheet.set_column(i, i, width)
+
+    def generate_poster_roster(self, file_path: PathLike, overwrite: bool = False) -> None:
+        """Generate the .xls file with the poster roster, i.e., the file that
+        is consumed by the GUI elements for the actual display.
+
+        Arguments
+        ---------
+        file_path : PathLike
+            The path to the output .xls file.
+
+        overwrite : bool
+            Whether to overwrite the output file if it already exists (default False).
+        """
+        file_path = sanitize_file_path(file_path, suffix=".xlsx", check_exists=False)
+        if file_path.is_file() and not overwrite:
+            logger.info(f"Output file {file_path} exists, skipping...")
+            return
+        logger.info(f"Writing poster roster to {file_path}...")
+        writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
+        sessions = self.poster_sessions()
+        # Write the program sheet with the session data.
+        sheet_name = PosterCollectionBase.PROGRAM_SHEET_NAME
+        col_names = PosterCollectionBase.PROGRAM_COL_NAMES
+        data = [
+            (session.id,
+             session.title,
+             session.start_date.strftime(DATETIME_FORMAT),
+             session.end_date.strftime(DATETIME_FORMAT)
+             )
+            for session in sessions
+        ]
+        self._write_xls(writer, sheet_name, col_names, data, col_widths=[12, 100, 20, 20])
+        # Create the ancillary sheets with the actual contributions.
+        col_names = PosterCollectionBase.SESSION_COL_NAMES
+        for session in sessions:
+            contributions = session.contributions
+            data = [
+                (contribution.db_id,
+                 contribution.friendly_id,
+                 "",
+                 contribution.title,
+                 contribution.presenter.first_name,
+                 contribution.presenter.last_name,
+                 contribution.presenter.affiliation
+                 )
+                for contribution in contributions
+            ]
+            self._write_xls(writer, f"{session.id}", col_names, data, col_widths=[12, 12, 12, 100, 20, 20, 60])
+        # Close the output file.
+        writer.close()
+        logger.info("Done.")
+
+    def download_poster_attachments(self, folder_path: PathLike, file_types: tuple = None,
+            overwrite: bool = False) -> int:
+        """Download the attachments for all the poster sessions in the event.
+
+        Arguments
+        ---------
+        folder_path : PathLike
+            The path to the folder where to save the attachments.
+
+        file_types : tuple
+            The file types to download (None to download all attachments).
+
+        overwrite : bool
+            Whether to overwrite the files if they already exist and are up to date.
+
+        Returns
+        -------
+        int
+            The number of attachments downloaded.
+        """
+        logger.info(f"Downloading attachments for all poster sessions in the event...")
+        kwargs = dict(folder_path=folder_path, file_types=file_types, overwrite=overwrite)
         num_downloads = 0
-        for session in self.values():
-            logger.info(f"Processing session \"{session['title']}\"")
-            for contribution in session["contributions"]:
-                for url, timestamp in self.download_urls(contribution, filters):
-                    file_name = f"{int(contribution['id']):03d}{separator}{os.path.basename(url)}"
-                    file_path = os.path.join(folder_path, file_name)
-                    tstamp_file_path = f"{file_path}.tstamp"
-                    # If we have the file locally, and we have track of the
-                    # timestamp, and that matches the one in the .json file,
-                    # there is no point in downloading another identical copy.
-                    if os.path.exists(file_path) and os.path.exists(tstamp_file_path) \
-                        and open(tstamp_file_path).read() == timestamp:
-                        logger.debug(f"{file_path} up to date, skipping...")
-                        continue
-                    # Otherwise we're good to go.
-                    logger.info(f"Downloading {url} -> {file_path}...")
-                    if not dry_run:
-                        response = requests.get(url)
-                        with open(file_path, "wb") as f:
-                            f.write(response.content)
-                        num_downloads += 1
-                    # And, of course, we need to write the timestamp, as well.
-                    logger.info(f"Writing file timestamp to {file_path}...")
-                    if not dry_run:
-                        with open(tstamp_file_path, "w") as f:
-                            f.write(timestamp)
-        logger.info(f"{num_downloads} additional file(s) downloaded.")
+        for session in self.poster_sessions():
+            logger.info(f"Downloading attachments for session {session.id}: {session.title}...")
+            for contribution in session.contributions:
+                num_downloads += contribution.download_attachments(**kwargs)
+        logger.info(f"Done, {num_downloads} file(s) downloaded.")
+        return num_downloads
 
-    def generate_qr_codes(self, folder_path):
-        """Generate all the QR codes for the poster contributions.
-        """
-        for session in self.values():
-            for contrib in session["contributions"]:
-                url = contrib["url"]
-                file_name = f"{contrib["friendly_id"]:03}.png"
-                file_path = os.path.join(folder_path, file_name)
-                generate_qrcode(url, file_path)
+    def generate_poster_qrcodes(self, folder_path: PathLike, overwrite: bool = False) -> None:
+        """Generate the QR codes for all the poster sessions in the event.
 
-    def __str__(self):
-        """String formatting.
+        Arguments
+        ---------
+        folder_path : PathLike
+            The path to the folder where to save the QR code images.
+
+        overwrite : bool
+            Whether to overwrite existing output files.
         """
-        return "\n".join([f"- {key} ({len(val['contributions'])} contributions)" \
-            for key, val in self.items()])
+        folder_path = sanitize_folder_path(folder_path, create=True)
+        logger.info(f"Generating QR codes for all poster sessions in the event...")
+        for session in self.poster_sessions():
+            for contribution in session.contributions:
+                file_path = folder_path / contribution.file_name("png")
+                if file_path.is_file() and not overwrite:
+                    logger.info(f"QR code for contribution {contribution.friendly_id} already exists, skipping...")
+                    continue
+                generate_qrcode(contribution.url, file_path)
+        logger.info("Done.")
