@@ -1,9 +1,9 @@
-.. _program:
+.. _config:
 
-Program Description
-===================
+Configuration
+=============
 
-``pisameet`` is entirely driven through an excel configuration file, and this
+``easelly`` is entirely driven through an excel configuration file, and this
 section describes its structure.
 
 
@@ -86,5 +86,3 @@ More specifically:
    should begin with the unique identifier of the poster, followed by a
    well-defined separator.
 
-The poster images and the QR code are automatically generated as
-explained in the section about :ref:`preproc`.
