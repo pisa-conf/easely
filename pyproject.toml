@@ -38,7 +38,7 @@ dependencies = [
   "pandas",
   "pillow",
   "pdfrw",
-  "PyQt5",
+  "PySide6",
   "qrcode",
   "requests",
   ]

@@ -20,7 +20,7 @@
 import sys
 
 from loguru import logger
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 def exec_qapp(qapp: QtWidgets.QApplication) -> int:

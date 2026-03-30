@@ -730,13 +730,13 @@ class ProgramTreeWidget(QtWidgets.QTreeWidget):
     """
 
     # Signal emitted when any active key has been pressed.
-    key_pressed = QtCore.pyqtSignal()
+    key_pressed = QtCore.Signal()
 
     # Signal emitted when the display of the current poster is requested.
-    poster_selected = QtCore.pyqtSignal()
+    poster_selected = QtCore.Signal()
 
     # Signal emitted when the tree view uis requested.
-    treeview_selected = QtCore.pyqtSignal()
+    treeview_selected = QtCore.Signal()
 
     def __init__(self, width: int, screen_id: bool = False):
         """Constructor.
