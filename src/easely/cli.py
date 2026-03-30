@@ -90,7 +90,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         # See https://stackoverflow.com/questions/8757338/
         subparsers._parser_class = argparse.ArgumentParser
 
-        # Download the indico stuff.
+        # Download the indico attachments for the poster sessions.
         download = subparsers.add_parser("download",
             help="download the program information from indico",
             formatter_class=self._FORMATTER_CLASS)
@@ -105,7 +105,18 @@ class CliArgumentParser(argparse.ArgumentParser):
         download.add_argument("--overwrite", action="store_true",
             help="overwrite existing output files")
         self.add_logging_level(download)
-        download.set_defaults(runner=self.download)
+        download.set_defaults(runner=tasks.download)
+
+        roster = subparsers.add_parser("roster",
+            help="dump the poster roster to an excel file",
+            formatter_class=self._FORMATTER_CLASS)
+        roster.add_argument("--file-path", type=str,
+            default=tasks.RosterDefaults.file_path,
+            help="the input .json file with the event data")
+        roster.add_argument("--overwrite", action="store_true",
+            help="overwrite existing output files")
+        self.add_logging_level(roster)
+        roster.set_defaults(runner=tasks.roster)
 
         # Rasterize one or more posters.
         rasterize = subparsers.add_parser("rasterize",

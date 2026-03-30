@@ -77,6 +77,40 @@ def download(
 
 
 @dataclass(frozen=True)
+class RosterDefaults:
+
+    """Default values for roster task parameters.
+    """
+
+    file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.json"
+    overwrite: bool = False
+
+
+def roster(
+        file_path: PathLike = RosterDefaults.file_path,
+        overwrite: bool = RosterDefaults.overwrite
+        ) -> PathLike:
+    """Generate a roster of poster presenters.
+
+    Arguments
+    ---------
+    file_path : PathLike
+        The path to the .json file with the event data.
+
+    overwrite : bool
+        Whether to overwrite the output file if it already exists (default False).
+    """
+    file_path = sanitize_file_path(file_path, suffix=".json", check_exists=True)
+    output_file_path = file_path.with_suffix(".xlsx")
+    if output_file_path.is_file() and not overwrite:
+        logger.info(f"Output file {output_file_path} exists, skipping...")
+        return output_file_path
+    event = indico.Event(file_path)
+    event.generate_poster_roster(output_file_path, overwrite=overwrite)
+    return output_file_path
+
+
+@dataclass(frozen=True)
 class DispatchDefaults:
 
     """Default values for dispatch task parameters.

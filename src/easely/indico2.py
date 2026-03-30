@@ -23,10 +23,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List
 
+import pandas as pd
 import requests
 
 from .logging_ import logger
 from .paths import sanitize_file_path, sanitize_folder_path
+from .program import PosterCollectionBase, DATETIME_FORMAT
 from .typing_ import PathLike
 
 _DATE_FORMAT = "%Y-%m-%d"
@@ -468,10 +470,104 @@ class Event:
             self.session_dict[session.id] = session
         logger.info(f"{len(self.session_dict)} session(s) found.")
 
-    def write_poster_roster_file(self, folder_path: PathLike) -> None:
+    def poster_sessions(self, remove_empty: bool = True) -> List[Session]:
+        """Return the list of poster sessions in the event, and by default remove
+        those with no contributions.
+
+        Arguments
+        ---------
+        remove_empty : bool
+            Whether to remove the sessions with no contributions from the list (default True).
+
+        Returns
+        -------
+        List[Session]
+            The list of poster sessions in the event.
         """
+        sessions = [session for session in self.session_dict.values() if session.is_poster]
+        if remove_empty:
+            sessions = [session for session in sessions if len(session) > 0]
+        return sessions
+
+    def generate_poster_roster(self, file_path: PathLike, overwrite: bool = False) -> None:
+        """Generate the .xls file with the poster roster, i.e., the file that
+        is consumed by the GUI elements for the actual display.
+
+        Arguments
+        ---------
+        file_path : PathLike
+            The path to the output .xls file.
         """
-        pass
+        logger.info(f"Writing poster roster to {file_path}...")
+        writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
+        sessions = self.poster_sessions()
+
+        # Write the program sheet with the session data.
+        sheet_name = PosterCollectionBase.PROGRAM_SHEET_NAME
+        col_names = PosterCollectionBase.PROGRAM_COL_NAMES
+        _id = [session.id for session in sessions]
+        _title = [session.title for session in sessions]
+        _start_date = [session.start_date for session in sessions]
+        _end_date = [session.end_date for session in sessions]
+        data = _id, _title, _start_date, _end_date
+        df = pd.DataFrame({key: val for key, val in zip(col_names, data)})
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+        sheet = writer.sheets[sheet_name]
+        sheet.set_column(0, 0, 15)
+        sheet.set_column(1, 1, 100)
+        sheet.set_column(2, 3, 20)
+
+        # Create the ancillary sheets with the actual contributions.
+        # def _warning_message(msg, contribution, max_title_length=30):
+        #     """Small nested function to provide useful diagnostics in case of missing data.
+        #     """
+        #     logger.warning(f"{msg} for contribution {contribution['id']} ({contribution['title'][:max_title_length]}...)")
+
+        # # Loop over all the contributions in the session and retrieve the data.
+        # # Note that, rather than doing this by column, we do it by row (i.e., by
+        # # contribution), the basic idea being that we can provide more granular
+        # # diagnostics if data are missing, at the expense of code beauty.
+        # for session in self.values():
+        #     data = [[], [], [], [], [], []]
+        #     for contrib in session["contributions"]:
+        #         _id = contrib["id"]
+        #         _title = contrib["title"]
+        #         _url = contrib["url"]
+        #         _db_id = contrib["db_id"]
+        #         try:
+        #             first_speaker = contrib["speakers"][0]
+        #         except IndexError as e:
+        #             _warning_message("No speaker(s)", contrib)
+        #             first_speaker = None
+        #         if first_speaker is not None:
+        #             _first_name = first_speaker["first_name"]
+        #             _last_name = first_speaker["last_name"]
+        #             _affiliation = first_speaker["affiliation"]
+        #             if _first_name == "":
+        #                 _warning_message("No first name", contrib)
+        #             if _last_name == "":
+        #                 _warning_message("No last name", contrib)
+        #             if _affiliation == "":
+        #                 _warning_message("No affiliation", contrib)
+        #         else:
+        #             _first_name, _last_name, _affiliation = "N/A", "N/A", "N/A"
+        #         for col, val in zip(data, (_id, _db_id, _title, _first_name, _last_name, _affiliation)):
+        #             col.append(val)
+
+        #     # Placeholder for the screen id.
+        #     screen_id = [i % 20 + 1 for i in range(len(session["contributions"]))]
+        #     data.insert(2, screen_id)
+        #     df = pd.DataFrame({key: val for key, val in zip(PosterCollectionBase.SESSION_COL_NAMES, data)})
+        #     sheet_name = str(session["id"])
+        #     df.to_excel(writer, sheet_name=sheet_name, index=False)
+        #     sheet = writer.sheets[sheet_name]
+        #     sheet.set_column(0, 2, 12)
+        #     sheet.set_column(3, 3, 100)
+        #     sheet.set_column(4, 5, 20)
+        #     sheet.set_column(6, 6, 60)
+        logger.info("Writing output file...")
+        writer.close()
+        logger.info("Done.")
 
     def download_poster_attachments(self, folder_path: PathLike, file_types: tuple = None,
             overwrite: bool = False) -> int:
@@ -496,11 +592,10 @@ class Event:
         logger.info(f"Downloading attachments for all poster sessions in the event...")
         kwargs = dict(folder_path=folder_path, file_types=file_types, overwrite=overwrite)
         num_downloads = 0
-        for session in self.session_dict.values():
-            if session.is_poster and len(session) > 0:
-                logger.info(f"Downloading attachments for session {session.id}: {session.title}...")
-                for contribution in session.contributions:
-                    num_downloads += contribution.download_attachments(**kwargs)
+        for session in self.poster_sessions():
+            logger.info(f"Downloading attachments for session {session.id}: {session.title}...")
+            for contribution in session.contributions:
+                num_downloads += contribution.download_attachments(**kwargs)
         logger.info(f"Done, {num_downloads} file(s) downloaded.")
         return num_downloads
 
