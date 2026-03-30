@@ -505,6 +505,11 @@ class Event:
         # Write the program sheet with the session data.
         sheet_name = PosterCollectionBase.PROGRAM_SHEET_NAME
         col_names = PosterCollectionBase.PROGRAM_COL_NAMES
+        #df = pd.DataFrame(
+        #[(s.id, s.title, s.start_date, s.end_date) for s in sessions],
+        #columns=["id", "title", "start_date", "end_date"]
+        #)
+        # Also, fix the date format.
         _id = [session.id for session in sessions]
         _title = [session.title for session in sessions]
         _start_date = [session.start_date for session in sessions]
@@ -516,56 +521,27 @@ class Event:
         sheet.set_column(0, 0, 15)
         sheet.set_column(1, 1, 100)
         sheet.set_column(2, 3, 20)
-
         # Create the ancillary sheets with the actual contributions.
-        # def _warning_message(msg, contribution, max_title_length=30):
-        #     """Small nested function to provide useful diagnostics in case of missing data.
-        #     """
-        #     logger.warning(f"{msg} for contribution {contribution['id']} ({contribution['title'][:max_title_length]}...)")
-
-        # # Loop over all the contributions in the session and retrieve the data.
-        # # Note that, rather than doing this by column, we do it by row (i.e., by
-        # # contribution), the basic idea being that we can provide more granular
-        # # diagnostics if data are missing, at the expense of code beauty.
-        # for session in self.values():
-        #     data = [[], [], [], [], [], []]
-        #     for contrib in session["contributions"]:
-        #         _id = contrib["id"]
-        #         _title = contrib["title"]
-        #         _url = contrib["url"]
-        #         _db_id = contrib["db_id"]
-        #         try:
-        #             first_speaker = contrib["speakers"][0]
-        #         except IndexError as e:
-        #             _warning_message("No speaker(s)", contrib)
-        #             first_speaker = None
-        #         if first_speaker is not None:
-        #             _first_name = first_speaker["first_name"]
-        #             _last_name = first_speaker["last_name"]
-        #             _affiliation = first_speaker["affiliation"]
-        #             if _first_name == "":
-        #                 _warning_message("No first name", contrib)
-        #             if _last_name == "":
-        #                 _warning_message("No last name", contrib)
-        #             if _affiliation == "":
-        #                 _warning_message("No affiliation", contrib)
-        #         else:
-        #             _first_name, _last_name, _affiliation = "N/A", "N/A", "N/A"
-        #         for col, val in zip(data, (_id, _db_id, _title, _first_name, _last_name, _affiliation)):
-        #             col.append(val)
-
-        #     # Placeholder for the screen id.
-        #     screen_id = [i % 20 + 1 for i in range(len(session["contributions"]))]
-        #     data.insert(2, screen_id)
-        #     df = pd.DataFrame({key: val for key, val in zip(PosterCollectionBase.SESSION_COL_NAMES, data)})
-        #     sheet_name = str(session["id"])
-        #     df.to_excel(writer, sheet_name=sheet_name, index=False)
-        #     sheet = writer.sheets[sheet_name]
-        #     sheet.set_column(0, 2, 12)
-        #     sheet.set_column(3, 3, 100)
-        #     sheet.set_column(4, 5, 20)
-        #     sheet.set_column(6, 6, 60)
-        logger.info("Writing output file...")
+        col_names = PosterCollectionBase.SESSION_COL_NAMES
+        for session in sessions:
+            contributions = session.contributions
+            _id = [contribution.db_id for contribution in contributions]
+            _friendly_id = [contribution.friendly_id for contribution in contributions]
+            _hostname = [""] * len(contributions)
+            _title = [contribution.title for contribution in contributions]
+            _presenter_first_name = [contribution.presenter.first_name for contribution in contributions]
+            _presenter_last_name = [contribution.presenter.last_name for contribution in contributions]
+            _presenter_affiliation = [contribution.presenter.affiliation for contribution in contributions]
+            data = _friendly_id, _id, _hostname, _title, _presenter_first_name, _presenter_last_name, _presenter_affiliation
+            df = pd.DataFrame({key: val for key, val in zip(col_names, data)})
+            sheet_name = str(session.id)
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+            sheet = writer.sheets[sheet_name]
+            sheet.set_column(0, 2, 12)
+            sheet.set_column(3, 3, 100)
+            sheet.set_column(4, 5, 20)
+            sheet.set_column(6, 6, 60)
+        # Close the output file.
         writer.close()
         logger.info("Done.")
 
