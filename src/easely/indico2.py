@@ -509,7 +509,14 @@ class Event:
         ---------
         file_path : PathLike
             The path to the output .xls file.
+
+        overwrite : bool
+            Whether to overwrite the output file if it already exists (default False).
         """
+        file_path = sanitize_file_path(file_path, suffix=".xlsx", check_exists=False)
+        if file_path.is_file() and not overwrite:
+            logger.info(f"Output file {file_path} exists, skipping...")
+            return
         logger.info(f"Writing poster roster to {file_path}...")
         writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
         sessions = self.poster_sessions()

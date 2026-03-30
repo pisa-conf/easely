@@ -70,10 +70,9 @@ def download(
     output_folder = sanitize_folder_path(output_folder, create=True)
     file_path = output_folder / f"{PROGRAM_FILE_NAME}.json"
     indico.download_event_data(url, file_path, overwrite=True)
-    event = indico.Event(file_path)
     attachments_folder = output_folder / WorkspaceLayout.ATTACHMENTS
     kwargs = dict(file_types=file_types, overwrite=overwrite)
-    event.download_poster_attachments(attachments_folder, **kwargs)
+    indico.Event(file_path).download_poster_attachments(attachments_folder, **kwargs)
 
 
 @dataclass(frozen=True)
@@ -102,11 +101,7 @@ def roster(
     """
     file_path = sanitize_file_path(file_path, suffix=".json", check_exists=True)
     output_file_path = file_path.with_suffix(".xlsx")
-    if output_file_path.is_file() and not overwrite:
-        logger.info(f"Output file {output_file_path} exists, skipping...")
-        return output_file_path
-    event = indico.Event(file_path)
-    event.generate_poster_roster(output_file_path, overwrite=overwrite)
+    indico.Event(file_path).generate_poster_roster(output_file_path, overwrite=overwrite)
     return output_file_path
 
 
