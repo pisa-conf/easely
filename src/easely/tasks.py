@@ -37,24 +37,43 @@ class DownloadDefaults:
     """
 
     output_folder: PathLike = pathlib.Path.cwd()
-    filters: Tuple[str] = ("pdf", "ppt", "pptx", "png", "jpg", "jpeg")
-    #overwrite_info: bool = False
-    #overwrite_attachments: bool = False
+    file_types: Tuple[str] = ("pdf", "ppt", "pptx", "png", "jpg", "jpeg")
+    overwrite: bool = False
 
 
 def download(
         url: str,
         output_folder: PathLike = DownloadDefaults.output_folder,
-        filters: Tuple[str] = DownloadDefaults.filters,
+        file_types: Tuple[str] = DownloadDefaults.file_types,
+        overwrite: bool = DownloadDefaults.overwrite
         ) -> None:
-    """Download.
+    """Download all the poster attachments for a given indico event.
+
+    Note that the .json file with the event data will be downloaded in the
+    output folder passed as an argument, and is always overwritten. The actual
+    poster attachments will be downloaded in a subfolder.
+
+    Arguments
+    ---------
+    url : str
+        The indico url for the conference, e.g., https://agenda.infn.it/export/event/37033.json
+
+    output_folder : PathLike
+        The output folder for the generated files.
+
+    file_types : Tuple[str]
+        The file types to be downloaded, e.g., ("pdf", "ppt", "pptx", "png", "jpg", "jpeg").
+
+    overwrite : bool
+        Whether to overwrite the output files if they already exist (default False).
     """
     output_folder = sanitize_folder_path(output_folder, create=True)
     file_path = output_folder / f"{PROGRAM_FILE_NAME}.json"
     indico.download_event_data(url, file_path, overwrite=True)
     event = indico.Event(file_path)
     attachments_folder = output_folder / WorkspaceLayout.ATTACHMENTS
-    event.download_poster_attachments(attachments_folder, file_types=filters)
+    kwargs = dict(file_types=file_types, overwrite=overwrite)
+    event.download_poster_attachments(attachments_folder, **kwargs)
 
 
 @dataclass(frozen=True)

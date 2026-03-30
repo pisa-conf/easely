@@ -95,10 +95,15 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="download the program information from indico",
             formatter_class=self._FORMATTER_CLASS)
         download.add_argument("url", type=str,
-            help="the indico url for the conference, e.g., https://indico.cern.ch/event/12345/")
+            help="the indico url for the conference")
         download.add_argument("--output-folder", type=str,
             default=tasks.DownloadDefaults.output_folder,
             help="the output folder for the generated files")
+        download.add_argument("--file-types", nargs="+", type=str,
+            default=tasks.DownloadDefaults.file_types,
+            help="the file types to be downloaded")
+        download.add_argument("--overwrite", action="store_true",
+            help="overwrite existing output files")
         self.add_logging_level(download)
         download.set_defaults(runner=self.download)
 

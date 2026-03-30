@@ -246,7 +246,7 @@ class Contribution(AbstractIndicoObject):
         return contribution
 
     def download_attachments(self, folder_path: PathLike, separator: str = '-',
-            file_types: tuple = None) -> int:
+            file_types: tuple = None, overwrite: bool = False) -> int:
         """Download the attachments for this contribution, if any.
 
         Since downloading a bunch of files for many contribution is an expensive
@@ -269,6 +269,9 @@ class Contribution(AbstractIndicoObject):
         file_types : tuple
             The file types to download (None to download all attachments).
 
+        overwrite : bool
+            Whether to overwrite the files if they already exist and are up to date.
+
         Returns
         -------
         int
@@ -287,7 +290,7 @@ class Contribution(AbstractIndicoObject):
             # If we have the file locally, and we have track of the timestamp, and that
             # matches the one in the .json file, there is no point in downloading another
             # identical copy.
-            if file_path.is_file() and timestamp_file_path.is_file():
+            if file_path.is_file() and timestamp_file_path.is_file() and not overwrite:
                 if timestamp_file_path.read_text() == timestamp:
                     logger.debug(f"{file_path} is up to date, skipping...")
                     continue
@@ -465,13 +468,33 @@ class Event:
             self.session_dict[session.id] = session
         logger.info(f"{len(self.session_dict)} session(s) found.")
 
-    def download_poster_attachments(self, folder_path: PathLike, separator: str = '-',
-        file_types: tuple = None) -> int:
-        """Download the attachments for this event, if any.
+    def download_poster_attachments(self, folder_path: PathLike, file_types: tuple = None,
+            overwrite: bool = False) -> int:
+        """Download the attachments for all the poster sessions in the event.
+
+        Arguments
+        ---------
+        folder_path : PathLike
+            The path to the folder where to save the attachments.
+
+        file_types : tuple
+            The file types to download (None to download all attachments).
+
+        overwrite : bool
+            Whether to overwrite the files if they already exist and are up to date.
+
+        Returns
+        -------
+        int
+            The number of attachments downloaded.
         """
+        logger.info(f"Downloading attachments for all poster sessions in the event...")
+        kwargs = dict(folder_path=folder_path, file_types=file_types, overwrite=overwrite)
+        num_downloads = 0
         for session in self.session_dict.values():
             if session.is_poster and len(session) > 0:
                 logger.info(f"Downloading attachments for session {session.id}: {session.title}...")
                 for contribution in session.contributions:
-                    contribution.download_attachments(folder_path, separator=separator,
-                        file_types=file_types)
+                    num_downloads += contribution.download_attachments(**kwargs)
+        logger.info(f"Done, {num_downloads} file(s) downloaded.")
+        return num_downloads
