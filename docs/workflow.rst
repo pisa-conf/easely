@@ -4,10 +4,11 @@ Workflow
 ========
 
 This is a top-level description of the workflow to prepare a full conference setup
-with `easely`.
+with `easely`. The different subsections of this section map directly into the
+sub-parsers of the `easely` command-line interface, and we shall quickly go
+through each one of them.
 
-
-.. autoprogram:: easely.cli:build_parser
+.. program-output:: easely --help
 
 
 Folder structure
@@ -23,11 +24,16 @@ the `WorkspaceLayout` class in the `paths` module:
 Downloading the event data
 --------------------------
 
+.. program-output:: easely download --help
+
 
 Creating the poster roster
 --------------------------
 
+.. program-output:: easely roster --help
 
 
 Generating the QR codes
 -----------------------
+
+.. program-output:: easely qrcodes --help
