@@ -26,7 +26,6 @@ easely documentation
    workflow
    config
    raspberry
-   license
 
 .. toctree::
    :maxdepth: 1
