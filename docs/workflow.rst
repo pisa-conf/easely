@@ -4,8 +4,8 @@ Workflow
 ========
 
 This is a top-level description of the workflow to prepare a full conference setup
-with `easely`. The different subsections of this section map directly into the
-sub-parsers of the `easely` command-line interface, and we shall quickly go
+with ``easely``. The different subsections of this section map directly into the
+sub-parsers of the ``easely`` command-line interface, and we shall quickly go
 through each one of them.
 
 .. program-output:: easely --help
@@ -14,26 +14,141 @@ through each one of them.
 Folder structure
 ----------------
 
-You should end up with a folder structure like the one defined in
-the `WorkspaceLayout` class in the `paths` module:
+By design each conference is supposed to have its own workspace, where all the relevant
+files live. If this is your first time using ``easely``, go ahead, create an empty folder
+for your conference cd into it and follow the instructions in the next sections.
+
+The workspace will contain a few standard files, along with a folder structure resembling
+the one defined in the ``WorkspaceLayout`` class in the ``paths`` module:
 
 .. literalinclude:: ../src/easely/paths.py
    :pyobject: WorkspaceLayout
 
 
-Downloading the event data
---------------------------
+.. note::
+
+   While the command-line interface allows you to customize the behavior of each task,
+   the default values are chosen to fit this folder structure, and you should be good
+   by literally following two simple rules: operate (i.e., run ``easely`` tasks) from
+   within the root folder of your conference and just let the thing flow.
+
+
+Downloading the conference data
+-------------------------------
+
+The first thing you have to do is to download all the relevant event metadata, as well as
+the poster attachments, from the Indico server. This is done with the ``download`` sub-command:
 
 .. program-output:: easely download --help
+
+If you issue, e.g.,
+
+.. code-block:: bash
+
+   cd my-conference-workspace
+   easely download https://agenda.infn.it/export/event/37033.json
+
+you should see at the very minimum a ``program.json`` file in the root of your workspace,
+containing all the relevant metadata for the conference, such as the list of sessions and
+contributions within each session.
+If the event has one or more poster sessions with contributions, and if these contributions
+have attachments, they will be automatically downloaded in the ``attachments`` folder.
+
+Most likely you will have to repeat this over and over again as you prepare for the
+conference---be assured that people will upload material to indico until the very last minute,
+and often during the conference itself. We are fully aware that useless downloads are
+expensive, and the basic rules for the ``download`` task are the following:
+
+* the json file with the program is overwritten every time, with no mercy;
+* we keep track of the indico upload timestamp for each attachment, and we only download
+  any given file if it is not already on disk, or if the version on indico is newer than
+  the one on disk.
+
+.. note::
+
+   In order to facilitate matching the attachments files with the actual contributions,
+   all the file names are prepended with the ``friendly_id`` of the contribution, which
+   is an identifier generated based on the submission order that is guaranteed to be
+   unique within the scope of the conference.
 
 
 Creating the poster roster
 --------------------------
 
+The very first thing that you will need to do with the json file containing the
+conference metadata is to create the poster roster, which is the excel file that drives
+all the poster display. This is achieved with the ``roster`` sub-command:
+
 .. program-output:: easely roster --help
+
+Normally, all you have to do is to run the sub-command once from within the
+conference workspace
+
+.. code-block:: bash
+
+   easely roster
+
+and this will create a ``program.xlsx`` file alongside the original ``program.json`` file.
+
+If you open the file, you will see a sheet with the list of all the poster sessions, and
+a series of additional sheets (one per session) listing all the contributions. This is
+very important, as this very excel file regulates two important things:
+
+* the times when the system switches between different poster sessions; and
+* the mapping of the contributions to the different screens in the poster display.
+
+.. warning::
+
+   The poster roster, by definition, needs manual editing. You don't want to generate it
+   before the conference program is fully finalized, and you do not want to overwrite
+   after you have started editing it. (The sub-command will not overwrite it by default.)
 
 
 Generating the QR codes
 -----------------------
 
+By default the poster display system will show a QR code in the upper part of the screen,
+containing a link pointing to the contribution on the indico server. This allows
+attendees to quickly access the relevant indico page (e.g, with their smartphone)
+and download a pdf copy of the poster to their device, if they care.
+
+Specific QR codes for each single posters can be generate with the ``qrcodes`` sub-command:
+
 .. program-output:: easely qrcodes --help
+
+As usual, from within the conference workspace, you can just run
+
+.. code-block:: bash
+
+   easely qrcodes
+
+and there it is: you will have your QR codes in the ``qrcodes`` folder, ready to be
+consumed by the poster display applications.
+
+.. note::
+
+   As for most of the final artifact that correspond to a specific contributions,
+   QR codes are named after the ``friendly_id`` of the contribution, which is an identifier
+   generated based on the submission order that is guaranteed to be unique within the
+   scope of the conference.
+
+
+Dispatching attachments
+-----------------------
+
+When you download the indico attachments, by default you will get all the graphics files
+(e.g., pdf, png, pptx.) in the default ``attachments`` folder. These will include various
+things along with the actual poster files---presenter close-up pictures, mini-elevator
+pitches, and any additional material that you might have asked the presenters to upload.
+
+For the purpose of the poster display, we are mainly interested in two types of files:
+
+* the actual poster files, which are supposed to be in pdf format; and
+* the presenter close-up pictures, which are supposed to be in a sensible graphics format.
+
+The ``dispatch`` sub-command allows is meant to automatically sort out the attachments
+into the ``posters`` and ``headshots`` folders, respectively.
+
+Unless your conference is tiny (literally: if you have more than half a dozen posters) you
+will painfully realized that no matter how precise were the instructions you gave the
+presenters, they can be very creating in disattending your expectations.
