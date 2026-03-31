@@ -595,7 +595,8 @@ class Event:
         logger.info(f"Done, {num_downloads} file(s) downloaded.")
         return num_downloads
 
-    def generate_poster_qrcodes(self, folder_path: PathLike, overwrite: bool = False) -> None:
+    def generate_poster_qrcodes(self, folder_path: PathLike, size: int,
+        overwrite: bool = False) -> None:
         """Generate the QR codes for all the poster sessions in the event.
 
         Arguments
@@ -614,5 +615,5 @@ class Event:
                 if file_path.is_file() and not overwrite:
                     logger.info(f"QR code for contribution {contribution.friendly_id} already exists, skipping...")
                     continue
-                generate_qrcode(contribution.url, file_path)
+                generate_qrcode(contribution.url, file_path, size=size, overwrite=overwrite)
         logger.info("Done.")

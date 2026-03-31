@@ -113,12 +113,14 @@ class QrcodesDefaults:
 
     file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.json"
     folder_path: PathLike = pathlib.Path.cwd() / WorkspaceLayout.QRCODES
+    size: int = 500
     overwrite: bool = False
 
 
 def qrcodes(
         file_path: PathLike = QrcodesDefaults.file_path,
         folder_path: PathLike = QrcodesDefaults.folder_path,
+        size: int = QrcodesDefaults.size,
         overwrite: bool = QrcodesDefaults.overwrite
         ) -> None:
     """Generate QR codes for the poster attachments.
@@ -131,12 +133,15 @@ def qrcodes(
     folder_path : PathLike
         The path to the output folder for the QR codes.
 
+    size : int
+        The size of the generated QR codes, in pixels.
+
     overwrite : bool
         Whether to overwrite the output files if they already exist (default False).
     """
     file_path = sanitize_file_path(file_path, suffix=".json", check_exists=True)
     output_folder = sanitize_folder_path(folder_path, create=True)
-    indico.Event(file_path).generate_poster_qrcodes(output_folder, overwrite=overwrite)
+    indico.Event(file_path).generate_poster_qrcodes(output_folder, size=size, overwrite=overwrite)
 
 
 @dataclass(frozen=True)

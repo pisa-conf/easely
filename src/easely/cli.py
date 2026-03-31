@@ -126,6 +126,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         qrcodes.add_argument("--file-path", type=str,
             default=tasks.QrcodesDefaults.file_path,
             help="the input .json file with the event data")
+        qrcodes.add_argument("--folder-path", type=str,
+            default=tasks.QrcodesDefaults.folder_path,
+            help="the output folder for the QR codes")
+        qrcodes.add_argument("--size", type=int,
+            default=tasks.QrcodesDefaults.size,
+            help="the size of the generated QR codes, in pixels")
         qrcodes.add_argument("--overwrite", action="store_true",
             help="overwrite existing output files")
         self.add_logging_level(qrcodes)

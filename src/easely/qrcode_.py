@@ -22,20 +22,24 @@ import os
 import qrcode
 
 from .logging_ import logger
+from .paths import sanitize_file_path
+from .typing_ import PathLike
 
 
-def generate_qrcode(data, file_path, overwrite=False):
+def generate_qrcode(data: str, file_path: PathLike, size: int = 330, overwrite: bool = False):
     """Generate a qrcode for a given input data.
     """
-    if os.path.exists(file_path) and overwrite is False:
+    file_path = sanitize_file_path(file_path)
+    if file_path.is_file() and not overwrite:
         logger.info(f"File {file_path} exists, skipping...")
-        return
-    #pylint: disable=invalid-name
+        return file_path
     logger.info(f"Generating QR code for \"{data}\"...")
     qr = qrcode.QRCode(version=1, box_size=10, border=0)
     qr.add_data(data)
     qr.make(fit=True)
     img = qr.make_image(fill="black", back_color="white")
     logger.info(f"Saving file to {file_path}...")
-    img.save(file_path)
+    #img.save(file_path)
+    img.resize((size, size)).save(file_path)
     logger.info("Done.")
+    return file_path
