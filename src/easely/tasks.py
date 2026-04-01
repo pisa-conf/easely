@@ -25,6 +25,7 @@ from . import pdf
 from . import img
 from . import indico
 from . import __name__ as __package_name__
+from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
 from .paths import WorkspaceLayout, sanitize_file_path, sanitize_folder_path, PROGRAM_FILE_NAME
 from .typing_ import PathLike
@@ -150,13 +151,22 @@ class DispatchDefaults:
     """Default values for dispatch task parameters.
     """
 
-    pass
+    file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.json"
+    attachments_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.ATTACHMENTS
+    posters_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS
+    headshots_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
 
 
-def dispatch() -> None:
-    """Dispatch.
+def dispatch(
+        attachments_dir: PathLike = DispatchDefaults.attachments_dir,
+        posters_dir: PathLike = DispatchDefaults.posters_dir,
+        headshots_dir: PathLike = DispatchDefaults.headshots_dir
+        ) -> None:
+    """Dispatch the files from the attachments folder to the appropriate destination folders.
     """
-    pass
+    ids = indico.Event(DispatchDefaults.file_path).poster_contributions_ids()
+    dispatch_posters(ids, attachments_dir, posters_dir)
+    dispatch_headshots(ids, attachments_dir, headshots_dir)
 
 
 @dataclass(frozen=True)

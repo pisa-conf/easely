@@ -137,6 +137,19 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(qrcodes)
         qrcodes.set_defaults(runner=tasks.qrcodes)
 
+        # Dispatch the files from the attachments folder to the appropriate destination folders.
+        dispatch = subparsers.add_parser("dispatch",
+            help="dispatch the files from the attachments folder to the appropriate destination folders",
+            formatter_class=self._FORMATTER_CLASS)
+        dispatch.add_argument("--attachments-dir", type=str,
+            default=tasks.DispatchDefaults.attachments_dir,
+            help="the folder containing the indico attachments")
+        dispatch.add_argument("--posters-dir", type=str,
+            default=tasks.DispatchDefaults.posters_dir,
+            help="the folder where the poster files should be copied to")
+        self.add_logging_level(dispatch)
+        dispatch.set_defaults(runner=tasks.dispatch)
+
         # Rasterize one or more posters.
         rasterize = subparsers.add_parser("rasterize",
             help="rasterize one or more posters",

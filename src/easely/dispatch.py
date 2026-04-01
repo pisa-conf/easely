@@ -21,110 +21,184 @@ dump of the indico attachments to the folder structure in use by the slideshow.
 """
 
 import os
+import pathlib
 import shutil
-
-import pdfrw
+from typing import Dict, List
 
 from .logging_ import logger
+from .paths import sanitize_folder_path
+from .typing_ import PathLike
 
 
-def pdf_info(file_path: str):
-    """Peek at a pdf file and retrieve some of its basic properties, e.g., the
-    number of pages and the aspect ratio, useful to decide whether it is a poster or not.
+def populate_file_dict(friendly_ids: List[int], input_dir: PathLike,
+                       file_types: List[str]) -> Dict[int, List[pathlib.Path]]:
+    """
+    Populate a dictionary mapping friendly IDs to lists of file paths in a given directory.
 
     Arguments
     ---------
-    file_path : str
-        Path to the input pdf file.
+    friendly_ids : List[int]
+        The list of friendly IDs for which to populate file paths.
+
+    input_dir : PathLike
+        The path to the directory containing the files.
+
+    file_types : List[str]
+        The list of file extensions to consider.
+
+    Returns
+    -------
+    Dict[int, List[pathlib.Path]]
+        A dictionary mapping each friendly ID to a list of matching file paths.
     """
-    # pylint: disable=broad-except
-    assert file_path.endswith(".pdf")
-    try:
-        pdf = pdfrw.PdfReader(file_path)
-    except Exception as exception:
-        logger.error(f"Parsing error for {file_path}: {exception}")
-        return None, None
-    num_pages = len(pdf.pages)
-    box = pdf.pages[0].MediaBox or pdf.pages[0].Parent.MediaBox
-    if box is None:
-        logger.warning(f"No media box for {file_path}...")
-        return num_pages, None
-    if float(box[3]) == 0:
-        logger.warning(f"zero height for {file_path}")
-        return num_pages, None
-    aspect_ratio = float(box[2]) / float(box[3])
-    return num_pages, aspect_ratio
+    file_dict = {id_: [] for id_ in friendly_ids}
+    for file_path in sorted(input_dir.iterdir()):
+        if not file_path.suffix.lower() in file_types:
+            continue
+        # Note this does not depend on how much zeros we use for padding the file names.
+        id_ = int(file_path.stem.split("-")[0])
+        if id_ in file_dict:
+            file_dict[id_].append(file_path)
+    return file_dict
 
 
-def poster_candidates(file_list):
-    """Filter an input list of file paths and return the subset of those that
-    might legitimately point to actual posters.
+def dispatch_file(src: pathlib.Path, dest: pathlib.Path) -> bool:
     """
-    candidates = []
-    for file_path in file_list:
-        if file_path.endswith(".pdf"):
-            num_pages, aspect_ratio = pdf_info(file_path)
-            if num_pages == 1 and aspect_ratio is not None and aspect_ratio < 1:
-                candidates.append(file_path)
-    return candidates
+    Copy a file from the source to the destination path.
+
+    Arguments
+    ---------
+    src : pathlib.Path
+        The path to the source file.
+
+    dest : pathlib.Path
+        The path to the destination file.
+
+    Returns
+    -------
+    bool
+        True if the file was copied, False if the destination file already exists.
+    """
+    if dest.is_file():
+        logger.debug(f"Target file {dest} exist, skipping...")
+        return False
+    logger.debug(f"Copying over {src} -> {dest}...")
+    shutil.copyfile(src, dest)
+    return True
 
 
-def dispatch_posters(contribution_ids, src_folder_path, dest_folder_path):
+def dispatch_posters(friendly_ids: List[int], attachments_dir: PathLike,
+    posters_dir: PathLike, pattern: str = "poster") -> int:
     """Dispatch the candidate poster files from the indico attachment folder to
     the target folder holding the poster originals.
+
+    Arguments
+    ---------
+    attachments_dir : PathLike
+        The path to the folder containing the indico attachments.
+
+    posters_dir : PathLike
+        The path to the folder where the poster files should be copied to.
+
+    pattern : str
+        The pattern to look for in the file names to identify the poster files.
+
+    Returns
+    -------
+    int
+        The number of files successfully copied.
     """
-    file_dict = {id_: [] for id_ in contribution_ids}
-    for file_name in os.listdir(src_folder_path):
-        if not file_name.endswith(".pdf"):
+    logger.info("Dispatching posters...")
+    attachments_dir = sanitize_folder_path(attachments_dir)
+    posters_dir = sanitize_folder_path(posters_dir, create=True)
+    num_dispatched = 0
+    # Do a first pass for the .pdf files matching the list of friendly ids for the posters.
+    file_dict = populate_file_dict(friendly_ids, attachments_dir, [".pdf"])
+    # Do a second pass and find best candidates for the actual poster files.
+    for id_, file_list in file_dict.items():
+        # If there is no file in the list, we have nothing to dispatch...
+        if len(file_list) == 0:
+            logger.error(f"No .pdf attachment found for contribution {id_}")
             continue
-        id_ = int(file_name.split("-")[0])
-        if id_ in file_dict:
-            file_dict[id_].append(os.path.join(src_folder_path, file_name))
-    for id_, attachments in file_dict.items():
-        if len(attachments) == 0:
-            logger.error(f"No poster candidate found for contribution {id_}")
-            continue
-        candidates = poster_candidates(attachments)
-        if len(candidates) == 1:
-            logger.info("Unique poster candidate found!")
-            src = candidates[0]
-            file_name = f"{id_:03d}.pdf"
-            dest = os.path.join(dest_folder_path, file_name)
-            if os.path.exists(dest):
-                logger.info(f"Target file {dest} exist, skipping...")
+        dest = posters_dir / f"{id_:04d}.pdf"
+        # Match the list of pdf files with the expected pattern.
+        matches = [file_path for file_path in file_list if pattern in file_path.name.lower()]
+        if len(matches) == 1:
+            # There is a unique strict match, and we are golden!
+            if dispatch_file(matches[0], dest):
+                num_dispatched += 1
+        elif len(matches) == 0:
+            # No strict match, but if there is a single .pdf attachment, and chance are
+            # that the presented did not stick to the naming conventions.
+            if len(file_list) == 1:
+                logger.warning(f"Unique .pdf attachment for contribution {id_}, but not a match.")
+                if dispatch_file(file_list[0], dest):
+                    num_dispatched += 1
+            # Too many pdf files---somebody should look into this and resolve the ambiguity.
             else:
-                logger.info(f"Copying over poster to {dest}...")
-                shutil.copyfile(src, dest)
-        else:
-            logger.warning(f"{len(candidates)} candidate posters / {len(attachments)} attachments for contribution {id_}")
+                logger.error(f"{len(file_list)} .pdf attachments for contribution {id_} without any match, skipping...")
+        elif len(matches) > 1:
+            # Most likely the presenter did upload multiple versions of the poster, and we
+            # and we would be better off deleting the old one from indico.
+            logger.error(f"Multiple matches found for contribution {id_}, skipping...")
+    logger.info(f"Done, {num_dispatched} file(s) physically copied.")
+    return num_dispatched
 
 
-def dispatch_pictures(contribution_ids, src_folder_path, dest_folder_path):
+def dispatch_headshots(friendly_ids: List[int], attachments_dir: PathLike,
+    headshots_dir: PathLike, pattern: str = "picture") -> int:
+    """Dispatch the candidate headshot files from the indico attachment folder to
+    the target folder holding the headshot originals.
+
+    Arguments
+    ---------
+    attachments_dir : PathLike
+        The path to the folder containing the indico attachments.
+
+    headshots_dir : PathLike
+        The path to the folder where the headshot files should be copied to.
+
+    pattern : str
+        The pattern to look for in the file names to identify the headshot files.
+
+    Returns
+    -------
+    int
+        The number of files successfully copied.
     """
-    """
-    logger.info("Dispatching pictures...")
-    file_dict = {id_: [] for id_ in contribution_ids}
-    for file_name in os.listdir(src_folder_path):
-        if not file_name.split(".")[-1].lower() in ("png", "jpg", "jpeg"):
+    logger.info("Dispatching headshots...")
+    attachments_dir = sanitize_folder_path(attachments_dir)
+    headshots_dir = sanitize_folder_path(headshots_dir, create=True)
+    num_dispatched = 0
+    # Do a first pass for the graphics files matching the list of friendly ids for the posters.
+    file_dict = populate_file_dict(friendly_ids, attachments_dir, [".png", ".jpg", ".jpeg"])
+    # Do a second pass and find best candidates for the actual poster files.
+    for id_, file_list in file_dict.items():
+    # If there is no file in the list, we have nothing to dispatch...
+        if len(file_list) == 0:
+            logger.error(f"No graphics attachment found for contribution {id_}")
             continue
-        id_ = int(file_name.split("-")[0])
-        if id_ in file_dict:
-            file_dict[id_].append(os.path.join(src_folder_path, file_name))
-    for id_, attachments in file_dict.items():
-        if len(attachments) == 0:
-            logger.error(f"No picture candidate found for contribution {id_}")
-            continue
-        if len(attachments) == 1:
-            logger.info("Unique picture candidate found!")
-            src = attachments[0]
-            ext = attachments[0].split(".")[-1]
-            file_name = f"{id_:03d}.{ext}"
-            dest = os.path.join(dest_folder_path, file_name)
-            if os.path.exists(dest):
-                logger.info(f"Target file {dest} exist, skipping...")
+        # Match the list of graphics files with the expected pattern.
+        matches = [file_path for file_path in file_list if pattern in file_path.name.lower()]
+        if len(matches) == 1:
+            # There is a unique strict match, and we are golden!
+            dest = headshots_dir / f"{id_:04d}{matches[0].suffix}"
+            if dispatch_file(matches[0], dest):
+                num_dispatched += 1
+        elif len(matches) == 0:
+            # No strict match, but if there is a single graphics attachment, and chance are
+            # that the presented did not stick to the naming conventions.
+            if len(file_list) == 1:
+                logger.warning(f"Unique graphics attachment for contribution {id_}, but not a match.")
+                dest = headshots_dir / f"{id_:04d}{file_list[0].suffix}"
+                if dispatch_file(file_list[0], dest):
+                    num_dispatched += 1
+            # Too many graphics files---somebody should look into this and resolve the ambiguity.
             else:
-                logger.info(f"Copying over poster to {dest}...")
-                shutil.copyfile(src, dest)
-        else:
-            logger.warning(f"{len(attachments)} candidate pictures found for contribution {id_}...")
-    logger.info("Done.")
+                logger.error(f"{len(file_list)} graphics attachments for contribution {id_} without any match, skipping...")
+        elif len(matches) > 1:
+            # Most likely the presenter did upload multiple versions of the poster, and we
+            # and we would be better off deleting the old one from indico.
+            logger.error(f"Multiple matches found for contribution {id_}, skipping...")
+    logger.info(f"Done, {num_dispatched} file(s) physically copied.")
+    return num_dispatched

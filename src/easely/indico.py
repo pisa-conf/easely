@@ -502,6 +502,26 @@ class Event:
             sessions = [session for session in sessions if len(session) > 0]
         return sessions
 
+    def poster_contributions_ids(self, sort: bool = True) -> List[int]:
+        """Return the list of contributions in the poster sessions of the event.
+
+        Arguments
+        ---------
+        sort : bool
+            Whether to sort the contribution IDs in ascending order (default True).
+
+        Returns
+        -------
+        List[int]
+            The list of contribution IDs in the poster sessions of the event.
+        """
+        ids = []
+        for session in self.poster_sessions():
+            ids.extend([contribution.friendly_id for contribution in session.contributions])
+        if sort:
+            ids.sort()
+        return ids
+
     @staticmethod
     def _write_xls(writer: pd.ExcelWriter, sheet_name: str, col_names: list, data: list,
         col_widths: list = None) -> None:
