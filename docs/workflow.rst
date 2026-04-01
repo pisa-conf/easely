@@ -149,6 +149,29 @@ For the purpose of the poster display, we are mainly interested in two types of 
 The ``dispatch`` sub-command allows is meant to automatically sort out the attachments
 into the ``posters`` and ``headshots`` folders, respectively.
 
+.. program-output:: easely dispatch --help
+
+As usual, from within the conference workspace, you can just run
+
+.. code-block:: bash
+
+   easely dispatch
+
 Unless your conference is tiny (literally: if you have more than half a dozen posters) you
-will painfully realized that no matter how precise were the instructions you gave the
-presenters, they can be very creating in disattending your expectations.
+will painfully realize that no matter how precise were the instructions you gave the
+presenters, they can be very creative in ignoring your indications. This is an area where
+manual intervention will be required during the preparation of the conference, and likely
+during the conference itself. For this very reason, the ``dispatch`` task will
+never overwrite existing files in the destination folders---there is essentially no good
+automatic way to tell whether a file was put there manually for good reasons.
+
+.. warning::
+
+   The current mechanism is not very amenable to frequent changes in the attachments, as
+   once the original files have been dispatched once in the destination folder, any
+   subsequent change needs to be done manually. This is, admittedly, an area where we
+   could improve, but the basic reasoning is that we generally want to keep indico in
+   order (e.g, rename files there) at which point we can always regenerate everything
+   from scratch right before the beginning of the conference, and treat subsequent
+   changes as manual interventions.
+

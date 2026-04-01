@@ -146,7 +146,10 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="the folder containing the indico attachments")
         dispatch.add_argument("--posters-dir", type=str,
             default=tasks.DispatchDefaults.posters_dir,
-            help="the folder where the poster files should be copied to")
+            help="the folder where the poster and files should be copied to")
+        dispatch.add_argument("--headshots-dir", type=str,
+            default=tasks.DispatchDefaults.headshots_dir,
+            help="the folder where the presenter headshots should be copied to")
         self.add_logging_level(dispatch)
         dispatch.set_defaults(runner=tasks.dispatch)
 
