@@ -157,10 +157,11 @@ class CliArgumentParser(argparse.ArgumentParser):
         rasterize = subparsers.add_parser("rasterize",
             help="rasterize one or more posters",
             formatter_class=self._FORMATTER_CLASS)
-        rasterize.add_argument("input_files", nargs="+", type=str,
-            help="path to the input pdf file(s)")
-        rasterize.add_argument("--output-folder", type=str,
-            default=tasks.RasterizeDefaults.output_folder,
+        rasterize.add_argument("--input-dir", type=str,
+            default=tasks.RasterizeDefaults.input_dir,
+            help="the input folder containing the pdf files to be rastered")
+        rasterize.add_argument("--output-dir", type=str,
+            default=tasks.RasterizeDefaults.output_dir,
             help="the output folder for the generated png file(s)")
         rasterize.add_argument("--target-width", type=int,
             default=tasks.RasterizeDefaults.target_width,
@@ -176,7 +177,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         rasterize.add_argument("--overwrite", action="store_true",
             help="overwrite existing output files")
         self.add_logging_level(rasterize)
-        rasterize.set_defaults(runner=self.rasterize)
+        rasterize.set_defaults(runner=tasks.rasterize)
 
         # Poster slideshow.
         slideshow = subparsers.add_parser("slideshow",
@@ -295,17 +296,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         parser.add_argument("--logging_level", type=str, choices=logging_.logging_levels(),
                             default="INFO",
                             help="logging level")
-
-    def download(self, **kwargs) -> None:
-        """Download the program information and associated attachments from indico.
-        """
-        tasks.download(**kwargs)
-
-    def rasterize(self, **kwargs) -> None:
-        """Rasterize one or more posters.
-        """
-        for file_path in kwargs.pop("input_files"):
-            tasks.rasterize(file_path, **kwargs)
 
     def start_slideshow(self, **kwargs) -> None:
         """Start the poster slideshow.

@@ -175,8 +175,8 @@ class RasterizeDefaults:
     """Default values for rasterization task parameters.
     """
 
-    output_folder: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS
-    output_file_name: str = None
+    input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS
+    output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS
     target_width: int = 2120
     intermediate_width: int = 4240
     max_aspect_ratio: float = 1.52
@@ -185,15 +185,14 @@ class RasterizeDefaults:
 
 
 def rasterize(
-        input_file_path: PathLike,
-        output_folder: PathLike = RasterizeDefaults.output_folder,
-        output_file_name: str = RasterizeDefaults.output_file_name,
+        input_dir: PathLike = RasterizeDefaults.input_dir,
+        output_dir: PathLike = RasterizeDefaults.output_dir,
         target_width: int = RasterizeDefaults.target_width,
         intermediate_width: int = RasterizeDefaults.intermediate_width,
         autocrop: bool = RasterizeDefaults.autocrop,
         max_aspect_ratio: float = RasterizeDefaults.max_aspect_ratio,
         overwrite: bool = RasterizeDefaults.overwrite
-        ) -> pathlib.Path:
+        ) -> int:
     """Raster a pdf file and convert it to a png.
 
     This is the main function to convert a poster pdf file to a png file. Since
@@ -213,14 +212,11 @@ def rasterize(
 
     Arguments
     ---------
-    input_file_path : PathLike
-        The path to the input pdf file.
+    input_dir : PathLike
+        The path to the input folder containing the pdf files to be rastered.
 
-    output_folder : PathLike
+    output_dir : PathLike
         The path to the output folder.
-
-    output_file_name : str, optional
-        The name of the output file.
 
     target_width : int
         The target width for the output png file.
@@ -241,38 +237,46 @@ def rasterize(
 
     Returns
     -------
-    pathlib.Path
-        The path to the output rasterized (png) file.
+    int
+        The number of files successfully rasterized.
     """
-    input_file_path = sanitize_file_path(input_file_path, suffix=".pdf", check_exists=True)
-    output_folder = sanitize_folder_path(output_folder, create=True)
-    if output_file_name is None:
-        output_file_name = input_file_path.stem + ".png"
-    output_file_path = output_folder / output_file_name
-    logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
-    if output_file_path.exists() and not overwrite:
-        logger.info(f"Output file {output_file_path} exists, skipping...")
-        return output_file_path
-    # Run imagemagick to convert the pdf to png---note this is slightly different
-    # depending on whether we want to perform an intermediate rasterization step or not.
-    if intermediate_width is None or intermediate_width <= target_width:
-        return pdf.run_imagemagick(input_file_path, output_file_path, target_width)
-    file_path = pdf.run_imagemagick(input_file_path, output_file_path, intermediate_width)
+    input_dir = sanitize_folder_path(input_dir)
+    output_dir = sanitize_folder_path(output_dir, create=True)
+    num_rasterized = 0
+    for input_file_path in sorted(input_dir.iterdir()):
+        # TODO: consider moving this into a separate python module.
+        if input_file_path.suffix.lower() != ".pdf":
+            raise RuntimeError(f"{input_file_path} is not a pdf file")
+        output_file_path = output_dir / input_file_path.with_suffix(".png").name
+        if output_file_path.exists() and not overwrite:
+            logger.debug(f"Output file {output_file_path} exists, skipping...")
+            continue
+        logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
+        if output_file_path.exists() and not overwrite:
+            logger.info(f"Output file {output_file_path} exists, skipping...")
+            return output_file_path
+        # Run imagemagick to convert the pdf to png---note this is slightly different
+        # depending on whether we want to perform an intermediate rasterization step or not.
+        if intermediate_width is None or intermediate_width <= target_width:
+            return pdf.run_imagemagick(input_file_path, output_file_path, target_width)
+        file_path = pdf.run_imagemagick(input_file_path, output_file_path, intermediate_width)
 
-    # Need some significant refactoring, here. We should open the image file once,
-    # and then operate on the PIL.Image object in memory, instead of saving intermediate
-    # results to disk and reopening them. More or less all the facilities should be
-    # in the raster2.py module. Once we do that, we will not need to recalculate the
-    # page size.
-    original_width, original_height = pdf.page_size(input_file_path)
-    aspect_ratio = original_height / original_width
-    if autocrop:
-        img.png_horizontal_autocrop(file_path, file_path)
-    elif aspect_ratio > max_aspect_ratio:
-        logger.warning(f'Aspect ratio ({aspect_ratio:.3f}) is too large for {input_file_path}!')
-        img.png_horizontal_padding(file_path, file_path)
-    logger.debug('Resizing to target width...')
-    return img.png_resize_to_width(file_path, file_path, target_width)
+        # Need some significant refactoring, here. We should open the image file once,
+        # and then operate on the PIL.Image object in memory, instead of saving intermediate
+        # results to disk and reopening them. More or less all the facilities should be
+        # in the raster2.py module. Once we do that, we will not need to recalculate the
+        # page size.
+        original_width, original_height = pdf.page_size(input_file_path)
+        aspect_ratio = original_height / original_width
+        if autocrop:
+            img.png_horizontal_autocrop(file_path, file_path)
+        elif aspect_ratio > max_aspect_ratio:
+            logger.warning(f'Aspect ratio ({aspect_ratio:.3f}) is too large for {input_file_path}!')
+            img.png_horizontal_padding(file_path, file_path)
+        logger.debug('Resizing to target width...')
+        img.png_resize_to_width(file_path, file_path, target_width)
+        num_rasterized += 1
+    return num_rasterized
 
 
 @dataclass(frozen=True)
