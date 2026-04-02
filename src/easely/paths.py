@@ -32,13 +32,12 @@ class WorkspaceLayout(str, Enum):
     """Small Enum class with the basic folder structure within each conference root folder.
     """
 
-    ATTACHMENTS = "attachments"
+    ATTACHMENTS = "indico_attachments"
     QRCODES = "qrcodes"
     POSTERS = "posters"
-    SLIDES = "slides"
-    HEADSHOTS = "headshots"
-    RASTERED_POSTERS = "rastered_posters"
-    CROPPED_HEADSHOTS = "cropped_headshots"
+    HEADSHOTS = "presenters"
+    RASTERED_POSTERS = "posters_raster"
+    CROPPED_HEADSHOTS = "presenters_crop"
 
 
 def contribution_file_name(friendly_id: int, suffix: str) -> str:

@@ -299,7 +299,27 @@ def facecrop(
         size: int = FacecropDefaults.size,
         overwrite: bool = FacecropDefaults.overwrite
         ) -> int:
-    """Face crop.
+    """Crop the headshots provided by the poster presenters to square images centered
+    on the actual faces.
+
+    Arguments
+    ---------
+    input_dir : PathLike
+        The path to the input folder containing the original headshot images.
+
+    output_dir : PathLike
+        The path to the output folder for the cropped headshot images.
+
+    size : int
+        The size of the output cropped headshot images, in pixels.
+
+    overwrite : bool
+        Whether to overwrite the output files if they already exist (default False).
+
+    Returns
+    -------
+    int
+        The number of files successfully cropped.
     """
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
