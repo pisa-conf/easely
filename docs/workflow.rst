@@ -175,3 +175,17 @@ automatic way to tell whether a file was put there manually for good reasons.
    from scratch right before the beginning of the conference, and treat subsequent
    changes as manual interventions.
 
+
+Rasterizing the posters
+-----------------------
+
+The main task of the command-line interface is to generate rasterized versions of the
+posters, which are the actual files that will be displayed on the poster display system.
+This is done with the ``rasterize`` sub-command:
+
+.. program-output:: easely rasterize --help
+
+
+
+Cropping the headshots
+----------------------

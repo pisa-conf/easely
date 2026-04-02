@@ -26,7 +26,7 @@ import shutil
 from typing import Dict, List
 
 from .logging_ import logger
-from .paths import sanitize_folder_path
+from .paths import contribution_file_name, sanitize_folder_path
 from .typing_ import PathLike
 
 
@@ -120,7 +120,7 @@ def dispatch_posters(friendly_ids: List[int], attachments_dir: PathLike,
         if len(file_list) == 0:
             logger.error(f"No .pdf attachment found for contribution {id_}")
             continue
-        dest = posters_dir / f"{id_:04d}.pdf"
+        dest = posters_dir / contribution_file_name(id_, ".pdf")
         # Match the list of pdf files with the expected pattern.
         matches = [file_path for file_path in file_list if pattern in file_path.name.lower()]
         if len(matches) == 1:
@@ -182,16 +182,18 @@ def dispatch_headshots(friendly_ids: List[int], attachments_dir: PathLike,
         matches = [file_path for file_path in file_list if pattern in file_path.name.lower()]
         if len(matches) == 1:
             # There is a unique strict match, and we are golden!
-            dest = headshots_dir / f"{id_:04d}{matches[0].suffix}"
-            if dispatch_file(matches[0], dest):
+            src = matches[0]
+            dest = headshots_dir / contribution_file_name(id_, src.suffix)
+            if dispatch_file(src, dest):
                 num_dispatched += 1
         elif len(matches) == 0:
             # No strict match, but if there is a single graphics attachment, and chance are
             # that the presented did not stick to the naming conventions.
             if len(file_list) == 1:
                 logger.warning(f"Unique graphics attachment for contribution {id_}, but not a match.")
-                dest = headshots_dir / f"{id_:04d}{file_list[0].suffix}"
-                if dispatch_file(file_list[0], dest):
+                src = file_list[0]
+                dest = headshots_dir / contribution_file_name(id_, src.suffix)
+                if dispatch_file(src, dest):
                     num_dispatched += 1
             # Too many graphics files---somebody should look into this and resolve the ambiguity.
             else:

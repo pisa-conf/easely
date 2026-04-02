@@ -41,6 +41,13 @@ class WorkspaceLayout(str, Enum):
     CROPPED_HEADSHOTS = "cropped_headshots"
 
 
+def contribution_file_name(friendly_id: int, suffix: str) -> str:
+    """Return the standardized file name for a contribution file, given its
+    ``friendly_id`` on indico and the expected suffix.
+    """
+    return f"{friendly_id:04d}{suffix}"
+
+
 def sanitize_file_path(path: PathLike, suffix: str = None, check_exists: bool = False) -> pathlib.Path:
     """Sanitize a file path, i.e, convert it to a pathlib.Path object, optionally
     ensuring it comes with the correct suffix and/or exists.
