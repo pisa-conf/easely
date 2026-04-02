@@ -243,6 +243,7 @@ def rasterize(
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
     num_rasterized = 0
+    logger.info(f"Rasterizing poster files...")
     for input_file_path in sorted(input_dir.iterdir()):
         # TODO: consider moving this into a separate python module.
         if input_file_path.suffix.lower() != ".pdf":
@@ -276,6 +277,7 @@ def rasterize(
         logger.debug('Resizing to target width...')
         img.png_resize_to_width(file_path, file_path, target_width)
         num_rasterized += 1
+    logger.info(f"Done, {num_rasterized} poster files rasterized.")
     return num_rasterized
 
 
@@ -285,10 +287,30 @@ class FacecropDefaults:
     """Default values for face cropping task parameters.
     """
 
-    pass
+    input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
+    output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
+    size: int = 500
+    overwrite: bool = False
 
 
-def facecrop() -> None:
+def facecrop(
+        input_dir: PathLike = FacecropDefaults.input_dir,
+        output_dir: PathLike = FacecropDefaults.output_dir,
+        size: int = FacecropDefaults.size,
+        overwrite: bool = FacecropDefaults.overwrite
+        ) -> int:
     """Face crop.
     """
-    pass
+    input_dir = sanitize_folder_path(input_dir)
+    output_dir = sanitize_folder_path(output_dir, create=True)
+    num_cropped = 0
+    logger.info(f"Cropping face images...")
+    for input_file_path in sorted(input_dir.iterdir()):
+        output_file_path = output_dir / input_file_path.with_suffix(".png").name
+        if output_file_path.exists() and not overwrite:
+            logger.debug(f"Output file {output_file_path} exists, skipping...")
+            continue
+        img.crop_to_face(input_file_path, output_file_path, size, overwrite=overwrite)
+        num_cropped += 1
+    logger.info(f"Done, {num_cropped} face images cropped.")
+    return num_cropped

@@ -129,7 +129,7 @@ def face_bbox(file_path: str, min_frac_size: float = 0.145, padding: float = 1.8
         logger.warning('No candidate face found, returning dummy bounding box...')
         x0, y0 = width // 2, height // 2
         half_side = round(0.5 * min(width, height))
-        return (x0 - half_side, y0 - half_side, x0 + half_side, y0 + half_side)
+        return (x0 - half_side + 1, y0 - half_side + 1, x0 + half_side, y0 + half_side)
     logger.debug(f'{len(faces)} candidate bounding boxes found...')
     if len(faces) > 1:
         for i, face in enumerate(faces):
@@ -156,6 +156,9 @@ def face_bbox(file_path: str, min_frac_size: float = 0.145, padding: float = 1.8
         delta = (w - h) // 2
         xmin += delta
         xmax -= delta
+    # Quick fix, to be adjusted.
+    #if xmin < 0:
+    #    xmin = 0
     w = xmax - xmin
     h = ymax - ymin
     if abs(w - h) > 1:
@@ -173,7 +176,7 @@ def crop_to_face(file_path: str, output_file_path: str, height: int,
         logger.info(f'Output file {output_file_path} exists, skipping...')
         return
     logger.info(f'Cropping {file_path} to face...')
-    kwargs.setdefault('resample', PIL.Image.ANTIALIAS)
+    kwargs.setdefault('resample', PIL.Image.Resampling.LANCZOS)
     kwargs.setdefault('reducing_gap', 3.)
     try:
         with PIL.Image.open(file_path) as img:
@@ -191,6 +194,7 @@ def crop_to_face(file_path: str, output_file_path: str, height: int,
             # Crop and scale to the target dimensions.
             if bbox is None:
                 bbox = face_bbox(file_path)
+            print(bbox)
             logger.info(f'Resizing image to ({height}, {height})...')
             img = img.resize((height, height), box=bbox, **kwargs)
             if output_file_path is not None:

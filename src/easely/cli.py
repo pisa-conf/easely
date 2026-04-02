@@ -179,6 +179,24 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(rasterize)
         rasterize.set_defaults(runner=tasks.rasterize)
 
+        # Crop the headshots to a square format centered on the actual face.
+        facecrop = subparsers.add_parser("facecrop",
+            help="crop the headshots to a square format centered on the actual face",
+            formatter_class=self._FORMATTER_CLASS)
+        facecrop.add_argument("--input-dir", type=str,
+            default=tasks.FacecropDefaults.input_dir,
+            help="the input folder containing the headshot images")
+        facecrop.add_argument("--output-dir", type=str,
+            default=tasks.FacecropDefaults.output_dir,
+            help="the output folder for the cropped images")
+        facecrop.add_argument("--size", type=int,
+            default=tasks.FacecropDefaults.size,
+            help="the size of the cropped images, in pixels")
+        facecrop.add_argument("--overwrite", action="store_true",
+            help="overwrite existing output files")
+        self.add_logging_level(facecrop)
+        facecrop.set_defaults(runner=tasks.facecrop)
+
         # Poster slideshow.
         slideshow = subparsers.add_parser("slideshow",
             help="run the poster slideshow",
