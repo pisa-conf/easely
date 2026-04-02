@@ -31,7 +31,13 @@ easely documentation
    :maxdepth: 1
    :caption: API Reference:
 
+   cli
+   dispatch
    indico
+   magic
+   paths
+   pdf
+   qrcode_
 
 .. toctree::
    :maxdepth: 1
