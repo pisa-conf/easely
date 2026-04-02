@@ -185,6 +185,32 @@ This is done with the ``rasterize`` sub-command:
 
 .. program-output:: easely rasterize --help
 
+This task is peculiar in a few different ways: it is definitely the one that takes
+the longest time to run, especially if you launch it on all the poster contributions
+of a large conference---be ready because it might take a while the first time.
+In addition, it is one of the tasks where you actually have to pay attention to the
+command-line arguments, as best results are obtained when your choices match
+your hardware setup.
+
+More specifically, if you adjust the ``target-width`` argument to match `exactly`
+the actual width of the ``QPixmap`` objects that are used in the poster display
+system, you will be able to display the rasterized posters to the screen without
+any additional scaling. This, in turn, depends on both the screen resolution and
+the border size that you have decided to use.
+
+Additionally, the task allow to rasterize the input pdf to a (larger) intermediate
+png file, which is then resized using a high-quality resampling algorithm to the
+final size. This tend to produce better result that rasterizing directly to the
+final size, and an intermediate size of twice the final size is a good compromise
+between quality and performance.
+
+.. warning::
+
+   The variety of tools used to produce the original pdf files for the poster is
+   such that is very difficult not to run in edge cases where the rasterization
+   is not optimal (e.g., transparencies are not handled correctly). While we might
+   improve on this one, it is very important to check the rasterized output
+   on a poster-by-poster basis, and to be ready to intervene manually.
 
 
 Cropping the headshots
