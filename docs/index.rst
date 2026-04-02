@@ -45,3 +45,4 @@ easely documentation
 
    license
    team
+   release_notes
