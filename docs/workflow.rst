@@ -215,3 +215,18 @@ between quality and performance.
 
 Cropping the headshots
 ----------------------
+
+Just like for the QR codes, the poster display system will show a headshot image of
+the presenter, when available. (As a matter of fact, next to the QR code).
+In order for the thing to look nice, you will have to crop all the original
+headshot images to a square format, and to resize them making sure that the
+cropped image is centered on the actual face. This is achieved with the
+``facecrop`` sub-command:
+
+.. program-output:: easely facecrop --help
+
+.. warning::
+
+   The face cropping leverages opencv under the hood and generally does a reasonable
+   job at detecting and cropping faces, but there are edge cases where it fails and
+   need manual intervention. This is an area where we can definitely improve.
