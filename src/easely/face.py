@@ -114,6 +114,82 @@ def run_face_recognition(file_path: PathLike, scale_factor: float = 1.1,
     return rectangles
 
 
+def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
+    horizontal_padding: float = 0.5, top_scale_factor: float = 1.25) -> Rectangle:
+    """Massage a given rectangle to make it suitable for cropping a face
+    out of an image.
+
+    This is used to transform the candidate rectangle containing the face returned
+    by opencv into a proper bounding box to be cropped off the original image,
+    which in general we would like to be significantly larger than the face-detection
+    output. The process takes place in two steps: first we pad the original rectangle
+    based on the input parameters, and then we make the necessary modifications,
+    if any, to make the final rectangle fit within the original image. The rule
+    of thumb is that if the overall dimensions of the rectangle fit in the original
+    image, we keep the width and the height of the rectangle and apply the smallest
+    possible shift to the origin so that the cropping area does not extend outside
+    the image. When the padded rectangle is too big for the original image, instead,
+    we resort to the largest square that can be embedded in the image itself,
+    and is approximately centered on the initial rectangle. (The comments in
+    code might provide the user a firmer grasp on what is actually happening
+    behind the scenes.)
+
+    Parameters
+    ----------
+    rectangle : Rectangle
+        The original rectangle returned by the face-detection stage.
+
+    image_width : int
+        The with of the original image.
+
+    image_height : int
+        The height of the original image.
+
+    horizontal_padding : float
+        The horizontal padding, on either side, in units of the equivalent ]
+        square side of the rectangle.
+
+    top_scale_factor : float
+        The ratio between the pad on the top and that on the right/left.
+
+    Returns
+    -------
+    Rectangle
+        A new Rectangle object, ready for cropping.
+    """
+    # We assume that the rectangle out of opencv is square.
+    if not rectangle.is_square():
+        raise RuntimeError(f'Input rectangle {rectangle} is not square')
+    # First of all, pad the rectangle on the four sides as intended.
+    logger.debug('Running rectangle-padding step to identify crop area...')
+    # Remember that the horizontal padding is referred to the size of the
+    # rectangle returned by the face-detection stage...
+    right = round(horizontal_padding * rectangle.width)
+    # ... the top padding is determined by the corresponding scale factor...
+    top = round(top_scale_factor * right)
+    # ... and we put on the bottom whatever is left.
+    bottom = 2 * right - top
+    rectangle = rectangle.pad(top, right, bottom)
+    # If the padded rectangle is fitting into the original image, then all we
+    # have to do is to make sure that the origin is such that the rectangle
+    # itself is actually fully contained in the image---and apply a simple shift
+    # if that is not the case.
+    if rectangle.fits_within(image_width, image_height):
+        return rectangle.shift_to_fit(image_width, image_height)
+    # And here comes all the fun, as we do have to do our best to get a good
+    # face crop when the embedding image is not as large as we would have wanted.
+    # After some trial and error I think the best we can do, here, is to
+    # pick the largest square fitting into the original image and centered
+    # on the rectangle returned by opencv.
+    logger.info(f'Padded rectangle too large for the {image_width} x {image_height} image...')
+    rectangle.width = rectangle.height = min(image_width, image_height)
+    rectangle.x0 = rectangle.x0 - (rectangle.width - rectangle.width) // 2
+    rectangle.y0 = rectangle.y0 - (rectangle.height - rectangle.height) // 2
+    rectangle = rectangle.shift_to_fit(image_width, image_height)
+    logger.debug(f'Cropping area refined to {rectangle}.')
+    return rectangle
+
+
 def crop_to_face(input_file_path: PathLike, output_file_path: PathLike, size: int,
     circular_mask: bool = False, interactive: bool = False) -> None:
     """
@@ -141,7 +217,7 @@ def crop_to_face(input_file_path: PathLike, output_file_path: PathLike, size: in
         logger.warning(f'Multiple face candidates found in {input_file_path}, picking largest...')
     # Go on with the best face candidate.
     original_rectangle = candidates[-1]
-    final_rectangle = original_rectangle.setup_for_face_cropping(*image.size, **crop_opts)
+    final_rectangle = enlarge_rectangle(original_rectangle, *image.size, **crop_opts)
     if interactive:
         draw = PIL.ImageDraw.Draw(image)
         draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
