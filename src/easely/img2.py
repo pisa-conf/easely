@@ -71,7 +71,7 @@ class Rectangle:
         if self.height is None:
             self.height = self.width
         # Also, make sure all the members are integers, as we are dealing with
-        # pixels in rastered images. Note that we are using numbers.Integral, as
+        # pixels in rasterized images. Note that we are using numbers.Integral, as
         # opposed to the native Python int, as we want to be able to catch the
         # numpy integral types as well.
         for item in (self.x0, self.y0, self.width, self.height):
@@ -261,8 +261,8 @@ class Rectangle:
         if not self.fits_within(width, height):
             raise RuntimeError(f'{self} does not fit into {width} x {height}')
         rectangle = self.copy()
-        rectangle.x0 = np.clip(rectangle.x0, 0, width - rectangle.width)
-        rectangle.y0 = np.clip(rectangle.y0, 0, height - rectangle.height)
+        rectangle.x0 = int(np.clip(rectangle.x0, 0, width - rectangle.width))
+        rectangle.y0 = int(np.clip(rectangle.y0, 0, height - rectangle.height))
         return rectangle
 
     def __eq__(self, other) -> bool:

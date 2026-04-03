@@ -20,15 +20,18 @@
 import pathlib
 
 import cv2
+import PIL.ImageDraw
 
 from .img2 import Rectangle, elliptical_mask, open_image, resize_image, save_image
 from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
 
+__all__ = ["run_face_recognition", "enlarge_rectangle", "crop_face"]
+
 
 _DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) /\
-    'haarcascade_frontalface_default.xml'
+    "haarcascade_frontalface_default.xml"
 
 
 def run_face_recognition(file_path: PathLike, scale_factor: float = 1.1,
@@ -63,19 +66,19 @@ def run_face_recognition(file_path: PathLike, scale_factor: float = 1.1,
 
     Parameters
     ----------
-    file_path
+    file_path : PathLike
         The path to input image file.
 
-    scale_factor
+    scale_factor : float
         Parameter specifying how much the image size is reduced at each image scale
         (passed along verbatim as ``scaleFactor`` to the ``detectMultiScale`` call).
 
-    min_neighbors
+    min_neighbors : int
         Parameter specifying how many neighbors each candidate rectangle should
         have to retain it (passed along verbatim as ``minNeighbors`` to the
         ``detectMultiScale`` call).
 
-    min_size
+    min_size : float
         Minimum possible fractional object size. Objects smaller than that are ignored.
         This is converted internally to an actual size in pixels, corresponding
         to a square whose side is the geometric mean of the original width and height,
@@ -103,11 +106,12 @@ def run_face_recognition(file_path: PathLike, scale_factor: float = 1.1,
     min_size = (side, side)
     logger.debug(f'Minimum rectangle size set to {min_size}.')
     # Run the actual face-detection code.
-    bboxes = classifier.detectMultiScale(image, scaleFactor=scale_factor,
+    boxes = classifier.detectMultiScale(image, scaleFactor=scale_factor,
         minNeighbors=min_neighbors, minSize=min_size)
     # Convert the output to a list of Rectangle objects, and sort by area.
-    logger.info(f'Done, {len(bboxes)} candidate face(s) found.')
-    rectangles = [Rectangle(*bbox) for bbox in bboxes]
+    logger.info(f'Done, {len(boxes)} candidate face(s) found.')
+    # Not we cast the numpy int types to native Python integers.
+    rectangles = [Rectangle(*[int(value) for value in box]) for box in boxes]
     rectangles.sort()
     for i, rectangle in enumerate(rectangles):
         logger.debug(f'Candidate rectangle {i + 1}: {rectangle}')
@@ -190,34 +194,67 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     return rectangle
 
 
-def crop_to_face(input_file_path: PathLike, output_file_path: PathLike, size: int,
-    circular_mask: bool = False, interactive: bool = False) -> None:
-    """
-    """
-    #options = _process_kwargs(FACE_CROP_VALID_KWARGS, **kwargs)
-    #detect_opts = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **options)
-    #crop_opts = _filter_kwargs('horizontal_padding', 'top-scale-factor', **options)
-    #for file_path in file_list:
+def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
+    circular_mask: bool = False, detect_kwargs: dict = None, enlarge_kwargs: dict = None,
+    interactive: bool = False, overwrite: bool = False) -> PathLike:
+    """Produce a square, cropped version of the input image, suitable for use as a headshot
+    (i.e., cropped around the face of the person in the image).
 
-    detect_opts = {}
-    crop_opts = {}
+    This is running a simple face detection based on opencv, and then adapting
+    the best candidate bounding box to produce the final square cropping area.
+
+    Arguments
+    ---------
+    file_path : PathLike
+        The path to the input image file.
+
+    output_file_path : PathLike
+        The path where the cropped image will be saved.
+
+    size : int
+        The size of the output image (square).
+
+    circular_mask : bool, optional
+        Whether to apply a circular mask to the output image.
+
+    interactive : bool, optional
+        Whether to display the image with bounding boxes for debugging.
+
+    detect_kwargs : dict, optional
+        Optional keyword arguments to be passed to the face detection function.
+
+    enlarge_kwargs : dict, optional
+        Optional keyword arguments to be passed to the rectangle enlargement function.
+
+    Returns
+    -------
+    PathLike
+        The path to the cropped image file, if it was actually created/overwritten,
+        of None otherwise.
+    """
+    output_file_path = sanitize_file_path(output_file_path)
+    if output_file_path.is_file() and not overwrite:
+        logger.info(f'Output file {output_file_path} already exists, skipping...')
+        return
+    detect_kwargs = detect_kwargs or {}
+    enlarge_kwargs = enlarge_kwargs or {}
     try:
-        candidates = run_face_recognition(input_file_path, **detect_opts)
+        candidates = run_face_recognition(file_path, **detect_kwargs)
     except RuntimeError as exception:
         logger.error(f'{exception}, giving up on this one...')
         return
     num_candidates = len(candidates)
-    image = open_image(input_file_path)
+    image = open_image(file_path)
     # If there is no candidate bbox, we make a square one up.
     if num_candidates == 0:
-        logger.warning(f'No face candidate found in {input_file_path}, picking generic square...')
+        logger.warning(f'No face candidate found in {file_path}, picking generic square...')
         candidates.append(Rectangle.square_from_size(*image.size))
     # In case there are multiple candidates, we pick the largest one.
     if num_candidates > 1:
-        logger.warning(f'Multiple face candidates found in {input_file_path}, picking largest...')
+        logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
     # Go on with the best face candidate.
     original_rectangle = candidates[-1]
-    final_rectangle = enlarge_rectangle(original_rectangle, *image.size, **crop_opts)
+    final_rectangle = enlarge_rectangle(original_rectangle, *image.size, **enlarge_kwargs)
     if interactive:
         draw = PIL.ImageDraw.Draw(image)
         draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
@@ -227,3 +264,4 @@ def crop_to_face(input_file_path: PathLike, output_file_path: PathLike, size: in
     if circular_mask:
         image.putalpha(elliptical_mask(image))
     save_image(image, output_file_path)
+    return output_file_path

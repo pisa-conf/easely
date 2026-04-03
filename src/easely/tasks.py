@@ -291,6 +291,13 @@ class FacecropDefaults:
     input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
     size: int = 500
+    circular_mask: bool = False
+    detect_scale_factor: float = 1.1
+    detect_min_neighbors: int = 2
+    detect_min_size: float = 0.15
+    enlarge_horizontal_padding: float = 0.5
+    enlarge_top_scale_factor: float = 1.25
+    interactive: bool = False
     overwrite: bool = False
 
 
@@ -298,6 +305,13 @@ def facecrop(
         input_dir: PathLike = FacecropDefaults.input_dir,
         output_dir: PathLike = FacecropDefaults.output_dir,
         size: int = FacecropDefaults.size,
+        circular_mask: bool = FacecropDefaults.circular_mask,
+        detect_scale_factor: float = FacecropDefaults.detect_scale_factor,
+        detect_min_neighbors: int = FacecropDefaults.detect_min_neighbors,
+        detect_min_size: float = FacecropDefaults.detect_min_size,
+        enlarge_horizontal_padding: float = FacecropDefaults.enlarge_horizontal_padding,
+        enlarge_top_scale_factor: float = FacecropDefaults.enlarge_top_scale_factor,
+        interactive: bool = FacecropDefaults.interactive,
         overwrite: bool = FacecropDefaults.overwrite
         ) -> int:
     """Crop the headshots provided by the poster presenters to square images centered
@@ -328,10 +342,7 @@ def facecrop(
     logger.info(f"Cropping face images...")
     for input_file_path in sorted(input_dir.iterdir()):
         output_file_path = output_dir / input_file_path.with_suffix(".png").name
-        if output_file_path.exists() and not overwrite:
-            logger.debug(f"Output file {output_file_path} exists, skipping...")
-            continue
-        face.crop_to_face(input_file_path, output_file_path, size)
-        num_cropped += 1
+        if face.crop_face(input_file_path, output_file_path, size) is not None:
+            num_cropped += 1
     logger.info(f"Done, {num_cropped} face images cropped.")
     return num_cropped
