@@ -23,6 +23,7 @@ from typing import Tuple
 
 from . import pdf
 from . import img
+from . import img2
 from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
@@ -198,7 +199,7 @@ def rasterize(
     This is the main function to convert a poster pdf file to a png file. Since
     posters are typically shown on a screen with a portrait orientation, all the
     process is driven by the target width of the final image---ideally we want an
-    a rastered image with the same number of pixels as the physical QPixmap object
+    a rasterized image with the same number of pixels as the physical QPixmap object
     on the screen, so that we don't have to perform any resizing at runtime.
 
     In order to maximize the quality of the final image, we offer the possibility
@@ -207,13 +208,13 @@ def rasterize(
     resampling algorithms available in PIL. An intermediate rasterization at twice
     the target width, e.g., is typically very effective.
 
-    Additionally, the function provides an option to automatically crop the rastered
+    Additionally, the function provides an option to automatically crop the rasterized
     image to its content (horizontally), which allows for maximizing the screen use.
 
     Arguments
     ---------
     input_dir : PathLike
-        The path to the input folder containing the pdf files to be rastered.
+        The path to the input folder containing the pdf files to be rasterized.
 
     output_dir : PathLike
         The path to the output folder.
@@ -330,7 +331,7 @@ def facecrop(
         if output_file_path.exists() and not overwrite:
             logger.debug(f"Output file {output_file_path} exists, skipping...")
             continue
-        img.crop_to_face(input_file_path, output_file_path, size, overwrite=overwrite)
+        img2.crop_to_face(input_file_path, output_file_path, size)
         num_cropped += 1
     logger.info(f"Done, {num_cropped} face images cropped.")
     return num_cropped

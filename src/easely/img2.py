@@ -326,7 +326,7 @@ class Rectangle:
         rectangle = self.pad(top, right, bottom)
         # If the padded rectangle is fitting into the original image, then all we
         # have to do is to make sure that the origin is such that the rectangle
-        # itself is actully fully contained in the image---and apply a simple shift
+        # itself is actually fully contained in the image---and apply a simple shift
         # if that is not the case.
         if rectangle.fits_within(image_width, image_height):
             return rectangle.shift_to_fit(image_width, image_height)
@@ -382,9 +382,9 @@ def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.
     window through the image, and initially it will capture a large number of false
     positives. This parameter specifies the number of neighboring rectangles that
     need to be identified for an object to be considered a valid detection: a value
-    of 0 is idiotic, and it will likely return an enourmous number of (possibly
+    of 0 is idiotic, and it will likely return an enormous number of (possibly
     overlapping) rectangles. Small values will yield comparatively more false positives.
-    I would say 2 is the absolute minimum one migh consider using, and something
+    I would say 2 is the absolute minimum one might consider using, and something
     around 5 is more germane to what is commonly found in tutorials online.
 
     Parameters
@@ -612,6 +612,45 @@ def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
     mask = PIL.Image.new('L', (width, height), 0)
     PIL.ImageDraw.Draw(mask).ellipse((0, 0, width - 1, height - 1), fill=255, width=0)
     return mask
+
+
+def crop_to_face(input_file_path: PathLike, output_file_path: PathLike, size: int,
+    circular_mask: bool = False, interactive: bool = False) -> None:
+    """
+    """
+    #options = _process_kwargs(FACE_CROP_VALID_KWARGS, **kwargs)
+    #detect_opts = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **options)
+    #crop_opts = _filter_kwargs('horizontal_padding', 'top-scale-factor', **options)
+    #for file_path in file_list:
+
+    detect_opts = {}
+    crop_opts = {}
+    try:
+        candidates = run_face_recognition(input_file_path, **detect_opts)
+    except RuntimeError as exception:
+        logger.error(f'{exception}, giving up on this one...')
+        return
+    num_candidates = len(candidates)
+    image = open_image(input_file_path)
+    # If there is no candidate bbox, we make a square one up.
+    if num_candidates == 0:
+        logger.warning(f'No face candidate found in {input_file_path}, picking generic square...')
+        candidates.append(Rectangle.square_from_size(*image.size))
+    # In case there are multiple candidates, we pick the largest one.
+    if num_candidates > 1:
+        logger.warning(f'Multiple face candidates found in {input_file_path}, picking largest...')
+    # Go on with the best face candidate.
+    original_rectangle = candidates[-1]
+    final_rectangle = original_rectangle.setup_for_face_cropping(*image.size, **crop_opts)
+    if interactive:
+        draw = PIL.ImageDraw.Draw(image)
+        draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
+        draw.rectangle(final_rectangle.bounding_box(), outline='red', width=2)
+        image.show()
+    image = resize_image(image, size, size, box=final_rectangle.bounding_box())
+    if circular_mask:
+        image.putalpha(elliptical_mask(image))
+    save_image(image, output_file_path)
 
 
 @dataclasses.dataclass
