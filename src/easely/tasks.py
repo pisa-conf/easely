@@ -339,10 +339,18 @@ def facecrop(
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
     num_cropped = 0
+    # Cache all the arguments and keyword arguments for the function call
+    # inside the loop.
+    detect_kwargs = dict(scale_factor=detect_scale_factor,
+                         min_neighbors=detect_min_neighbors,
+                         min_size=detect_min_size)
+    enlarge_kwargs = dict(horizontal_padding=enlarge_horizontal_padding,
+                           top_scale_factor=enlarge_top_scale_factor)
+    args = size, circular_mask, detect_kwargs, enlarge_kwargs, interactive, overwrite
     logger.info(f"Cropping face images...")
     for input_file_path in sorted(input_dir.iterdir()):
         output_file_path = output_dir / input_file_path.with_suffix(".png").name
-        if face.crop_face(input_file_path, output_file_path, size) is not None:
+        if face.crop_face(input_file_path, output_file_path, *args) is not None:
             num_cropped += 1
     logger.info(f"Done, {num_cropped} face images cropped.")
     return num_cropped
