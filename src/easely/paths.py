@@ -47,6 +47,13 @@ def contribution_file_name(friendly_id: int, suffix: str) -> str:
     return f"{friendly_id:04d}{suffix}"
 
 
+def contribution_id(file_path: PathLike) -> int:
+    """Return the contribution id corresponding to a given contribution file path, by
+    parsing the file name.
+    """
+    return int(pathlib.Path(file_path).stem.split("_")[0])
+
+
 def sanitize_file_path(path: PathLike, suffix: str = None, check_exists: bool = False) -> pathlib.Path:
     """Sanitize a file path, i.e, convert it to a pathlib.Path object, optionally
     ensuring it comes with the correct suffix and/or exists.

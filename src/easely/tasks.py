@@ -19,7 +19,7 @@
 
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple
+from typing import List, Tuple
 
 from . import pdf
 from . import face
@@ -28,7 +28,8 @@ from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
-from .paths import WorkspaceLayout, sanitize_file_path, sanitize_folder_path, PROGRAM_FILE_NAME
+from .paths import WorkspaceLayout, contribution_id, sanitize_file_path, \
+    sanitize_folder_path, PROGRAM_FILE_NAME
 from .typing_ import PathLike
 
 
@@ -289,6 +290,7 @@ class FacecropDefaults:
     """
 
     input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
+    targets: List[int] = None
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
     size: int = 500
     circular_mask: bool = False
@@ -303,6 +305,7 @@ class FacecropDefaults:
 
 def facecrop(
         input_dir: PathLike = FacecropDefaults.input_dir,
+        targets: List[int] = FacecropDefaults.targets,
         output_dir: PathLike = FacecropDefaults.output_dir,
         size: int = FacecropDefaults.size,
         circular_mask: bool = FacecropDefaults.circular_mask,
@@ -370,8 +373,14 @@ def facecrop(
     enlarge_kwargs = dict(horizontal_padding=enlarge_horizontal_padding,
                            top_scale_factor=enlarge_top_scale_factor)
     args = size, circular_mask, detect_kwargs, enlarge_kwargs, interactive, overwrite
-    logger.info(f"Cropping face images...")
-    for input_file_path in sorted(input_dir.iterdir()):
+    # Build the list of files to be processed. Note it it not trivial to build the list
+    # programmatically, since we don't know the file type, so that we resort to
+    # creating the list of all the files in the input folder, and then filtering it.
+    file_list = sorted(input_dir.iterdir())
+    if targets is not None:
+        file_list = [file_path for file_path in file_list if contribution_id(file_path) in targets]
+    logger.info(f"Cropping faces for {len(file_list)} target files...")
+    for input_file_path in file_list:
         output_file_path = output_dir / input_file_path.with_suffix(".png").name
         if face.crop_face(input_file_path, output_file_path, *args) is not None:
             num_cropped += 1

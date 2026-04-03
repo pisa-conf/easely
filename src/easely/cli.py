@@ -186,6 +186,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         facecrop.add_argument("--input-dir", type=str,
             default=tasks.FacecropDefaults.input_dir,
             help="the input folder containing the headshot images")
+        facecrop.add_argument("--targets", nargs="+", type=int,
+            default=tasks.FacecropDefaults.targets,
+            help="the list of target ids to be processed")
         facecrop.add_argument("--output-dir", type=str,
             default=tasks.FacecropDefaults.output_dir,
             help="the output folder for the cropped images")
