@@ -260,6 +260,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
         draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
         draw.rectangle(final_rectangle.bounding_box(), outline='red', width=2)
         image.show()
+        input("Press Enter to continue...")
     image = resize_image(image, size, size, box=final_rectangle.bounding_box())
     if circular_mask:
         image.putalpha(elliptical_mask(image))

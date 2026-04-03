@@ -328,6 +328,29 @@ def facecrop(
     size : int
         The size of the output cropped headshot images, in pixels.
 
+    circular_mask : bool
+        Whether to apply a circular mask to the output cropped headshot images.
+
+    detect_scale_factor : float
+        The scale factor to be used for the face detection step.
+
+    detect_min_neighbors : int
+        The min_neighbors parameter to be used for the face detection step.
+
+    detect_min_size : float
+        The minimum size for the detected faces, as a fraction of the original image size.
+
+    enlarge_horizontal_padding : float
+        The horizontal padding to be added to the detected face bounding box, as a fraction
+        of the bounding box width.
+
+    enlarge_top_scale_factor : float
+        The scale factor to be applied to the top side of the detected face bounding box.
+
+    interactive : bool
+        Whether to display the detected face bounding box and the final enlarged bounding box
+        on the original image, for debugging purposes.
+
     overwrite : bool
         Whether to overwrite the output files if they already exist (default False).
 
