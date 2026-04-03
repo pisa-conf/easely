@@ -92,29 +92,29 @@ def run_face_recognition(file_path: PathLike, scale_factor: float = 1.1,
     file_path = sanitize_file_path(file_path, check_exists=True)
     # Create a CascadeClassifier object with the proper model file (and the file
     # path must be a string, not a Path, here).
-    classifier = cv2.CascadeClassifier(f'{_DEFAULT_FACE_DETECTION_MODEL_PATH}')
+    classifier = cv2.CascadeClassifier(f"{_DEFAULT_FACE_DETECTION_MODEL_PATH}")
     settings = dict(scale_factor=scale_factor, min_neighbors=min_neighbors, min_size=min_size)
-    logger.info(f'Running face detection on {file_path} with {settings}...')
-    image = cv2.imread(f'{file_path}')
+    logger.info(f"Running face detection on {file_path} with {settings}...")
+    image = cv2.imread(f"{file_path}")
     if image is None:
-        raise RuntimeError(f'Could not read image file {file_path}')
+        raise RuntimeError(f"Could not read image file {file_path}")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Calculate the minimum size of the output rectangle as that of a square whose
     # side is the geometric mean of the original width and height, multiplied by
     # the min_size input parameter.
     side = Rectangle.rounded_geometric_mean(*image.shape, scale=min_size)
     min_size = (side, side)
-    logger.debug(f'Minimum rectangle size set to {min_size}.')
+    logger.debug(f"Minimum rectangle size set to {min_size}.")
     # Run the actual face-detection code.
     boxes = classifier.detectMultiScale(image, scaleFactor=scale_factor,
         minNeighbors=min_neighbors, minSize=min_size)
     # Convert the output to a list of Rectangle objects, and sort by area.
-    logger.info(f'Done, {len(boxes)} candidate face(s) found.')
+    logger.info(f"Done, {len(boxes)} candidate face(s) found.")
     # Not we cast the numpy int types to native Python integers.
     rectangles = [Rectangle(*[int(value) for value in box]) for box in boxes]
     rectangles.sort()
     for i, rectangle in enumerate(rectangles):
-        logger.debug(f'Candidate rectangle {i + 1}: {rectangle}')
+        logger.debug(f"Candidate rectangle {i + 1}: {rectangle}")
     return rectangles
 
 
@@ -163,9 +163,9 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     """
     # We assume that the rectangle out of opencv is square.
     if not rectangle.is_square():
-        raise RuntimeError(f'Input rectangle {rectangle} is not square')
+        raise RuntimeError(f"Input rectangle {rectangle} is not square")
     # First of all, pad the rectangle on the four sides as intended.
-    logger.debug('Running rectangle-padding step to identify crop area...')
+    logger.debug("Running rectangle-padding step to identify crop area...")
     # Remember that the horizontal padding is referred to the size of the
     # rectangle returned by the face-detection stage...
     right = round(horizontal_padding * rectangle.width)
@@ -185,12 +185,12 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     # After some trial and error I think the best we can do, here, is to
     # pick the largest square fitting into the original image and centered
     # on the rectangle returned by opencv.
-    logger.info(f'Padded rectangle too large for the {image_width} x {image_height} image...')
+    logger.info(f"Padded rectangle too large for the {image_width} x {image_height} image...")
     rectangle.width = rectangle.height = min(image_width, image_height)
     rectangle.x0 = rectangle.x0 - (rectangle.width - rectangle.width) // 2
     rectangle.y0 = rectangle.y0 - (rectangle.height - rectangle.height) // 2
     rectangle = rectangle.shift_to_fit(image_width, image_height)
-    logger.debug(f'Cropping area refined to {rectangle}.')
+    logger.debug(f"Cropping area refined to {rectangle}.")
     return rectangle
 
 
@@ -234,32 +234,40 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     """
     output_file_path = sanitize_file_path(output_file_path)
     if output_file_path.is_file() and not overwrite:
-        logger.info(f'Output file {output_file_path} already exists, skipping...')
+        logger.info(f"Output file {output_file_path} already exists, skipping...")
         return
     detect_kwargs = detect_kwargs or {}
     enlarge_kwargs = enlarge_kwargs or {}
     try:
         candidates = run_face_recognition(file_path, **detect_kwargs)
     except RuntimeError as exception:
-        logger.error(f'{exception}, giving up on this one...')
+        logger.error(f"{exception}, giving up on this one...")
         return
     num_candidates = len(candidates)
     image = open_image(file_path)
     # If there is no candidate bbox, we make a square one up.
     if num_candidates == 0:
-        logger.warning(f'No face candidate found in {file_path}, picking generic square...')
+        logger.warning(f"No face candidate found in {file_path}, picking generic square...")
         candidates.append(Rectangle.square_from_size(*image.size))
     # In case there are multiple candidates, we pick the largest one.
     if num_candidates > 1:
-        logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
+        logger.warning(f"Multiple face candidates found in {file_path}, picking largest...")
     # Go on with the best face candidate.
     original_rectangle = candidates[-1]
     final_rectangle = enlarge_rectangle(original_rectangle, *image.size, **enlarge_kwargs)
     if interactive:
+        # For debugging purposes, we offer some insight into the face-detection process.
         draw = PIL.ImageDraw.Draw(image)
-        draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
-        draw.rectangle(final_rectangle.bounding_box(), outline='red', width=2)
+        # Draw the best candidate rectangle from opencv in white...
+        draw.rectangle(original_rectangle.bounding_box(), outline="white", width=2)
+        # ...all the other candidate rectangles (if any) in blue...
+        for rectangle in candidates[:-1]:
+            draw.rectangle(rectangle.bounding_box(), outline="blue", width=2)
+        # ... and the final, optimized rectangle in red.
+        draw.rectangle(final_rectangle.bounding_box(), outline="red", width=2)
         image.show()
+        # We wait for the user to close the image before proceeding,
+        # in order to avoid opening a gazillion images when no target is specified.
         input("Press Enter to continue...")
     image = resize_image(image, size, size, box=final_rectangle.bounding_box())
     if circular_mask:
