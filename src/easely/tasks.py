@@ -22,8 +22,8 @@ from dataclasses import dataclass
 from typing import Tuple
 
 from . import pdf
+from . import face
 from . import img
-from . import img2
 from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
@@ -331,7 +331,7 @@ def facecrop(
         if output_file_path.exists() and not overwrite:
             logger.debug(f"Output file {output_file_path} exists, skipping...")
             continue
-        img2.crop_to_face(input_file_path, output_file_path, size)
+        face.crop_to_face(input_file_path, output_file_path, size)
         num_cropped += 1
     logger.info(f"Done, {num_cropped} face images cropped.")
     return num_cropped
