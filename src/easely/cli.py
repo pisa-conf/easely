@@ -27,6 +27,7 @@ from easely import __name__ as __package_name__
 from easely import __version__, logging_
 from easely.__qt__ import bootstrap_window
 from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
+from easely import face
 from easely import tasks
 
 
@@ -198,15 +199,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         facecrop.add_argument("--circular-mask", action="store_true",
             default=tasks.FacecropDefaults.circular_mask,
             help="apply a circular mask to the cropped images")
-        facecrop.add_argument("--detect-scale-factor", type=float,
-            default=tasks.FacecropDefaults.detect_scale_factor,
-            help="the scale factor for the face detection step")
-        facecrop.add_argument("--detect-min-neighbors", type=int,
-            default=tasks.FacecropDefaults.detect_min_neighbors,
-            help="the min neighbors for the face detection step")
-        facecrop.add_argument("--detect-min-size", type=float,
-            default=tasks.FacecropDefaults.detect_min_size,
-            help="the min size for the face detection step, as a fraction of the input image size")
+        facecrop.add_argument("--model", type=str,
+            choices=[model.value for model in face.FaceDetection],
+            default=tasks.FacecropDefaults.model.value,
+            help="the face detection model to be used")
         facecrop.add_argument("--enlarge-horizontal-padding", type=float,
             default=tasks.FacecropDefaults.enlarge_horizontal_padding,
             help="the horizontal padding to be added to the detected face")

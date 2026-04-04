@@ -18,9 +18,11 @@
 """
 
 import pathlib
+from enum import Enum
 from typing import List
 
 import cv2
+import numpy as np
 import PIL.ImageDraw
 
 from .img2 import Rectangle, elliptical_mask, open_image, resize_image, save_image
@@ -31,11 +33,44 @@ from .typing_ import PathLike
 __all__ = ["run_face_detection", "enlarge_rectangle", "crop_face"]
 
 
-_DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) /\
-    "haarcascade_frontalface_default.xml"
+# Path to the folder containing all the opencv model files.
+_DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
+_CASCADE_FILE_PATH = _DATA_DIR / "haarcascade_frontalface_default.xml"
+_YUNET_FILE_PATH = _DATA_DIR / "face_detection_yunet_2023mar.onnx"
 
 
-def run_face_detection(file_path: PathLike, scale_factor: float = 1.1,
+class FaceDetection(str, Enum):
+
+    """Small Enum class with the available face-detection models.
+    """
+
+    CASCADE = "cascade"
+    YUNET = "yunet"
+
+
+def _read_image(file_path: PathLike) -> np.ndarray:
+    """Run ``cv2.imread()`` on a given file path.
+
+    This is a generic helper function for all the open-cv face-detection algorithms.
+
+    Arguments
+    ----------
+    file_path : PathLike
+        The path to the image file.
+
+    Returns
+    -------
+    np.ndarray
+        The image as a NumPy array.
+    """
+    file_path = sanitize_file_path(file_path, check_exists=True)
+    image = cv2.imread(f"{file_path}")
+    if image is None:
+        raise RuntimeError(f"Could not read image file {file_path}")
+    return image
+
+
+def run_cascade(file_path: PathLike, scale_factor: float = 1.1,
     min_neighbors: int = 2, min_size: float = 0.15) -> List[Rectangle]:
     """Minimal wrapper around the standard opencv face detection, see, e.g,
     https://www.datacamp.com/tutorial/face-detection-python-opencv
@@ -90,32 +125,96 @@ def run_face_detection(file_path: PathLike, scale_factor: float = 1.1,
     list[Rectangle]
         The list of :class:`Rectangle` objects containing the face candidates.
     """
-    file_path = sanitize_file_path(file_path, check_exists=True)
-    # Create a CascadeClassifier object with the proper model file (and the file
-    # path must be a string, not a Path, here).
-    classifier = cv2.CascadeClassifier(f"{_DEFAULT_FACE_DETECTION_MODEL_PATH}")
-    settings = dict(scale_factor=scale_factor, min_neighbors=min_neighbors, min_size=min_size)
-    logger.info(f"Running face detection on {file_path} with {settings}...")
-    image = cv2.imread(f"{file_path}")
-    if image is None:
-        raise RuntimeError(f"Could not read image file {file_path}")
+    image = _read_image(file_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    model = cv2.CascadeClassifier(f"{_CASCADE_FILE_PATH}")
     # Calculate the minimum size of the output rectangle as that of a square whose
     # side is the geometric mean of the original width and height, multiplied by
     # the min_size input parameter.
     side = Rectangle.rounded_geometric_mean(*image.shape, scale=min_size)
-    min_size = (side, side)
-    logger.debug(f"Minimum rectangle size set to {min_size}.")
     # Run the actual face-detection code.
-    boxes = classifier.detectMultiScale(image, scaleFactor=scale_factor,
-        minNeighbors=min_neighbors, minSize=min_size)
+    boxes = model.detectMultiScale(image, scaleFactor=scale_factor,
+        minNeighbors=min_neighbors, minSize=(side, side))
     # Convert the output to a list of Rectangle objects, and sort by area.
-    logger.info(f"Done, {len(boxes)} candidate face(s) found.")
-    # Not we cast the numpy int types to native Python integers.
     rectangles = [Rectangle(*[int(value) for value in box]) for box in boxes]
     rectangles.sort()
+    return rectangles
+
+
+def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
+    nms_threshold: float = 0.3, top_k: int = 5000) -> List[Rectangle]:
+    """Run the YuNet face detection model.
+
+    Arguments
+    ---------
+    file_path : PathLike
+        The path to input image file.
+
+    score_threshold : float
+        The confidence score threshold for the face detection (0--1). This simply
+        filters out all the candidates below a given threshold.
+
+    nms_threshold : float
+        The non-maximum suppression threshold for the face detection. This
+        is meant to remove duplicate overlapping boxes for the same face, which are
+        commonly predicted by the model. Lower value (e.g. 0.3) imply a more aggressive
+        removal, with fewer duplicates, while higher values (e.g. 0.7) keeps more
+        boxes, at the risk of duplicates.
+
+    top_k : int
+        The maximum number of candidates to consider before non-maximum suppression.
+        The model may produce thousands of raw detections, and ``top_k`` keeps only
+        the best K by score before suppression. Lower values result in shorter running
+        times, but you might miss faces in crowded scenes; higher is safer, but
+        slower on average.
+
+    Returns
+    -------
+    list[Rectangle]
+        The list of :class:`Rectangle` objects containing the face candidates.
+    """
+    image = _read_image(file_path)
+    height, width, _ = image.shape
+    model = cv2.FaceDetectorYN.create(_YUNET_FILE_PATH, "", (width, height), score_threshold,
+        nms_threshold, top_k)
+    # Run the actual face-detection code. Note with YuNet the outout is of the form
+    # [x, y, w, h, l0x, l0y, ..., l4x, l4y, score]
+    _, candidates = model.detect(image)
+    # Sort the candidates by score, from the highest to the lowest.
+    order = np.argsort(candidates[:, -1])[::-1]
+    # Create the output rectangles
+    rectangles = [Rectangle(*[int(value) for value in candidate[:4]]) for candidate in candidates[order]]
+    return rectangles
+
+
+def run_face_detection(file_path: PathLike, model: FaceDetection = FaceDetection.CASCADE,
+    **kwargs) -> List[Rectangle]:
+    """Run the face detection on the input image, with the specified model and parameters.
+
+    Arguments
+    ---------
+    file_path : PathLike
+        The path to input image file.
+
+    model : FaceDetection
+        The face-detection model to use. This is an Enum with the available models,
+        and it is meant to be extended in the future as we add more models.
+
+    **kwargs
+        Optional keyword arguments to be passed to the actual face-detection function,
+        depending on the model. See the documentation of the specific functions for
+        details on what parameters are accepted.
+    """
+    logger.info(f"Running face detection on {file_path} with {model} ({kwargs})...")
+    if model == FaceDetection.CASCADE:
+        rectangles = run_cascade(file_path, **kwargs)
+    elif model == FaceDetection.YUNET:
+        rectangles = run_yunet(file_path, **kwargs)
+    else:
+        raise RuntimeError(f"Unknown face-detection model {model}")
+    logger.info(f"Done, {len(rectangles)} candidate rectangle(s) found.")
     for i, rectangle in enumerate(rectangles):
-        logger.debug(f"Candidate rectangle {i + 1}: {rectangle}")
+        logger.debug(f"Candidate {i + 1}: {rectangle}")
     return rectangles
 
 
@@ -196,8 +295,9 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
 
 
 def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
-    circular_mask: bool = False, detect_kwargs: dict = None, enlarge_kwargs: dict = None,
-    interactive: bool = False, overwrite: bool = False) -> PathLike:
+    circular_mask: bool = False, model: FaceDetection = FaceDetection.CASCADE,
+    detect_kwargs: dict = None, enlarge_kwargs: dict = None, interactive: bool = False,
+    overwrite: bool = False) -> PathLike:
     """Produce a square, cropped version of the input image, suitable for use as a headshot
     (i.e., cropped around the face of the person in the image).
 
@@ -217,6 +317,9 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
 
     circular_mask : bool, optional
         Whether to apply a circular mask to the output image.
+
+    model : FaceDetection
+        The face-detection model to use.
 
     interactive : bool, optional
         Whether to display the image with bounding boxes for debugging.
@@ -240,7 +343,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     detect_kwargs = detect_kwargs or {}
     enlarge_kwargs = enlarge_kwargs or {}
     try:
-        candidates = run_face_detection(file_path, **detect_kwargs)
+        candidates = run_face_detection(file_path, model, **detect_kwargs)
     except RuntimeError as exception:
         logger.error(f"{exception}, giving up on this one...")
         return

@@ -294,9 +294,10 @@ class FacecropDefaults:
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
     size: int = 500
     circular_mask: bool = False
-    detect_scale_factor: float = 1.1
-    detect_min_neighbors: int = 2
-    detect_min_size: float = 0.15
+    model = face.FaceDetection.CASCADE
+    #detect_scale_factor: float = 1.1
+    #detect_min_neighbors: int = 2
+    #detect_min_size: float = 0.15
     enlarge_horizontal_padding: float = 0.5
     enlarge_top_scale_factor: float = 1.25
     interactive: bool = False
@@ -309,9 +310,10 @@ def facecrop(
         output_dir: PathLike = FacecropDefaults.output_dir,
         size: int = FacecropDefaults.size,
         circular_mask: bool = FacecropDefaults.circular_mask,
-        detect_scale_factor: float = FacecropDefaults.detect_scale_factor,
-        detect_min_neighbors: int = FacecropDefaults.detect_min_neighbors,
-        detect_min_size: float = FacecropDefaults.detect_min_size,
+        model: face.FaceDetection = FacecropDefaults.model,
+        #detect_scale_factor: float = FacecropDefaults.detect_scale_factor,
+        #detect_min_neighbors: int = FacecropDefaults.detect_min_neighbors,
+        #detect_min_size: float = FacecropDefaults.detect_min_size,
         enlarge_horizontal_padding: float = FacecropDefaults.enlarge_horizontal_padding,
         enlarge_top_scale_factor: float = FacecropDefaults.enlarge_top_scale_factor,
         interactive: bool = FacecropDefaults.interactive,
@@ -334,14 +336,8 @@ def facecrop(
     circular_mask : bool
         Whether to apply a circular mask to the output cropped headshot images.
 
-    detect_scale_factor : float
-        The scale factor to be used for the face detection step.
-
-    detect_min_neighbors : int
-        The min_neighbors parameter to be used for the face detection step.
-
-    detect_min_size : float
-        The minimum size for the detected faces, as a fraction of the original image size.
+    model : face.FaceDetection
+        The face-detection model to use.
 
     enlarge_horizontal_padding : float
         The horizontal padding to be added to the detected face bounding box, as a fraction
@@ -367,12 +363,13 @@ def facecrop(
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call
     # inside the loop.
-    detect_kwargs = dict(scale_factor=detect_scale_factor,
-                         min_neighbors=detect_min_neighbors,
-                         min_size=detect_min_size)
+    # detect_kwargs = dict(scale_factor=detect_scale_factor,
+    #                      min_neighbors=detect_min_neighbors,
+    #                      min_size=detect_min_size)
+    detect_kwargs = {}
     enlarge_kwargs = dict(horizontal_padding=enlarge_horizontal_padding,
                            top_scale_factor=enlarge_top_scale_factor)
-    args = size, circular_mask, detect_kwargs, enlarge_kwargs, interactive, overwrite
+    args = size, circular_mask, model, detect_kwargs, enlarge_kwargs, interactive, overwrite
     file_list = filter_dir(input_dir, targets)
     logger.info(f"Cropping faces for {len(file_list)} target files...")
     for input_file_path in file_list:
