@@ -312,7 +312,7 @@ def run_face_detection(file_path: PathLike, model: FaceDetection,
         depending on the model. See the documentation of the specific functions for
         details on what parameters are accepted.
     """
-    logger.info(f"Running face detection on {file_path} with {model} ({kwargs})...")
+    logger.info(f"Running face detection on {file_path} with {model}...")
     if model == FaceDetection.CASCADE:
         boxes = run_cascade(file_path, min_fractional_area, **kwargs)
     elif model == FaceDetection.YUNET:
