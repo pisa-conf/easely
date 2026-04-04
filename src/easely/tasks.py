@@ -300,10 +300,6 @@ class FacecropDefaults:
     top_scale_factor: float = 1.25
     interactive: bool = False
     overwrite: bool = False
-    # Keep track of the default settings for the face detection models.
-    # Note these are not annotated.
-    cascade_defaults = dict(scale_factor=1.1, min_neighbors=2)
-    yunet_defaults = dict(score_threshold=0.7, nms_threshold=0.3, top_k=5000)
 
 
 def facecrop(
