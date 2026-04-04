@@ -275,7 +275,7 @@ def open_image(file_path: PathLike) -> PIL.Image.Image:
     PIL.Image.Image
         The actual image object.
     """
-    logger.info(f'Loading image data from {file_path}...')
+    logger.debug(f'Loading image data from {file_path}...')
     with PIL.Image.open(file_path) as image:
         image = image.copy()
         PIL.ImageOps.exif_transpose(image, in_place=True)
