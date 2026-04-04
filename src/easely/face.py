@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Face-recognition and cropping facilities.
+"""Face-detection and cropping facilities.
 """
 
 import pathlib
@@ -28,20 +28,20 @@ from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
 
-__all__ = ["run_face_recognition", "enlarge_rectangle", "crop_face"]
+__all__ = ["run_face_detection", "enlarge_rectangle", "crop_face"]
 
 
 _DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) /\
     "haarcascade_frontalface_default.xml"
 
 
-def run_face_recognition(file_path: PathLike, scale_factor: float = 1.1,
+def run_face_detection(file_path: PathLike, scale_factor: float = 1.1,
     min_neighbors: int = 2, min_size: float = 0.15) -> List[Rectangle]:
-    """Minimal wrapper around the standard opencv face recognition, see, e.g,
+    """Minimal wrapper around the standard opencv face detection, see, e.g,
     https://www.datacamp.com/tutorial/face-detection-python-opencv
 
     Internally this is creating a ``cv2.CascadeClassifier`` object based on a suitable
-    model file for face recognition, and running a ``detectMultiScale`` call with
+    model file for face detection, and running a ``detectMultiScale`` call with
     the proper parameters. The output rectangles containing the candidate faces,
     which are returned by opencv as simple (x, y, width, height) tuples, are
     converted into :class:`Rectangle` objects, and the list of rectangle is sorted
@@ -240,7 +240,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     detect_kwargs = detect_kwargs or {}
     enlarge_kwargs = enlarge_kwargs or {}
     try:
-        candidates = run_face_recognition(file_path, **detect_kwargs)
+        candidates = run_face_detection(file_path, **detect_kwargs)
     except RuntimeError as exception:
         logger.error(f"{exception}, giving up on this one...")
         return
