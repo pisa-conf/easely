@@ -153,7 +153,7 @@ class Rectangle:
         return Rectangle(x0, y0, side, side)
 
     def bounding_box(self) -> Tuple[int, int, int, int]:
-        """Return the bounding box corresponding to the ractangle, in the form
+        """Return the bounding box corresponding to the rectangle, in the form
         of the four-element tuple (xmin, ymin, xmax, ymax).
 
         Returns
@@ -161,44 +161,7 @@ class Rectangle:
         tuple[int, int, int, int]
             The four-element tuple corresponding to the rectangle bounding box.
         """
-        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.width)
-
-    @staticmethod
-    def rounded_geometric_mean(*values: float, scale: float = None) -> int:
-        """Return the geometric mean of the input parameters, rounded to the
-        nearest integer.
-
-        Parameters
-        ----------
-        values : float
-            The values to be averaged.
-
-        scale : float
-            Optional multiplicative scale factor, to be applied before the geometric
-            average is computed.
-
-        Returns
-        -------
-        int
-            The (rounded) geometric mean of the input data.
-        """
-        if scale is not None:
-            values = [value * scale for value in values]
-        return round(np.prod(values)**(1. / len(values)))
-
-    def equivalent_square_side(self) -> int:
-        """Return the side of the equivalent square, rounded to the nearest integer
-        (which is basically the geometric mean of the rectangle width and height).
-
-        Whenever the `fractional` word is used in the context of a rectangle, this
-        is the scale constituting the multiplier for the operation at hand.
-
-        Returns
-        -------
-        int
-            The (rounded) side of the square with the same area as the rectangle.
-        """
-        return self.rounded_geometric_mean(self.width, self.height)
+        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
 
     def pad(self, top: int, right: int = None, bottom: int = None, left: int = None) -> Rectangle:
         """Create a new rectangle padding the original one according to the input

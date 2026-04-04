@@ -367,9 +367,8 @@ def facecrop(
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
     detect_kwargs = {}
-    enlarge_kwargs = dict(horizontal_padding=horizontal_padding, top_scale_factor=top_scale_factor)
     args = size, circular_mask, model, min_fractional_area, detect_kwargs, \
-        enlarge_kwargs, interactive, overwrite
+        horizontal_padding, top_scale_factor, interactive, overwrite
     file_list = filter_dir(input_dir, targets)
     logger.info(f"Cropping faces for {len(file_list)} target files...")
     for input_file_path in file_list:

@@ -20,7 +20,7 @@
 import pathlib
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
+from typing import List, Tuple
 
 import cv2
 import numpy as np
@@ -31,7 +31,6 @@ from .img2 import Rectangle, elliptical_mask, open_image, resize_image, save_ima
 from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
-
 
 # Path to the folder containing all the opencv model files.
 _DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
@@ -104,6 +103,60 @@ class Box(Rectangle):
     fractional_area: float
     score: float = 1.
 
+    @classmethod
+    def from_cascade(cls, data: Tuple[float, float, float, float],
+        original_area: int) -> "Box":
+        """Create a Box object from the output of the cascade face-detection model.
+
+        The cascade model returns rectangles in the form of (x, y, width, height)
+        tuples, and this method is meant to convert them into Box objects, by
+        calculating the corresponding fractional area and setting the score to 1.0
+        (since the cascade model does not provide a confidence score).
+
+        Arguments
+        ---------
+        data : tuple
+            The output of the cascade face-detection model.
+
+        original_area : int
+            The area of the original image in pixels.
+
+        Returns
+        -------
+        Box
+            A Box object corresponding to the given cascade output.
+        """
+        x0, y0, width, height = (int(value) for value in data)
+        fractional_area = width * height / original_area
+        return Box(x0, y0, width, height, fractional_area)
+
+    @classmethod
+    def from_yunet(cls, data: np.ndarray, original_area: int) -> "Box":
+        """Create a Box object from the output of the YuNet face-detection model.
+
+        The YuNet model returns rectangles in the form of (x, y, width, height, score)
+        tuples, and this method is meant to convert them into Box objects, by
+        calculating the corresponding fractional area and setting the score to the
+        value provided by the model.
+
+        Arguments
+        ---------
+        data : np.ndarray
+            The output of the YuNet face-detection model.
+
+        original_area : int
+            The area of the original image in pixels.
+
+        Returns
+        -------
+        Box
+            A Box object corresponding to the given YuNet output.
+        """
+        x0, y0, width, height = (int(value) for value in data[:4])
+        score = float(data[-1])
+        fractional_area = width * height / original_area
+        return Box(x0, y0, width, height, fractional_area, score)
+
     def quality(self) -> float:
         """Empirical quality factor for sorting the candidate face-detection boxes.
         """
@@ -173,24 +226,15 @@ def run_cascade(file_path: PathLike, min_fractional_area: float = 0.02,
     image = cv2.cvtColor(_read_image(file_path), cv2.COLOR_BGR2GRAY)
     height, width = image.shape
     model = cv2.CascadeClassifier(f"{_CASCADE_FILE_PATH}")
-    # Calculate the minimum size in pixels for the output square.
+    # Calculate the minimum size in pixels for the output square, assuming a square shape.
     min_side = int(np.sqrt(height * width * min_fractional_area))
-    # Run the actual face-detection code.
     candidates = model.detectMultiScale(image, scaleFactor=scale_factor,
-        minNeighbors=min_neighbors, minSize=(min_side, min_side))
-    boxes = []
-    for candidate in candidates:
-        x, y, w, h = (int(value) for value in candidate)
-        fractional_area = w * h / (height * width)
-        score = 1.
-        boxes.append(Box(x, y, w, h, fractional_area, score))
-    boxes.sort(reverse=True)
-    return boxes
+                    minNeighbors=min_neighbors, minSize=(min_side, min_side))
+    return [Box.from_cascade(candidate, height * width) for candidate in candidates]
 
 
-def run_yunet(file_path: PathLike, min_fractional_area: float = 0.02,
-    score_threshold: float = 0.7, nms_threshold: float = 0.3,
-    top_k: int = 5000) -> List[Box]:
+def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
+    nms_threshold: float = 0.3, top_k: int = 5000) -> List[Box]:
     """Run the YuNet face detection model.
 
     The YuNet outout is of the form ``[x, y, w, h, l0x, l0y, ..., l4x, l4y, score]``
@@ -231,28 +275,24 @@ def run_yunet(file_path: PathLike, min_fractional_area: float = 0.02,
     """
     image = _read_image(file_path)
     height, width, _ = image.shape
-    model = cv2.FaceDetectorYN.create(_YUNET_FILE_PATH, "", (width, height), score_threshold,
-        nms_threshold, top_k)
-    # Run the actual face-detection code.
+    model = cv2.FaceDetectorYN.create(_YUNET_FILE_PATH, "", (width, height),
+                score_threshold, nms_threshold, top_k)
     _, candidates = model.detect(image)
     # Note the face detection returns None if no face is found.
     if candidates is None:
         return []
-    boxes = []
-    for candidate in candidates:
-        x, y, w, h = (int(value) for value in candidate[:4])
-        score = candidate[-1]
-        fractional_area = w * h / (height * width)
-        # Note the filtering on the minimum fractional area needs to be done by hand.
-        if fractional_area >= min_fractional_area:
-            boxes.append(Box(x, y, w, h, fractional_area, score))
-    boxes.sort(reverse=True)
-    return boxes
+    return [Box.from_yunet(candidate, height * width) for candidate in candidates]
 
 
 def run_face_detection(file_path: PathLike, model: FaceDetection,
     min_fractional_area: float = 0.02, **kwargs) -> List[Box]:
     """Run the face detection on the input image, with the specified model and parameters.
+
+    This is designed to wrap the actual face-detection algorithms implemented in
+    opencv and provide a single, unified interface to be used by the rest of the codebase.
+    We assume that any worker function is wrapped to return a list of :class:`Box` objects,
+    which we then filter here to eliminate candidates with a fractional area smaller than
+    the specified threshold, and sort based on the overall quality.
 
     Arguments
     ---------
@@ -272,21 +312,25 @@ def run_face_detection(file_path: PathLike, model: FaceDetection,
         depending on the model. See the documentation of the specific functions for
         details on what parameters are accepted.
     """
+    logger.info(f"Running face detection on {file_path} with {model} ({kwargs})...")
     if model == FaceDetection.CASCADE:
-        runner = run_cascade
+        boxes = run_cascade(file_path, min_fractional_area, **kwargs)
     elif model == FaceDetection.YUNET:
-        runner = run_yunet
+        boxes = run_yunet(file_path, **kwargs)
     else:
         raise RuntimeError(f"Unknown face-detection model {model}")
-    logger.info(f"Running face detection on {file_path} with {model} ({kwargs})...")
-    boxes = runner(file_path, min_fractional_area, **kwargs)
-    logger.info(f"Done, {len(boxes)} candidate box(es) found.")
+    logger.debug(f"Done, {len(boxes)} candidate box(es) found.")
+    logger.debug(f"Filtering out candidates with fractional area < {min_fractional_area}...")
+    boxes = [box for box in boxes if box.fractional_area >= min_fractional_area]
+    if len(boxes) > 1:
+        logger.debug(f"Sorting the remaining {len(boxes)} candidate box(es)...")
+        boxes.sort(reverse=True)
     for i, box in enumerate(boxes):
         logger.debug(f"Candidate {i + 1}: {box}")
     return boxes
 
 
-def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
+def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     horizontal_padding: float = 0.5, top_scale_factor: float = 1.25) -> Rectangle:
     """Massage a given rectangle to make it suitable for cropping a face
     out of an image.
@@ -351,7 +395,7 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     # After some trial and error I think the best we can do, here, is to
     # pick the largest square fitting into the original image and centered
     # on the rectangle returned by opencv.
-    logger.info(f"Padded rectangle too large for the {image_width} x {image_height} image...")
+    logger.debug(f"Padded rectangle too large for the {image_width} x {image_height} image...")
     rectangle.width = rectangle.height = min(image_width, image_height)
     rectangle.x0 = rectangle.x0 - (rectangle.width - rectangle.width) // 2
     rectangle.y0 = rectangle.y0 - (rectangle.height - rectangle.height) // 2
@@ -363,7 +407,8 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
 def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     circular_mask: bool = False, model: FaceDetection = FaceDetection.CASCADE,
     min_fractional_area: float = 0.02, detect_kwargs: dict = None,
-    enlarge_kwargs: dict = None, interactive: bool = False, overwrite: bool = False) -> PathLike:
+    horizontal_padding: float = 0.5, top_scale_factor: float = 1.25,
+    interactive: bool = False, overwrite: bool = False) -> PathLike:
     """Produce a square, cropped version of the input image, suitable for use as a headshot
     (i.e., cropped around the face of the person in the image).
 
@@ -391,14 +436,17 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
         The minimum area of the detected face bounding box as a fraction of the original
         image area. Objects smaller than that are ignored.
 
-    interactive : bool, optional
-        Whether to display the image with bounding boxes for debugging.
-
     detect_kwargs : dict, optional
         Optional keyword arguments to be passed to the face detection function.
 
-    enlarge_kwargs : dict, optional
-        Optional keyword arguments to be passed to the rectangle enlargement function.
+    horizontal_padding : float, optional
+        The amount of horizontal padding to be applied to the detected face bounding box.
+
+    top_scale_factor : float, optional
+        The scale factor for the top padding relative to the horizontal padding.
+
+    interactive : bool, optional
+        Whether to display the image with bounding boxes for debugging.
 
     Returns
     -------
@@ -411,7 +459,6 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
         logger.info(f"Output file {output_file_path} already exists, skipping...")
         return
     detect_kwargs = detect_kwargs or {}
-    enlarge_kwargs = enlarge_kwargs or {}
     try:
         candidates = run_face_detection(file_path, model, min_fractional_area, **detect_kwargs)
     except RuntimeError as exception:
@@ -428,16 +475,18 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
         logger.warning(f"Multiple face candidates found in {file_path}, picking first...")
     # Go on with the best face candidate.
     original_rectangle = candidates[0]
-    final_rectangle = enlarge_rectangle(original_rectangle, *image.size, **enlarge_kwargs)
+    kwargs = dict(horizontal_padding=horizontal_padding, top_scale_factor=top_scale_factor)
+    final_rectangle = refine_rectangle(original_rectangle, *image.size, **kwargs)
     if interactive:
         # For debugging purposes, we offer some insight into the face-detection process.
         draw = PIL.ImageDraw.Draw(image)
-        font_size = int(image.width * 0.02)
+        font_size = 24
         font = PIL.ImageFont.truetype("DejaVuSans.ttf", font_size)
         # Draw all the candidate rectangles (if any) in blue...
         for i, rectangle in enumerate(candidates):
             draw.rectangle(rectangle.bounding_box(), outline="blue", width=2)
-            x, y = rectangle.x0 + font_size, rectangle.y0 + font_size
+            shift = font_size // 2
+            x, y = rectangle.x0 + shift, rectangle.y0 + shift
             draw.text((x, y), f"{i}", font=font)
         # ... and the final, optimized rectangle in red.
         draw.rectangle(final_rectangle.bounding_box(), outline="red", width=2)

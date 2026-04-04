@@ -334,9 +334,8 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_logging_level(parser: argparse.ArgumentParser) -> None:
         """Add an option for the input file.
         """
-        parser.add_argument("--logging_level", type=str, choices=logging_.logging_levels(),
-                            default="INFO",
-                            help="logging level")
+        parser.add_argument("--logging-level", type=str, choices=logging_.logging_levels(),
+            default="INFO", help="logging level")
 
     def start_slideshow(self, **kwargs) -> None:
         """Start the poster slideshow.
