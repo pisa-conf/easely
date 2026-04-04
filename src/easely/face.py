@@ -181,6 +181,9 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7, nms_threshold: 
     # Run the actual face-detection code. Note with YuNet the outout is of the form
     # [x, y, w, h, l0x, l0y, ..., l4x, l4y, score]
     _, candidates = model.detect(image)
+    # If there are no candidates, we return an empty list.
+    if candidates is None:
+        return []
     # Sort the candidates by score, from the highest to the lowest.
     order = np.argsort(candidates[:, -1])[::-1]
     # Create the output rectangles
