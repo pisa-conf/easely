@@ -365,17 +365,16 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     if interactive:
         # For debugging purposes, we offer some insight into the face-detection process.
         draw = PIL.ImageDraw.Draw(image)
-        # font = PIL.ImageFont.truetype("FreeMono.ttf", 32)
+        font_size = int(image.width * 0.02)
+        font = PIL.ImageFont.truetype("DejaVuSans.ttf", font_size)
         # Draw all the candidate rectangles (if any) in blue...
         for i, rectangle in enumerate(candidates):
             draw.rectangle(rectangle.bounding_box(), outline="blue", width=2)
-            draw.text((rectangle.x0, rectangle.y0), f"{rectangle.area()}", font=font)
+            x, y = rectangle.x0 + font_size, rectangle.y0 + font_size
+            draw.text((x, y), f"{i}", font=font)
         # ... and the final, optimized rectangle in red.
         draw.rectangle(final_rectangle.bounding_box(), outline="red", width=2)
         image.show()
-        # We wait for the user to close the image before proceeding,
-        # in order to avoid opening a gazillion images when no target is specified.
-        input("Press Enter to continue...")
     image = resize_image(image, size, size, box=final_rectangle.bounding_box())
     if circular_mask:
         image.putalpha(elliptical_mask(image))
