@@ -18,6 +18,7 @@
 """
 
 import pathlib
+from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
@@ -71,8 +72,48 @@ def _read_image(file_path: PathLike) -> np.ndarray:
     return image
 
 
-def run_cascade(file_path: PathLike, scale_factor: float = 1.1,
-    min_neighbors: int = 2, min_size: float = 0.15) -> List[Rectangle]:
+@dataclass
+class Box(Rectangle):
+
+    """Wrapper around the Rectangle class, representing a bounding box from face detection.
+
+    Arguments
+    ---------
+    x0 : int
+        The x coordinate of the top-left corner of the rectangle.
+
+    y0 : int
+        The y coordinate of the top-left corner of the rectangle.
+
+    width : int
+        The width of the rectangle.
+
+    height : int
+        The height of the rectangle.
+
+    fractional_area : float
+        The area of the rectangle as a fraction of the original image area.
+
+    score : float
+        The confidence score of the face detection, if available (1.0 if not).
+    """
+
+    fractional_area: float
+    score: float = 1.
+
+    def quality(self):
+        """
+        """
+        return self.fractional_area * self.score
+
+    def __lt__(self, other) -> bool:
+        """Overloaded comparison operator.
+        """
+        return self.quality() < other.quality()
+
+
+def run_cascade(file_path: PathLike, min_fractional_area: float = 0.02,
+    scale_factor: float = 1.1, min_neighbors: int = 2) -> List[Rectangle]:
     """Minimal wrapper around the standard opencv face detection, see, e.g,
     https://www.datacamp.com/tutorial/face-detection-python-opencv
 
@@ -80,7 +121,7 @@ def run_cascade(file_path: PathLike, scale_factor: float = 1.1,
     model file for face detection, and running a ``detectMultiScale`` call with
     the proper parameters. The output rectangles containing the candidate faces,
     which are returned by opencv as simple (x, y, width, height) tuples, are
-    converted into :class:`Rectangle` objects, and the list of rectangle is sorted
+    converted into :class:`Box` objects, and the list of boxes is sorted
     according to the corresponding area from the smallest to the largest to help
     with the selection process downstream.
 
@@ -106,6 +147,12 @@ def run_cascade(file_path: PathLike, scale_factor: float = 1.1,
     file_path : PathLike
         The path to input image file.
 
+    min_fractional_area : float
+        The minimum area of the output rectangle as a fraction of the original image
+        area. Objects smaller than that are ignored. This is converted internally to
+        an actual size in pixels and passed as the ``minSize`` parameter to the
+        ``detectMultiScale`` call.
+
     scale_factor : float
         Parameter specifying how much the image size is reduced at each image scale
         (passed along verbatim as ``scaleFactor`` to the ``detectMultiScale`` call).
@@ -115,42 +162,45 @@ def run_cascade(file_path: PathLike, scale_factor: float = 1.1,
         have to retain it (passed along verbatim as ``minNeighbors`` to the
         ``detectMultiScale`` call).
 
-    min_size : float
-        Minimum possible fractional object size. Objects smaller than that are ignored.
-        This is converted internally to an actual size in pixels, corresponding
-        to a square whose side is the geometric mean of the original width and height,
-        multiplied by the parameter value.
-
     Returns
     -------
-    list[Rectangle]
-        The list of :class:`Rectangle` objects containing the face candidates.
+    list[Box]
+        The list of :class:`Box` objects containing the face candidates.
     """
-    image = _read_image(file_path)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image = cv2.cvtColor(_read_image(file_path), cv2.COLOR_BGR2GRAY)
+    height, width = image.shape
     model = cv2.CascadeClassifier(f"{_CASCADE_FILE_PATH}")
-    # Calculate the minimum size of the output rectangle as that of a square whose
-    # side is the geometric mean of the original width and height, multiplied by
-    # the min_size input parameter.
-    side = Rectangle.rounded_geometric_mean(*image.shape, scale=min_size)
+    # Calculate the minimum size in pixels for the output square.
+    min_side = int(np.sqrt(height * width * min_fractional_area))
     # Run the actual face-detection code.
-    boxes = model.detectMultiScale(image, scaleFactor=scale_factor,
-        minNeighbors=min_neighbors, minSize=(side, side))
-    # Convert the output to a list of Rectangle objects, and sort by area, from the
-    # largest to the smallest.
-    rectangles = [Rectangle(*[int(value) for value in box]) for box in boxes]
-    rectangles.sort(reverse=True)
-    return rectangles
+    candidates = model.detectMultiScale(image, scaleFactor=scale_factor,
+        minNeighbors=min_neighbors, minSize=(min_side, min_side))
+    boxes = []
+    for candidate in candidates:
+        x, y, w, h = (int(value) for value in candidate)
+        fractional_area = w * h / (height * width)
+        score = 1.
+        boxes.append(Box(x, y, w, h, fractional_area, score))
+    boxes.sort(reverse=True)
+    return boxes
 
 
-def run_yunet(file_path: PathLike, score_threshold: float = 0.7, nms_threshold: float = 0.3,
-    top_k: int = 5000) -> List[Rectangle]:
+def run_yunet(file_path: PathLike, min_fractional_area: float = 0.02,
+    score_threshold: float = 0.7, nms_threshold: float = 0.3, top_k: int = 5000) -> List[Rectangle]:
     """Run the YuNet face detection model.
+
+    The YuNet outout is of the form ``[x, y, w, h, l0x, l0y, ..., l4x, l4y, score]``
+    and we are basically interested in the first four values for the bounding box,
+    and the last one for the confidence score.
 
     Arguments
     ---------
     file_path : PathLike
         The path to input image file.
+
+    min_fractional_area : float
+        The minimum area of the detected face bounding box as a fraction of the original
+        image area. Objects smaller than that are ignored.
 
     score_threshold : float
         The confidence score threshold for the face detection (0--1). This simply
@@ -179,21 +229,25 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7, nms_threshold: 
     height, width, _ = image.shape
     model = cv2.FaceDetectorYN.create(_YUNET_FILE_PATH, "", (width, height), score_threshold,
         nms_threshold, top_k)
-    # Run the actual face-detection code. Note with YuNet the outout is of the form
-    # [x, y, w, h, l0x, l0y, ..., l4x, l4y, score]
+    # Run the actual face-detection code.
     _, candidates = model.detect(image)
-    # If there are no candidates, we return an empty list.
+    # Note the face detection returns None if no face is found.
     if candidates is None:
         return []
-    # Sort the candidates by score, from the highest to the lowest.
-    order = np.argsort(candidates[:, -1])[::-1]
-    candidates = candidates[order]
-    # Create the output rectangles
-    rectangles = [Rectangle(*[int(value) for value in candidate[:4]]) for candidate in candidates]
-    return rectangles
+    boxes = []
+    for candidate in candidates:
+        x, y, w, h = (int(value) for value in candidate[:4])
+        score = candidate[-1]
+        fractional_area = w * h / (height * width)
+        # Note the filtering on the minimum fractional area needs to be done by hand.
+        if fractional_area >= min_fractional_area:
+            boxes.append(Box(x, y, w, h, fractional_area, score))
+    boxes.sort(reverse=True)
+    return boxes
 
 
-def run_face_detection(file_path: PathLike, model: FaceDetection, **kwargs) -> List[Rectangle]:
+def run_face_detection(file_path: PathLike, model: FaceDetection,
+    min_fractional_area: float = 0.02, **kwargs) -> List[Rectangle]:
     """Run the face detection on the input image, with the specified model and parameters.
 
     Arguments
@@ -205,16 +259,21 @@ def run_face_detection(file_path: PathLike, model: FaceDetection, **kwargs) -> L
         The face-detection model to use. This is an Enum with the available models,
         and it is meant to be extended in the future as we add more models.
 
+    min_fractional_area : float
+        The minimum area of the detected face bounding box as a fraction of the original
+        image area. Objects smaller than that are ignored.
+
     **kwargs
         Optional keyword arguments to be passed to the actual face-detection function,
         depending on the model. See the documentation of the specific functions for
         details on what parameters are accepted.
     """
     logger.info(f"Running face detection on {file_path} with {model} ({kwargs})...")
+    args = file_path, min_fractional_area
     if model == FaceDetection.CASCADE:
-        rectangles = run_cascade(file_path, **kwargs)
+        rectangles = run_cascade(*args, **kwargs)
     elif model == FaceDetection.YUNET:
-        rectangles = run_yunet(file_path, **kwargs)
+        rectangles = run_yunet(*args, **kwargs)
     else:
         raise RuntimeError(f"Unknown face-detection model {model}")
     logger.info(f"Done, {len(rectangles)} candidate rectangle(s) found.")
@@ -299,8 +358,8 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
 
 def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     circular_mask: bool = False, model: FaceDetection = FaceDetection.CASCADE,
-    detect_kwargs: dict = None, enlarge_kwargs: dict = None, interactive: bool = False,
-    overwrite: bool = False) -> PathLike:
+    min_fractional_area: float = 0.02, detect_kwargs: dict = None,
+    enlarge_kwargs: dict = None, interactive: bool = False, overwrite: bool = False) -> PathLike:
     """Produce a square, cropped version of the input image, suitable for use as a headshot
     (i.e., cropped around the face of the person in the image).
 
@@ -324,6 +383,10 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     model : FaceDetection
         The face-detection model to use.
 
+    min_fractional_area : float
+        The minimum area of the detected face bounding box as a fraction of the original
+        image area. Objects smaller than that are ignored.
+
     interactive : bool, optional
         Whether to display the image with bounding boxes for debugging.
 
@@ -346,7 +409,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     detect_kwargs = detect_kwargs or {}
     enlarge_kwargs = enlarge_kwargs or {}
     try:
-        candidates = run_face_detection(file_path, model, **detect_kwargs)
+        candidates = run_face_detection(file_path, model, min_fractional_area, **detect_kwargs)
     except RuntimeError as exception:
         logger.error(f"{exception}, giving up on this one...")
         return

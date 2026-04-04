@@ -55,23 +55,18 @@ class Rectangle:
         The width of the rectangle.
 
     height : int
-        The height of the rectangle; if None, this is set to be equal to the width
-        (i.e., by default the rectangle is a square).
+        The height of the rectangle.
     """
 
-    # pylint: disable=invalid-name
     x0: int
     y0: int
     width: int
-    height: int = None
+    height: int
 
     def __post_init__(self) -> None:
         """Post initialization code.
         """
-        # By deafult, generate a square.
-        if self.height is None:
-            self.height = self.width
-        # Also, make sure all the members are integers, as we are dealing with
+        # Make sure all the members are integers, as we are dealing with
         # pixels in rasterized images. Note that we are using numbers.Integral, as
         # opposed to the native Python int, as we want to be able to catch the
         # numpy integral types as well.

@@ -203,6 +203,9 @@ class CliArgumentParser(argparse.ArgumentParser):
             choices=[model.value for model in face.FaceDetection],
             default=tasks.FacecropDefaults.model.value,
             help="the face detection model to be used")
+        facecrop.add_argument("--min-fractional-area", type=float,
+            default=tasks.FacecropDefaults.min_fractional_area,
+            help="the minimum area of the detected face bounding box as a fraction of the original image")
         facecrop.add_argument("--horizontal-padding", type=float,
             default=tasks.FacecropDefaults.horizontal_padding,
             help="the horizontal padding to be added to the detected face")

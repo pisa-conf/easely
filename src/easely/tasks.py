@@ -295,13 +295,14 @@ class FacecropDefaults:
     size: int = 500
     circular_mask: bool = False
     model: face.FaceDetection = face.FaceDetection.CASCADE
+    min_fractional_area: float = 0.02
     horizontal_padding: float = 0.5
     top_scale_factor: float = 1.25
     interactive: bool = False
     overwrite: bool = False
     # Keep track of the default settings for the face detection models.
     # Note these are not annotated.
-    cascade_defaults = dict(scale_factor=1.1, min_neighbors=2, min_size=0.15)
+    cascade_defaults = dict(scale_factor=1.1, min_neighbors=2)
     yunet_defaults = dict(score_threshold=0.7, nms_threshold=0.3, top_k=5000)
 
 
@@ -312,6 +313,7 @@ def facecrop(
         size: int = FacecropDefaults.size,
         circular_mask: bool = FacecropDefaults.circular_mask,
         model: face.FaceDetection = FacecropDefaults.model,
+        min_fractional_area: float = FacecropDefaults.min_fractional_area,
         horizontal_padding: float = FacecropDefaults.horizontal_padding,
         top_scale_factor: float = FacecropDefaults.top_scale_factor,
         interactive: bool = FacecropDefaults.interactive,
@@ -336,6 +338,10 @@ def facecrop(
 
     model : face.FaceDetection
         The face-detection model to use.
+
+    min_fractional_area : float
+        The minimum area of the detected face bounding box as a fraction of the original
+        image area. Objects smaller than that are ignored.
 
     horizontal_padding : float
         The horizontal padding to be added to the detected face bounding box, as a fraction
@@ -362,7 +368,8 @@ def facecrop(
     # Cache all the arguments and keyword arguments for the function call inside the loop.
     detect_kwargs = {}
     enlarge_kwargs = dict(horizontal_padding=horizontal_padding, top_scale_factor=top_scale_factor)
-    args = size, circular_mask, model, detect_kwargs, enlarge_kwargs, interactive, overwrite
+    args = size, circular_mask, model, min_fractional_area, detect_kwargs, \
+        enlarge_kwargs, interactive, overwrite
     file_list = filter_dir(input_dir, targets)
     logger.info(f"Cropping faces for {len(file_list)} target files...")
     for input_file_path in file_list:
