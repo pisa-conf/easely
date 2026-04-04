@@ -320,8 +320,9 @@ def run_face_detection(file_path: PathLike, model: FaceDetection,
     else:
         raise RuntimeError(f"Unknown face-detection model {model}")
     logger.debug(f"Done, {len(boxes)} candidate box(es) found.")
-    logger.debug(f"Filtering out candidates with fractional area < {min_fractional_area}...")
-    boxes = [box for box in boxes if box.fractional_area >= min_fractional_area]
+    if len(boxes) > 0:
+        logger.debug(f"Filtering out candidates with fractional area < {min_fractional_area}...")
+        boxes = [box for box in boxes if box.fractional_area >= min_fractional_area]
     if len(boxes) > 1:
         logger.debug(f"Sorting the remaining {len(boxes)} candidate box(es)...")
         boxes.sort(reverse=True)
