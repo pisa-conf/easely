@@ -24,6 +24,7 @@ from typing import List
 import cv2
 import numpy as np
 import PIL.ImageDraw
+import PIL.ImageFont
 
 from .img2 import Rectangle, elliptical_mask, open_image, resize_image, save_image
 from .logging_ import logger
@@ -186,8 +187,9 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7, nms_threshold: 
         return []
     # Sort the candidates by score, from the highest to the lowest.
     order = np.argsort(candidates[:, -1])[::-1]
+    candidates = candidates[order]
     # Create the output rectangles
-    rectangles = [Rectangle(*[int(value) for value in candidate[:4]]) for candidate in candidates[order]]
+    rectangles = [Rectangle(*[int(value) for value in candidate[:4]]) for candidate in candidates]
     return rectangles
 
 
@@ -363,11 +365,11 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     if interactive:
         # For debugging purposes, we offer some insight into the face-detection process.
         draw = PIL.ImageDraw.Draw(image)
-        # Draw the best candidate rectangle from opencv in white...
-        draw.rectangle(original_rectangle.bounding_box(), outline="white", width=2)
-        # ...all the other candidate rectangles (if any) in blue...
-        for rectangle in candidates[1:]:
+        # font = PIL.ImageFont.truetype("FreeMono.ttf", 32)
+        # Draw all the candidate rectangles (if any) in blue...
+        for i, rectangle in enumerate(candidates):
             draw.rectangle(rectangle.bounding_box(), outline="blue", width=2)
+            draw.text((rectangle.x0, rectangle.y0), f"{rectangle.area()}", font=font)
         # ... and the final, optimized rectangle in red.
         draw.rectangle(final_rectangle.bounding_box(), outline="red", width=2)
         image.show()
