@@ -28,7 +28,7 @@ from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
-from .paths import WorkspaceLayout, contribution_id, sanitize_file_path, \
+from .paths import WorkspaceLayout, filter_dir, friendly_id, sanitize_file_path, \
     sanitize_folder_path, PROGRAM_FILE_NAME
 from .typing_ import PathLike
 
@@ -373,12 +373,7 @@ def facecrop(
     enlarge_kwargs = dict(horizontal_padding=enlarge_horizontal_padding,
                            top_scale_factor=enlarge_top_scale_factor)
     args = size, circular_mask, detect_kwargs, enlarge_kwargs, interactive, overwrite
-    # Build the list of files to be processed. Note it it not trivial to build the list
-    # programmatically, since we don't know the file type, so that we resort to
-    # creating the list of all the files in the input folder, and then filtering it.
-    file_list = sorted(input_dir.iterdir())
-    if targets is not None:
-        file_list = [file_path for file_path in file_list if contribution_id(file_path) in targets]
+    file_list = filter_dir(input_dir, targets)
     logger.info(f"Cropping faces for {len(file_list)} target files...")
     for input_file_path in file_list:
         output_file_path = output_dir / input_file_path.with_suffix(".png").name

@@ -18,6 +18,7 @@
 """
 
 import pathlib
+from typing import List
 
 import cv2
 import PIL.ImageDraw
@@ -35,7 +36,7 @@ _DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) /\
 
 
 def run_face_recognition(file_path: PathLike, scale_factor: float = 1.1,
-    min_neighbors: int = 2, min_size: float = 0.15) -> list[Rectangle]:
+    min_neighbors: int = 2, min_size: float = 0.15) -> List[Rectangle]:
     """Minimal wrapper around the standard opencv face recognition, see, e.g,
     https://www.datacamp.com/tutorial/face-detection-python-opencv
 

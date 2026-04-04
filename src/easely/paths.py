@@ -19,6 +19,7 @@
 
 import pathlib
 from enum import Enum
+from typing import List
 
 from .logging_ import logger
 from .typing_ import PathLike
@@ -43,15 +44,79 @@ class WorkspaceLayout(str, Enum):
 def contribution_file_name(friendly_id: int, suffix: str) -> str:
     """Return the standardized file name for a contribution file, given its
     ``friendly_id`` on indico and the expected suffix.
+
+    Arguments
+    ---------
+    friendly_id : int
+        The contribution friendly id on indico
+
+    suffix : str
+        The target file suffix, including the dot, e.g., ".pdf" or ".jpg
+
+    Returns
+    -------
+    str
+        The standardized file name for the contribution file, e.g., "0001.pdf".
     """
     return f"{friendly_id:04d}{suffix}"
 
 
-def contribution_id(file_path: PathLike) -> int:
-    """Return the contribution id corresponding to a given contribution file path, by
+def friendly_id(file_path: pathlib.Path) -> int:
+    """Return the friendly id corresponding to a given contribution file path, by
     parsing the file name.
+
+    Return None if the file name does not start with an integer friendly id.
+
+    Arguments
+    ---------
+    file_path : pathlib.Path
+        The path to the contribution file, from which we want to extract the friendly id.
+
+    Returns
+    -------
+    int or None
+        The friendly id corresponding to the given contribution file path,
+        or None if the file name does not start with an integer friendly id.
     """
-    return int(pathlib.Path(file_path).stem.split("_")[0])
+    prefix = file_path.stem.split("_")[0]
+    try:
+        return int(prefix)
+    except ValueError:
+        return None
+
+
+def filter_dir(input_dir: pathlib.Path, friendly_ids: List[int] = None) -> List[pathlib.Path]:
+    """Filter the list of files in a given input directory, by keeping only those whose
+    contribution id is in the given list of friendly ids.
+
+    Note that, while when we know the file type this can be done programmatically,
+    in the general case you really need to filter the list from the complete one.
+
+    Arguments
+    ---------
+    input_dir : pathlib.Path
+        The path to the input directory, from which we want to filter the files.
+
+    friendly_ids : list of int, optional
+        The list of contribution friendly ids to keep (None to keep all files).
+
+    Returns
+    -------
+    list of pathlib.Path
+        The list of file paths in the input directory.
+    """
+    file_list = sorted(file_path for file_path in input_dir.iterdir() if file_path.is_file())
+    if friendly_ids is None:
+        return file_list
+    filtered_file_list = []
+    for file_path in file_list:
+        _id = friendly_id(file_path)
+        if _id is None:
+            logger.warning(f"Skipping file with unexpected name format: {file_path}")
+            continue
+        elif _id in friendly_ids:
+            filtered_file_list.append(file_path)
+    return filtered_file_list
 
 
 def sanitize_file_path(path: PathLike, suffix: str = None, check_exists: bool = False) -> pathlib.Path:

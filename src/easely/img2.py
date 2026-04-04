@@ -22,6 +22,7 @@ from __future__ import annotations
 import dataclasses
 import numbers
 import random
+from typing import Tuple
 
 from loguru import logger
 import numpy as np
@@ -44,16 +45,16 @@ class Rectangle:
 
     Parameters
     ----------
-    x0
+    x0 : int
         The x coordinate of the upper-left corner of the rectangle.
 
-    y0
+    y0 : int
         The y coordinate of the upper-left corner of the rectangle.
 
-    width
+    width : int
         The width of the rectangle.
 
-    height
+    height : int
         The height of the rectangle; if None, this is set to be equal to the width
         (i.e., by default the rectangle is a square).
     """
@@ -95,10 +96,10 @@ class Rectangle:
 
         Parameters
         ----------
-        width
+        width : int
             The target width.
 
-        height
+        height : int
             The target height.
 
         Returns
@@ -134,7 +135,7 @@ class Rectangle:
         """
         return self.width * self.height
 
-    def bounding_box(self) -> tuple[int, int, int, int]:
+    def bounding_box(self) -> Tuple[int, int, int, int]:
         """Return the bounding box corresponding to the ractangle, in the form
         of the four-element tuple (xmin, ymin, xmax, ymax).
 
@@ -152,10 +153,10 @@ class Rectangle:
 
         Parameters
         ----------
-        values
+        values : float
             The values to be averaged.
 
-        scale
+        scale : float
             Optional multiplicative scale factor, to be applied before the geometric
             average is computed.
 
@@ -193,16 +194,16 @@ class Rectangle:
 
         Parameters
         ----------
-        top
+        top : int
             The top padding in pixels.
 
-        right
+        right : int
             The right padding in pixels.
 
-        bottom
+        bottom : int
             The bottom padding in pixels.
 
-        left
+        left : int
             The left padding in pixels.
 
         Returns
@@ -224,10 +225,10 @@ class Rectangle:
 
         Parameters
         ----------
-        width
+        width : int
             The width of the target area.
 
-        height
+        height : int
             The height of the target area.
 
         Returns
@@ -247,10 +248,10 @@ class Rectangle:
 
         Parameters
         ----------
-        width
+        width : int
             The width of the target area.
 
-        height
+        height : int
             The height of the target area.
 
         Returns
@@ -296,7 +297,7 @@ def open_image(file_path: PathLike) -> PIL.Image.Image:
     """
     logger.info(f'Loading image data from {file_path}...')
     with PIL.Image.open(file_path) as image:
-        #image.load()
+        image = image.copy()
         PIL.ImageOps.exif_transpose(image, in_place=True)
     width, height = image.size
     logger.debug(f'Image size: {width} x {height}.')
@@ -313,10 +314,10 @@ def save_image(image: PIL.Image.Image, file_path: PathLike, **kwargs) -> None:
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The image to be saved.
 
-    file_path
+    file_path : PathLike
         The path to the output file.
 
     kwargs
@@ -327,7 +328,7 @@ def save_image(image: PIL.Image.Image, file_path: PathLike, **kwargs) -> None:
 
 
 def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
-    resample=PIL.Image.Resampling.LANCZOS, box: tuple[float, float, float, float] = None,
+    resample=PIL.Image.Resampling.LANCZOS, box: Tuple[float, float, float, float] = None,
     reducing_gap: float = None) -> PIL.Image.Image:
     """Resize an existing image.
 
@@ -340,14 +341,14 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The original image.
 
-    width
+    width : int
         The target image width (if not provided it is determined by the target
         height preserving the aspect ratio).
 
-    height
+    height : int
         The target image height (if not provided it is determined by the target
         width preserving the aspect ratio).
 
@@ -356,12 +357,12 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
         Resampling.BOX, Resampling.BILINEAR, Resampling.HAMMING, Resampling.BICUBIC
         or Resampling.LANCZOS.
 
-    box
+    box : tuple[float, float, float, float]
         An optional 4-tuple of floats providing the source image region to be scaled.
         The values must be within (0, 0, width, height) rectangle. If omitted or
         None, the entire source is used.
 
-    reducing_gap
+    reducing_gap : float
         Apply optimization by resizing the image in two steps. First, reducing the
         image by integer times using `reduce()``. Second, resizing using regular resampling.
         The last step changes size no less than by `reducing_gap times`. `reducing_gap`
@@ -400,10 +401,10 @@ def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The original image
 
-    rectangle
+    rectangle : Rectangle
         The rectangle delimiting the cropping area
 
     Returns
@@ -435,7 +436,7 @@ def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The input image.
 
     Returns
@@ -459,7 +460,7 @@ class Tiling:
 
     num_cols: int
     num_rows: int
-    image_size: tuple[int, int]
+    image_size: Tuple[int, int]
     tiling_dict: dict = None
 
     def __post_init__(self) -> None:
@@ -476,19 +477,19 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
 
     Parameters
     ----------
-    num_images
+    num_images : int
         The number of input images to be tiles.
 
-    tile_width
+    tile_width : int
         The width of the single tile.
 
-    tile_height
+    tile_height : int
         The height of the single tile.
 
-    tile_padding
+    tile_padding : int
         The padding between adjacent tiles, in both the horizontal and vertical directions.
 
-    aspect_ratio
+    aspect_ratio : float
         The approximate aspect ratio of the final, tiled image.
 
     Returns
