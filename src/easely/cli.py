@@ -203,11 +203,11 @@ class CliArgumentParser(argparse.ArgumentParser):
             choices=[model.value for model in face.FaceDetection],
             default=tasks.FacecropDefaults.model.value,
             help="the face detection model to be used")
-        facecrop.add_argument("--enlarge-horizontal-padding", type=float,
-            default=tasks.FacecropDefaults.enlarge_horizontal_padding,
+        facecrop.add_argument("--horizontal-padding", type=float,
+            default=tasks.FacecropDefaults.horizontal_padding,
             help="the horizontal padding to be added to the detected face")
-        facecrop.add_argument("--enlarge-top-scale-factor", type=float,
-            default=tasks.FacecropDefaults.enlarge_top_scale_factor,
+        facecrop.add_argument("--top-scale-factor", type=float,
+            default=tasks.FacecropDefaults.top_scale_factor,
             help="the scale factor for the top padding to be added to the detected face")
         facecrop.add_argument("--interactive", action="store_true",
             default=tasks.FacecropDefaults.interactive,

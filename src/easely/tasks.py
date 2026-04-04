@@ -294,11 +294,15 @@ class FacecropDefaults:
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
     size: int = 500
     circular_mask: bool = False
-    model = face.FaceDetection.CASCADE
-    enlarge_horizontal_padding: float = 0.5
-    enlarge_top_scale_factor: float = 1.25
+    model: face.FaceDetection = face.FaceDetection.CASCADE
+    horizontal_padding: float = 0.5
+    top_scale_factor: float = 1.25
     interactive: bool = False
     overwrite: bool = False
+    # Keep track of the default settings for the face detection models.
+    # Note these are not annotated.
+    cascade_defaults = dict(scale_factor=1.1, min_neighbors=2, min_size=0.15)
+    yunet_defaults = dict(score_threshold=0.7, nms_threshold=0.3, top_k=5000)
 
 
 def facecrop(
@@ -308,8 +312,8 @@ def facecrop(
         size: int = FacecropDefaults.size,
         circular_mask: bool = FacecropDefaults.circular_mask,
         model: face.FaceDetection = FacecropDefaults.model,
-        enlarge_horizontal_padding: float = FacecropDefaults.enlarge_horizontal_padding,
-        enlarge_top_scale_factor: float = FacecropDefaults.enlarge_top_scale_factor,
+        horizontal_padding: float = FacecropDefaults.horizontal_padding,
+        top_scale_factor: float = FacecropDefaults.top_scale_factor,
         interactive: bool = FacecropDefaults.interactive,
         overwrite: bool = FacecropDefaults.overwrite
         ) -> int:
@@ -333,11 +337,11 @@ def facecrop(
     model : face.FaceDetection
         The face-detection model to use.
 
-    enlarge_horizontal_padding : float
+    horizontal_padding : float
         The horizontal padding to be added to the detected face bounding box, as a fraction
         of the bounding box width.
 
-    enlarge_top_scale_factor : float
+    top_scale_factor : float
         The scale factor to be applied to the top side of the detected face bounding box.
 
     interactive : bool
@@ -357,8 +361,7 @@ def facecrop(
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
     detect_kwargs = {}
-    enlarge_kwargs = dict(horizontal_padding=enlarge_horizontal_padding,
-                           top_scale_factor=enlarge_top_scale_factor)
+    enlarge_kwargs = dict(horizontal_padding=horizontal_padding, top_scale_factor=top_scale_factor)
     args = size, circular_mask, model, detect_kwargs, enlarge_kwargs, interactive, overwrite
     file_list = filter_dir(input_dir, targets)
     logger.info(f"Cropping faces for {len(file_list)} target files...")
