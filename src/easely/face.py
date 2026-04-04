@@ -32,8 +32,6 @@ from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
 
-__all__ = ["run_face_detection", "enlarge_rectangle", "crop_face"]
-
 
 # Path to the folder containing all the opencv model files.
 _DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
