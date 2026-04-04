@@ -75,6 +75,11 @@ class Box(Rectangle):
 
     """Wrapper around the Rectangle class, representing a bounding box from face detection.
 
+    In addition to the basic rectangle properties, this container keeps track of
+    all the stuff that we need in order to sort the face-detection candidates and
+    select the best one (e.g., the fractional area within the original image, and
+    any score metrics from the face-detection algorithm itself).
+
     Arguments
     ---------
     x0 : int
@@ -99,10 +104,10 @@ class Box(Rectangle):
     fractional_area: float
     score: float = 1.
 
-    def quality(self):
+    def quality(self) -> float:
+        """Empirical quality factor for sorting the candidate face-detection boxes.
         """
-        """
-        return self.fractional_area * self.score
+        return np.sqrt(self.fractional_area) * self.score
 
     def __lt__(self, other) -> bool:
         """Overloaded comparison operator.
@@ -111,7 +116,7 @@ class Box(Rectangle):
 
 
 def run_cascade(file_path: PathLike, min_fractional_area: float = 0.02,
-    scale_factor: float = 1.1, min_neighbors: int = 2) -> List[Rectangle]:
+    scale_factor: float = 1.1, min_neighbors: int = 2) -> List[Box]:
     """Minimal wrapper around the standard opencv face detection, see, e.g,
     https://www.datacamp.com/tutorial/face-detection-python-opencv
 
@@ -184,7 +189,8 @@ def run_cascade(file_path: PathLike, min_fractional_area: float = 0.02,
 
 
 def run_yunet(file_path: PathLike, min_fractional_area: float = 0.02,
-    score_threshold: float = 0.7, nms_threshold: float = 0.3, top_k: int = 5000) -> List[Rectangle]:
+    score_threshold: float = 0.7, nms_threshold: float = 0.3,
+    top_k: int = 5000) -> List[Box]:
     """Run the YuNet face detection model.
 
     The YuNet outout is of the form ``[x, y, w, h, l0x, l0y, ..., l4x, l4y, score]``
@@ -220,8 +226,8 @@ def run_yunet(file_path: PathLike, min_fractional_area: float = 0.02,
 
     Returns
     -------
-    list[Rectangle]
-        The list of :class:`Rectangle` objects containing the face candidates.
+    list[Box]
+        The list of :class:`Box` objects containing the face candidates.
     """
     image = _read_image(file_path)
     height, width, _ = image.shape
@@ -245,7 +251,7 @@ def run_yunet(file_path: PathLike, min_fractional_area: float = 0.02,
 
 
 def run_face_detection(file_path: PathLike, model: FaceDetection,
-    min_fractional_area: float = 0.02, **kwargs) -> List[Rectangle]:
+    min_fractional_area: float = 0.02, **kwargs) -> List[Box]:
     """Run the face detection on the input image, with the specified model and parameters.
 
     Arguments
@@ -266,18 +272,18 @@ def run_face_detection(file_path: PathLike, model: FaceDetection,
         depending on the model. See the documentation of the specific functions for
         details on what parameters are accepted.
     """
-    logger.info(f"Running face detection on {file_path} with {model} ({kwargs})...")
-    args = file_path, min_fractional_area
     if model == FaceDetection.CASCADE:
-        rectangles = run_cascade(*args, **kwargs)
+        runner = run_cascade
     elif model == FaceDetection.YUNET:
-        rectangles = run_yunet(*args, **kwargs)
+        runner = run_yunet
     else:
         raise RuntimeError(f"Unknown face-detection model {model}")
-    logger.info(f"Done, {len(rectangles)} candidate rectangle(s) found.")
-    for i, rectangle in enumerate(rectangles):
-        logger.debug(f"Candidate {i + 1}: {rectangle}")
-    return rectangles
+    logger.info(f"Running face detection on {file_path} with {model} ({kwargs})...")
+    boxes = runner(file_path, min_fractional_area, **kwargs)
+    logger.info(f"Done, {len(boxes)} candidate box(es) found.")
+    for i, box in enumerate(boxes):
+        logger.debug(f"Candidate {i + 1}: {box}")
+    return boxes
 
 
 def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
