@@ -33,6 +33,7 @@ easely documentation
 
    cli
    dispatch
+   face
    indico
    magic
    paths

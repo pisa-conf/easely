@@ -17,20 +17,14 @@
 """Rasterization tools.
 """
 
-import os
-import pathlib
-
-import cv2
 from loguru import logger
 import numpy as np
 import PIL
 import PIL.Image
 
-_OPENCV_DATA_FOLDER_PATH = pathlib.Path(__file__).parent.parent.parent / "data"
 
 EXIF_ORIENTATION_TAG = 274
 EXIF_ROTATION_DICT = {3: 180, 6: 270, 8: 90}
-HAARCASCADE_FILE_PATH = _OPENCV_DATA_FOLDER_PATH / 'haarcascade_frontalface_default.xml'
 
 
 
@@ -108,97 +102,3 @@ def png_horizontal_padding(input_file_path: str, output_file_path: str, aspect_r
         output = PIL.Image.new(img.mode, (target_width, height), (255, 255, 255))
         output.paste(img, (delta // 2, 0))
         output.save(output_file_path)
-
-
-def face_bbox(file_path: str, min_frac_size: float = 0.145, padding: float = 1.85):
-    """Run a simple opencv face detection and return the proper bounding box for
-    cropping the input image.
-
-    This is returning an approximately square (modulo 1 pixel possible difference
-    between the two sides) bounding box containing the face.
-    """
-    logger.info(f'Running face detection on {file_path}...')
-    # Run opencv and find the face.
-    cascade = cv2.CascadeClassifier(HAARCASCADE_FILE_PATH)
-    img = cv2.imread(file_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    height, width = img.shape
-    min_size = round(width * min_frac_size), round(height * min_frac_size)
-    faces = cascade.detectMultiScale(img, scaleFactor=1.1, minNeighbors=5, minSize=min_size)
-    if len(faces) == 0:
-        logger.warning('No candidate face found, returning dummy bounding box...')
-        x0, y0 = width // 2, height // 2
-        half_side = round(0.5 * min(width, height))
-        return (x0 - half_side + 1, y0 - half_side + 1, x0 + half_side, y0 + half_side)
-    logger.debug(f'{len(faces)} candidate bounding boxes found...')
-    if len(faces) > 1:
-        for i, face in enumerate(faces):
-            logger.debug(f'{i}: {face}')
-    # Here we have to be clever on whether we want the first, the last or one particular
-    # bounding box, in case more than one are found.
-    x, y, w, h = faces[0]
-    # Calculate the starting center and size.
-    x0, y0 = x + w // 2, y + h // 2
-    half_side = round(0.5 * max(w, h) * padding)
-    # First pass on the bounding box.
-    xmin = max(x0 - half_side, 0)
-    ymin = max(y0 - half_side, 0)
-    xmax = min(x0 + half_side, width - 1)
-    ymax = min(y0 + half_side, height - 1)
-    # Second pass to avoid exceeding the physical dimensions of the original image.
-    w = xmax - xmin
-    h = ymax - ymin
-    if h > w:
-        delta = (h - w) // 2
-        ymin += delta
-        ymax -= delta
-    elif h < w:
-        delta = (w - h) // 2
-        xmin += delta
-        xmax -= delta
-    # Quick fix, to be adjusted.
-    #if xmin < 0:
-    #    xmin = 0
-    w = xmax - xmin
-    h = ymax - ymin
-    if abs(w - h) > 1:
-        logger.warning(f'Skewed bounding box ({w} x {h})')
-    bbox = (xmin, ymin, xmax, ymax)
-    logger.info(f'{len(faces)} face candidate(s) found, returning {bbox}...')
-    return bbox
-
-
-def crop_to_face(file_path: str, output_file_path: str, height: int,
-    overwrite: bool = False, bbox=None, **kwargs):
-    """Resize a given input file to contain the face.
-    """
-    if os.path.exists(output_file_path) and not overwrite:
-        logger.info(f'Output file {output_file_path} exists, skipping...')
-        return
-    logger.info(f'Cropping {file_path} to face...')
-    kwargs.setdefault('resample', PIL.Image.Resampling.LANCZOS)
-    kwargs.setdefault('reducing_gap', 3.)
-    try:
-        with PIL.Image.open(file_path) as img:
-            # Parse the original image size and orientation.
-            w, h = img.size
-            orientation = img.getexif().get(EXIF_ORIENTATION_TAG, None)
-            logger.debug(f'Original size: {w} x {h}, orientation: {orientation}')
-            # If the image is rotated, we need to change the orientation.
-            if orientation in EXIF_ROTATION_DICT:
-                rotation = EXIF_ROTATION_DICT[orientation]
-                logger.debug(f'Applying a rotation by {rotation} degrees...')
-                img = img.rotate(rotation, expand=True)
-                w, h = img.size
-                logger.debug(f'Rotated size: {w} x {h}')
-            # Crop and scale to the target dimensions.
-            if bbox is None:
-                bbox = face_bbox(file_path)
-            print(bbox)
-            logger.info(f'Resizing image to ({height}, {height})...')
-            img = img.resize((height, height), box=bbox, **kwargs)
-            if output_file_path is not None:
-                logger.info(f'Saving image to {output_file_path}...')
-                img.save(output_file_path)
-    except PIL.UnidentifiedImageError as exception:
-        logger.error(exception)

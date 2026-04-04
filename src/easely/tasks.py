@@ -19,15 +19,17 @@
 
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple
+from typing import List, Tuple
 
 from . import pdf
+from . import face
 from . import img
 from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
-from .paths import WorkspaceLayout, sanitize_file_path, sanitize_folder_path, PROGRAM_FILE_NAME
+from .paths import WorkspaceLayout, filter_dir, friendly_id, sanitize_file_path, \
+    sanitize_folder_path, PROGRAM_FILE_NAME
 from .typing_ import PathLike
 
 
@@ -198,7 +200,7 @@ def rasterize(
     This is the main function to convert a poster pdf file to a png file. Since
     posters are typically shown on a screen with a portrait orientation, all the
     process is driven by the target width of the final image---ideally we want an
-    a rastered image with the same number of pixels as the physical QPixmap object
+    a rasterized image with the same number of pixels as the physical QPixmap object
     on the screen, so that we don't have to perform any resizing at runtime.
 
     In order to maximize the quality of the final image, we offer the possibility
@@ -207,13 +209,13 @@ def rasterize(
     resampling algorithms available in PIL. An intermediate rasterization at twice
     the target width, e.g., is typically very effective.
 
-    Additionally, the function provides an option to automatically crop the rastered
+    Additionally, the function provides an option to automatically crop the rasterized
     image to its content (horizontally), which allows for maximizing the screen use.
 
     Arguments
     ---------
     input_dir : PathLike
-        The path to the input folder containing the pdf files to be rastered.
+        The path to the input folder containing the pdf files to be rasterized.
 
     output_dir : PathLike
         The path to the output folder.
@@ -288,15 +290,31 @@ class FacecropDefaults:
     """
 
     input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
+    targets: List[int] = None
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
     size: int = 500
+    circular_mask: bool = False
+    detect_scale_factor: float = 1.1
+    detect_min_neighbors: int = 2
+    detect_min_size: float = 0.15
+    enlarge_horizontal_padding: float = 0.5
+    enlarge_top_scale_factor: float = 1.25
+    interactive: bool = False
     overwrite: bool = False
 
 
 def facecrop(
         input_dir: PathLike = FacecropDefaults.input_dir,
+        targets: List[int] = FacecropDefaults.targets,
         output_dir: PathLike = FacecropDefaults.output_dir,
         size: int = FacecropDefaults.size,
+        circular_mask: bool = FacecropDefaults.circular_mask,
+        detect_scale_factor: float = FacecropDefaults.detect_scale_factor,
+        detect_min_neighbors: int = FacecropDefaults.detect_min_neighbors,
+        detect_min_size: float = FacecropDefaults.detect_min_size,
+        enlarge_horizontal_padding: float = FacecropDefaults.enlarge_horizontal_padding,
+        enlarge_top_scale_factor: float = FacecropDefaults.enlarge_top_scale_factor,
+        interactive: bool = FacecropDefaults.interactive,
         overwrite: bool = FacecropDefaults.overwrite
         ) -> int:
     """Crop the headshots provided by the poster presenters to square images centered
@@ -313,6 +331,29 @@ def facecrop(
     size : int
         The size of the output cropped headshot images, in pixels.
 
+    circular_mask : bool
+        Whether to apply a circular mask to the output cropped headshot images.
+
+    detect_scale_factor : float
+        The scale factor to be used for the face detection step.
+
+    detect_min_neighbors : int
+        The min_neighbors parameter to be used for the face detection step.
+
+    detect_min_size : float
+        The minimum size for the detected faces, as a fraction of the original image size.
+
+    enlarge_horizontal_padding : float
+        The horizontal padding to be added to the detected face bounding box, as a fraction
+        of the bounding box width.
+
+    enlarge_top_scale_factor : float
+        The scale factor to be applied to the top side of the detected face bounding box.
+
+    interactive : bool
+        Whether to display the detected face bounding box and the final enlarged bounding box
+        on the original image, for debugging purposes.
+
     overwrite : bool
         Whether to overwrite the output files if they already exist (default False).
 
@@ -324,13 +365,19 @@ def facecrop(
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
     num_cropped = 0
-    logger.info(f"Cropping face images...")
-    for input_file_path in sorted(input_dir.iterdir()):
+    # Cache all the arguments and keyword arguments for the function call
+    # inside the loop.
+    detect_kwargs = dict(scale_factor=detect_scale_factor,
+                         min_neighbors=detect_min_neighbors,
+                         min_size=detect_min_size)
+    enlarge_kwargs = dict(horizontal_padding=enlarge_horizontal_padding,
+                           top_scale_factor=enlarge_top_scale_factor)
+    args = size, circular_mask, detect_kwargs, enlarge_kwargs, interactive, overwrite
+    file_list = filter_dir(input_dir, targets)
+    logger.info(f"Cropping faces for {len(file_list)} target files...")
+    for input_file_path in file_list:
         output_file_path = output_dir / input_file_path.with_suffix(".png").name
-        if output_file_path.exists() and not overwrite:
-            logger.debug(f"Output file {output_file_path} exists, skipping...")
-            continue
-        img.crop_to_face(input_file_path, output_file_path, size, overwrite=overwrite)
-        num_cropped += 1
+        if face.crop_face(input_file_path, output_file_path, *args) is not None:
+            num_cropped += 1
     logger.info(f"Done, {num_cropped} face images cropped.")
     return num_cropped

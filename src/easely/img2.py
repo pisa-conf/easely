@@ -21,10 +21,9 @@ from __future__ import annotations
 
 import dataclasses
 import numbers
-import pathlib
 import random
+from typing import Tuple
 
-import cv2
 from loguru import logger
 import numpy as np
 import PIL.Image
@@ -32,10 +31,6 @@ import PIL.ImageDraw
 import PIL.ImageOps
 
 from .typing_ import PathLike
-
-
-_DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) /\
-    'haarcascade_frontalface_default.xml'
 
 
 @dataclasses.dataclass
@@ -50,16 +45,16 @@ class Rectangle:
 
     Parameters
     ----------
-    x0
+    x0 : int
         The x coordinate of the upper-left corner of the rectangle.
 
-    y0
+    y0 : int
         The y coordinate of the upper-left corner of the rectangle.
 
-    width
+    width : int
         The width of the rectangle.
 
-    height
+    height : int
         The height of the rectangle; if None, this is set to be equal to the width
         (i.e., by default the rectangle is a square).
     """
@@ -77,7 +72,7 @@ class Rectangle:
         if self.height is None:
             self.height = self.width
         # Also, make sure all the members are integers, as we are dealing with
-        # pixels in rastered images. Note that we are using numbers.Integral, as
+        # pixels in rasterized images. Note that we are using numbers.Integral, as
         # opposed to the native Python int, as we want to be able to catch the
         # numpy integral types as well.
         for item in (self.x0, self.y0, self.width, self.height):
@@ -101,10 +96,10 @@ class Rectangle:
 
         Parameters
         ----------
-        width
+        width : int
             The target width.
 
-        height
+        height : int
             The target height.
 
         Returns
@@ -140,7 +135,7 @@ class Rectangle:
         """
         return self.width * self.height
 
-    def bounding_box(self) -> tuple[int, int, int, int]:
+    def bounding_box(self) -> Tuple[int, int, int, int]:
         """Return the bounding box corresponding to the ractangle, in the form
         of the four-element tuple (xmin, ymin, xmax, ymax).
 
@@ -158,10 +153,10 @@ class Rectangle:
 
         Parameters
         ----------
-        values
+        values : float
             The values to be averaged.
 
-        scale
+        scale : float
             Optional multiplicative scale factor, to be applied before the geometric
             average is computed.
 
@@ -199,16 +194,16 @@ class Rectangle:
 
         Parameters
         ----------
-        top
+        top : int
             The top padding in pixels.
 
-        right
+        right : int
             The right padding in pixels.
 
-        bottom
+        bottom : int
             The bottom padding in pixels.
 
-        left
+        left : int
             The left padding in pixels.
 
         Returns
@@ -230,10 +225,10 @@ class Rectangle:
 
         Parameters
         ----------
-        width
+        width : int
             The width of the target area.
 
-        height
+        height : int
             The height of the target area.
 
         Returns
@@ -253,10 +248,10 @@ class Rectangle:
 
         Parameters
         ----------
-        width
+        width : int
             The width of the target area.
 
-        height
+        height : int
             The height of the target area.
 
         Returns
@@ -267,80 +262,8 @@ class Rectangle:
         if not self.fits_within(width, height):
             raise RuntimeError(f'{self} does not fit into {width} x {height}')
         rectangle = self.copy()
-        rectangle.x0 = np.clip(rectangle.x0, 0, width - rectangle.width)
-        rectangle.y0 = np.clip(rectangle.y0, 0, height - rectangle.height)
-        return rectangle
-
-    def setup_for_face_cropping(self, image_width: int, image_height: int,
-        horizontal_padding: float = 0.5, top_scale_factor: float = 1.25) -> Rectangle:
-        """Massage a given rectangle to make it suitable for cropping a face
-        out of an image.
-
-        This is used to transform the candidate rectangle containing the face returned
-        by opencv into a proper bounding box to be cropped off the original image,
-        which in general we would like to be significantly larger than the face-detection
-        output. The process takes place in two steps: first we pad the original rectangle
-        based on the input parameters, and then we make the necessary modifications,
-        if any, to make the final rectangle fit within the original image. The rule
-        of thumb is that if the overall dimensions of the rectangle fit in the original
-        image, we keep the width and the height of the rectangle and apply the smallest
-        possible shift to the origin so that the cropping area does not extend outside
-        the image. When the padded rectangle is too big for the original image, instead,
-        we resort to the largest square that can be embedded in the image itself,
-        and is approximately centered on the initial rectangle. (The comments in
-        code might provide the user a firmer grasp on what is actually happening
-        behind the scenes.)
-
-        Parameters
-        ----------
-        image_width
-            The with of the original image.
-
-        image_height
-            The height of the original image.
-
-        horizontal_padding
-            The horizontal padding, on either side, in units of the equivalent ]
-            square side of the rectangle.
-
-        top_scale_factor
-            The ratio between the pad on the top and that on the right/left.
-
-        Returns
-        -------
-        Rectangle
-            A new Rectangle object, ready for cropping.
-        """
-        # We assume that the rectangle out of opencv is square.
-        if not self.is_square:
-            raise RuntimeError(f'Face candidate {self} is not square')
-        # First of all, pad the rectangle on the four sides as intended.
-        logger.info('Running rectangle-padding step to identify crop area...')
-        # Remember that the horizontal padding is referred to the size of the
-        # rectangle returned by the face-detection stage...
-        right = round(horizontal_padding * self.width)
-        # ... the top padding is determined by the corresponding scale factor...
-        top = round(top_scale_factor * right)
-        # ... and we put on the bottom whatever is left.
-        bottom = 2 * right - top
-        rectangle = self.pad(top, right, bottom)
-        # If the padded rectangle is fitting into the original image, then all we
-        # have to do is to make sure that the origin is such that the rectangle
-        # itself is actully fully contained in the image---and apply a simple shift
-        # if that is not the case.
-        if rectangle.fits_within(image_width, image_height):
-            return rectangle.shift_to_fit(image_width, image_height)
-        # And here comes all the fun, as we do have to do our best to get a good
-        # face crop when the embedding image is not as large as we would have wanted.
-        # After some trial and error I think the best we can do, here, is to
-        # pick the largest square fitting into the original image and centered
-        # on the rectangle returned by opencv.
-        logger.info(f'Padded rectangle too large for the {image_width} x {image_height} image...')
-        rectangle.width = rectangle.height = min(image_width, image_height)
-        rectangle.x0 = self.x0 - (rectangle.width - self.width) // 2
-        rectangle.y0 = self.y0 - (rectangle.height - self.height) // 2
-        rectangle = rectangle.shift_to_fit(image_width, image_height)
-        logger.debug(f'Cropping area refined to {rectangle}.')
+        rectangle.x0 = int(np.clip(rectangle.x0, 0, width - rectangle.width))
+        rectangle.y0 = int(np.clip(rectangle.y0, 0, height - rectangle.height))
         return rectangle
 
     def __eq__(self, other) -> bool:
@@ -355,91 +278,6 @@ class Rectangle:
         """
         return self.area() < other.area()
 
-
-
-def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.1,
-    min_neighbors: int = 2, min_size: float = 0.15) -> list[Rectangle]:
-    """Minimal wrapper around the standard opencv face recognition, see, e.g,
-    https://www.datacamp.com/tutorial/face-detection-python-opencv
-
-    Internally this is creating a ``cv2.CascadeClassifier`` object based on a suitable
-    model file for face recognition, and running a ``detectMultiScale`` call with
-    the proper parameters. The output rectangles containing the candidate faces,
-    which are returned by opencv as simple (x, y, width, height) tuples, are
-    converted into :class:`Rectangle` objects, and the list of rectangle is sorted
-    according to the corresponding area from the smallest to the largest to help
-    with the selection process downstream.
-
-    Note that this is producing squares (since apparently this is the way the default
-    model we are using was trained) that are only big enough to cover the visible
-    part of the face, and if you use this to crop a large image to the person face
-    it is very likely that you will want to add some padding on the four sides,
-    and especially on the top, which empirically seems to be the most overlooked
-    part of the face.
-
-    The ``min_neighbors`` parameter has an important effect on the results and
-    should be set on a case-by-case basis. The cascade classifier applies a sliding
-    window through the image, and initially it will capture a large number of false
-    positives. This parameter specifies the number of neighboring rectangles that
-    need to be identified for an object to be considered a valid detection: a value
-    of 0 is idiotic, and it will likely return an enourmous number of (possibly
-    overlapping) rectangles. Small values will yield comparatively more false positives.
-    I would say 2 is the absolute minimum one migh consider using, and something
-    around 5 is more germane to what is commonly found in tutorials online.
-
-    Parameters
-    ----------
-    file_path
-        The path to input image file.
-
-    scale_factor
-        Parameter specifying how much the image size is reduced at each image scale
-        (passed along verbatim as ``scaleFactor`` to the ``detectMultiScale`` call).
-
-    min_neighbors
-        Parameter specifying how many neighbors each candidate rectangle should
-        have to retain it (passed along verbatim as ``minNeighbors`` to the
-        ``detectMultiScale`` call).
-
-    min_size
-        Minimum possible fractional object size. Objects smaller than that are ignored.
-        This is converted internally to an actual size in pixels, corresponding
-        to a square whose side is the geometric mean of the original width and height,
-        multiplied by the parameter value.
-
-    Returns
-    -------
-    list[Rectangle]
-        The list of :class:`Rectangle` objects containing the face candidates.
-    """
-    if not pathlib.Path.is_file(pathlib.Path(file_path)):
-        raise RuntimeError(f'{file_path} does not exist or is not a regular file')
-    # pylint: disable=no-member
-    # Create a CascadeClassifier object with the proper model file (and the file
-    # path must be a string, not a Path, here).
-    classifier = cv2.CascadeClassifier(f'{_DEFAULT_FACE_DETECTION_MODEL_PATH}')
-    settings = dict(scale_factor=scale_factor, min_neighbors=min_neighbors, min_size=min_size)
-    logger.info(f'Running face detection on {file_path} with {settings}...')
-    image = cv2.imread(f'{file_path}')
-    if image is None:
-        raise RuntimeError(f'Could not read image file {file_path}')
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # Calculate the minimum size of the output rectangle as that of a square whose
-    # side is the geometric mean of the original width and height, multiplied by
-    # the min_size input parameter.
-    side = Rectangle.rounded_geometric_mean(*image.shape, scale=min_size)
-    min_size = (side, side)
-    logger.debug(f'Minimum rectangle size set to {min_size}.')
-    # Run the actual face-detection code.
-    candidates = classifier.detectMultiScale(image, scaleFactor=scale_factor,
-        minNeighbors=min_neighbors, minSize=min_size)
-    # Convert the output to a list of Rectangle objects, and sort by area.
-    logger.info(f'Done, {len(candidates)} candidate face(s) found.')
-    candidates = [Rectangle(*candidate) for candidate in candidates]
-    candidates.sort()
-    for i, candidate in enumerate(candidates):
-        logger.debug(f'Candidate {i + 1}: {candidate}')
-    return candidates
 
 
 def open_image(file_path: PathLike) -> PIL.Image.Image:
@@ -459,7 +297,7 @@ def open_image(file_path: PathLike) -> PIL.Image.Image:
     """
     logger.info(f'Loading image data from {file_path}...')
     with PIL.Image.open(file_path) as image:
-        #image.load()
+        image = image.copy()
         PIL.ImageOps.exif_transpose(image, in_place=True)
     width, height = image.size
     logger.debug(f'Image size: {width} x {height}.')
@@ -476,10 +314,10 @@ def save_image(image: PIL.Image.Image, file_path: PathLike, **kwargs) -> None:
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The image to be saved.
 
-    file_path
+    file_path : PathLike
         The path to the output file.
 
     kwargs
@@ -490,7 +328,7 @@ def save_image(image: PIL.Image.Image, file_path: PathLike, **kwargs) -> None:
 
 
 def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
-    resample=PIL.Image.Resampling.LANCZOS, box: tuple[float, float, float, float] = None,
+    resample=PIL.Image.Resampling.LANCZOS, box: Tuple[float, float, float, float] = None,
     reducing_gap: float = None) -> PIL.Image.Image:
     """Resize an existing image.
 
@@ -503,14 +341,14 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The original image.
 
-    width
+    width : int
         The target image width (if not provided it is determined by the target
         height preserving the aspect ratio).
 
-    height
+    height : int
         The target image height (if not provided it is determined by the target
         width preserving the aspect ratio).
 
@@ -519,12 +357,12 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
         Resampling.BOX, Resampling.BILINEAR, Resampling.HAMMING, Resampling.BICUBIC
         or Resampling.LANCZOS.
 
-    box
+    box : tuple[float, float, float, float]
         An optional 4-tuple of floats providing the source image region to be scaled.
         The values must be within (0, 0, width, height) rectangle. If omitted or
         None, the entire source is used.
 
-    reducing_gap
+    reducing_gap : float
         Apply optimization by resizing the image in two steps. First, reducing the
         image by integer times using `reduce()``. Second, resizing using regular resampling.
         The last step changes size no less than by `reducing_gap times`. `reducing_gap`
@@ -563,10 +401,10 @@ def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The original image
 
-    rectangle
+    rectangle : Rectangle
         The rectangle delimiting the cropping area
 
     Returns
@@ -598,7 +436,7 @@ def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
 
     Parameters
     ----------
-    image
+    image : PIL.Image.Image
         The input image.
 
     Returns
@@ -622,7 +460,7 @@ class Tiling:
 
     num_cols: int
     num_rows: int
-    image_size: tuple[int, int]
+    image_size: Tuple[int, int]
     tiling_dict: dict = None
 
     def __post_init__(self) -> None:
@@ -639,19 +477,19 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
 
     Parameters
     ----------
-    num_images
+    num_images : int
         The number of input images to be tiles.
 
-    tile_width
+    tile_width : int
         The width of the single tile.
 
-    tile_height
+    tile_height : int
         The height of the single tile.
 
-    tile_padding
+    tile_padding : int
         The padding between adjacent tiles, in both the horizontal and vertical directions.
 
-    aspect_ratio
+    aspect_ratio : float
         The approximate aspect ratio of the final, tiled image.
 
     Returns

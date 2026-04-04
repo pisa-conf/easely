@@ -186,12 +186,36 @@ class CliArgumentParser(argparse.ArgumentParser):
         facecrop.add_argument("--input-dir", type=str,
             default=tasks.FacecropDefaults.input_dir,
             help="the input folder containing the headshot images")
+        facecrop.add_argument("--targets", nargs="+", type=int,
+            default=tasks.FacecropDefaults.targets,
+            help="the list of target ids to be processed")
         facecrop.add_argument("--output-dir", type=str,
             default=tasks.FacecropDefaults.output_dir,
             help="the output folder for the cropped images")
         facecrop.add_argument("--size", type=int,
             default=tasks.FacecropDefaults.size,
             help="the size of the cropped images, in pixels")
+        facecrop.add_argument("--circular-mask", action="store_true",
+            default=tasks.FacecropDefaults.circular_mask,
+            help="apply a circular mask to the cropped images")
+        facecrop.add_argument("--detect-scale-factor", type=float,
+            default=tasks.FacecropDefaults.detect_scale_factor,
+            help="the scale factor for the face detection step")
+        facecrop.add_argument("--detect-min-neighbors", type=int,
+            default=tasks.FacecropDefaults.detect_min_neighbors,
+            help="the min neighbors for the face detection step")
+        facecrop.add_argument("--detect-min-size", type=float,
+            default=tasks.FacecropDefaults.detect_min_size,
+            help="the min size for the face detection step, as a fraction of the input image size")
+        facecrop.add_argument("--enlarge-horizontal-padding", type=float,
+            default=tasks.FacecropDefaults.enlarge_horizontal_padding,
+            help="the horizontal padding to be added to the detected face")
+        facecrop.add_argument("--enlarge-top-scale-factor", type=float,
+            default=tasks.FacecropDefaults.enlarge_top_scale_factor,
+            help="the scale factor for the top padding to be added to the detected face")
+        facecrop.add_argument("--interactive", action="store_true",
+            default=tasks.FacecropDefaults.interactive,
+            help="run the face cropping in interactive mode")
         facecrop.add_argument("--overwrite", action="store_true",
             help="overwrite existing output files")
         self.add_logging_level(facecrop)
