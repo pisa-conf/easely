@@ -135,14 +135,15 @@ def run_cascade(file_path: PathLike, scale_factor: float = 1.1,
     # Run the actual face-detection code.
     boxes = model.detectMultiScale(image, scaleFactor=scale_factor,
         minNeighbors=min_neighbors, minSize=(side, side))
-    # Convert the output to a list of Rectangle objects, and sort by area.
+    # Convert the output to a list of Rectangle objects, and sort by area, from the
+    # largest to the smallest.
     rectangles = [Rectangle(*[int(value) for value in box]) for box in boxes]
-    rectangles.sort()
+    rectangles.sort(reverse=True)
     return rectangles
 
 
-def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
-    nms_threshold: float = 0.3, top_k: int = 5000) -> List[Rectangle]:
+def run_yunet(file_path: PathLike, score_threshold: float = 0.7, nms_threshold: float = 0.3,
+    top_k: int = 5000) -> List[Rectangle]:
     """Run the YuNet face detection model.
 
     Arguments
@@ -187,8 +188,7 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
     return rectangles
 
 
-def run_face_detection(file_path: PathLike, model: FaceDetection = FaceDetection.CASCADE,
-    **kwargs) -> List[Rectangle]:
+def run_face_detection(file_path: PathLike, model: FaceDetection, **kwargs) -> List[Rectangle]:
     """Run the face detection on the input image, with the specified model and parameters.
 
     Arguments
@@ -261,9 +261,7 @@ def enlarge_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     Rectangle
         A new Rectangle object, ready for cropping.
     """
-    # We assume that the rectangle out of opencv is square.
-    if not rectangle.is_square():
-        raise RuntimeError(f"Input rectangle {rectangle} is not square")
+    rectangle = rectangle.isoarea_square()
     # First of all, pad the rectangle on the four sides as intended.
     logger.debug("Running rectangle-padding step to identify crop area...")
     # Remember that the horizontal padding is referred to the size of the
@@ -355,9 +353,9 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
         candidates.append(Rectangle.square_from_size(*image.size))
     # In case there are multiple candidates, we pick the largest one.
     if num_candidates > 1:
-        logger.warning(f"Multiple face candidates found in {file_path}, picking largest...")
+        logger.warning(f"Multiple face candidates found in {file_path}, picking first...")
     # Go on with the best face candidate.
-    original_rectangle = candidates[-1]
+    original_rectangle = candidates[0]
     final_rectangle = enlarge_rectangle(original_rectangle, *image.size, **enlarge_kwargs)
     if interactive:
         # For debugging purposes, we offer some insight into the face-detection process.
@@ -365,7 +363,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
         # Draw the best candidate rectangle from opencv in white...
         draw.rectangle(original_rectangle.bounding_box(), outline="white", width=2)
         # ...all the other candidate rectangles (if any) in blue...
-        for rectangle in candidates[:-1]:
+        for rectangle in candidates[1:]:
             draw.rectangle(rectangle.bounding_box(), outline="blue", width=2)
         # ... and the final, optimized rectangle in red.
         draw.rectangle(final_rectangle.bounding_box(), outline="red", width=2)

@@ -135,6 +135,28 @@ class Rectangle:
         """
         return self.width * self.height
 
+    def isoarea_square(self) -> Rectangle:
+        """Return the square with (approximately) the same area  and the same
+        center as the original rectangle.
+
+        Returns
+        -------
+        Rectangle
+            A square with the same area as the rectangle.
+        """
+        # If the rectangle is already a square, we can just return a copy
+        if self.is_square():
+            return self.copy()
+        # Calculate the (floating point) coordinates of the center of the rectangle.
+        xc = self.x0 + self.width / 2
+        yc = self.y0 + self.height / 2
+        # Calculate the side of the equivalent square.
+        side = int(np.ceil(np.sqrt(self.area())))
+        # Calculate the coordinates of the relevant corner.
+        x0 = int(xc - side / 2)
+        y0 = int(yc - side / 2)
+        return Rectangle(x0, y0, side, side)
+
     def bounding_box(self) -> Tuple[int, int, int, int]:
         """Return the bounding box corresponding to the ractangle, in the form
         of the four-element tuple (xmin, ymin, xmax, ymax).

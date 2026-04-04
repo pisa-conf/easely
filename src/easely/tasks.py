@@ -295,9 +295,6 @@ class FacecropDefaults:
     size: int = 500
     circular_mask: bool = False
     model = face.FaceDetection.CASCADE
-    #detect_scale_factor: float = 1.1
-    #detect_min_neighbors: int = 2
-    #detect_min_size: float = 0.15
     enlarge_horizontal_padding: float = 0.5
     enlarge_top_scale_factor: float = 1.25
     interactive: bool = False
@@ -311,9 +308,6 @@ def facecrop(
         size: int = FacecropDefaults.size,
         circular_mask: bool = FacecropDefaults.circular_mask,
         model: face.FaceDetection = FacecropDefaults.model,
-        #detect_scale_factor: float = FacecropDefaults.detect_scale_factor,
-        #detect_min_neighbors: int = FacecropDefaults.detect_min_neighbors,
-        #detect_min_size: float = FacecropDefaults.detect_min_size,
         enlarge_horizontal_padding: float = FacecropDefaults.enlarge_horizontal_padding,
         enlarge_top_scale_factor: float = FacecropDefaults.enlarge_top_scale_factor,
         interactive: bool = FacecropDefaults.interactive,
@@ -361,11 +355,7 @@ def facecrop(
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
     num_cropped = 0
-    # Cache all the arguments and keyword arguments for the function call
-    # inside the loop.
-    # detect_kwargs = dict(scale_factor=detect_scale_factor,
-    #                      min_neighbors=detect_min_neighbors,
-    #                      min_size=detect_min_size)
+    # Cache all the arguments and keyword arguments for the function call inside the loop.
     detect_kwargs = {}
     enlarge_kwargs = dict(horizontal_padding=enlarge_horizontal_padding,
                            top_scale_factor=enlarge_top_scale_factor)
