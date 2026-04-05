@@ -322,7 +322,7 @@ def run_face_detection(file_path: PathLike, model: FaceDetection,
         The minimum area of the detected face bounding box as a fraction of the original
         image area. Objects smaller than that are ignored.
 
-    **kwargs
+    kwargs
         Optional keyword arguments to be passed to the actual face-detection function,
         depending on the model. See the documentation of the specific functions for
         details on what parameters are accepted.

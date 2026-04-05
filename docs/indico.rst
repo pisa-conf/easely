@@ -1,7 +1,8 @@
 .. _indico:
 
-indico
-======
+:mod:`~easely.indico` --- Indico interface
+==========================================
+
 
 This module provides a simple interface to the Indico REST API, which allows you to
 retrieve the data of an event, including its sessions and contributions.
