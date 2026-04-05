@@ -237,9 +237,24 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
     nms_threshold: float = 0.3, top_k: int = 5000) -> List[Box]:
     """Run the YuNet face detection model.
 
-    The YuNet outout is of the form ``[x, y, w, h, l0x, l0y, ..., l4x, l4y, score]``
-    and we are basically interested in the first four values for the bounding box,
+    The YuNet outout is of the form of a numpy array where each candidate face is
+    represented by a 15-element vector
+
+    * 0-1: x, y of bbox top left corner
+    * 2-3: width, height of bbox
+    * 4-5: x, y of right eye (blue point in the example image)
+    * 6-7: x, y of left eye (red point in the example image)
+    * 8-9: x, y of nose tip (green point in the example image)
+    * 10-11: x, y of right corner of mouth (pink point in the example image)
+    * 12-13: x, y of left corner of mouth (yellow point in the example image)
+    * 14: face score
+
+    We are basically interested in the first four values for the bounding box,
     and the last one for the confidence score.
+
+    See https://docs.opencv.org/4.x/df/d20/classcv_1_1FaceDetectorYN.html for more
+    information. You can retrieve the model file from
+    https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet
 
     Arguments
     ---------
