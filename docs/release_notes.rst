@@ -3,6 +3,14 @@
 Release notes
 =============
 
+* Face-detection code refactored and cleaned up.
+* New YuNet model added.
+* Documentation updated.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/18
+  - https://github.com/pisa-conf/easely/issues/16
+
 
 Version 0.3.0 (2026-04-04)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

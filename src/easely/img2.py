@@ -55,23 +55,18 @@ class Rectangle:
         The width of the rectangle.
 
     height : int
-        The height of the rectangle; if None, this is set to be equal to the width
-        (i.e., by default the rectangle is a square).
+        The height of the rectangle.
     """
 
-    # pylint: disable=invalid-name
     x0: int
     y0: int
     width: int
-    height: int = None
+    height: int
 
     def __post_init__(self) -> None:
         """Post initialization code.
         """
-        # By deafult, generate a square.
-        if self.height is None:
-            self.height = self.width
-        # Also, make sure all the members are integers, as we are dealing with
+        # Make sure all the members are integers, as we are dealing with
         # pixels in rasterized images. Note that we are using numbers.Integral, as
         # opposed to the native Python int, as we want to be able to catch the
         # numpy integral types as well.
@@ -135,8 +130,30 @@ class Rectangle:
         """
         return self.width * self.height
 
+    def isoarea_square(self) -> Rectangle:
+        """Return the square with (approximately) the same area  and the same
+        center as the original rectangle.
+
+        Returns
+        -------
+        Rectangle
+            A square with the same area as the rectangle.
+        """
+        # If the rectangle is already a square, we can just return a copy
+        if self.is_square():
+            return self.copy()
+        # Calculate the (floating point) coordinates of the center of the rectangle.
+        xc = self.x0 + self.width / 2
+        yc = self.y0 + self.height / 2
+        # Calculate the side of the equivalent square.
+        side = int(np.ceil(np.sqrt(self.area())))
+        # Calculate the coordinates of the relevant corner.
+        x0 = int(xc - side / 2)
+        y0 = int(yc - side / 2)
+        return Rectangle(x0, y0, side, side)
+
     def bounding_box(self) -> Tuple[int, int, int, int]:
-        """Return the bounding box corresponding to the ractangle, in the form
+        """Return the bounding box corresponding to the rectangle, in the form
         of the four-element tuple (xmin, ymin, xmax, ymax).
 
         Returns
@@ -144,44 +161,7 @@ class Rectangle:
         tuple[int, int, int, int]
             The four-element tuple corresponding to the rectangle bounding box.
         """
-        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.width)
-
-    @staticmethod
-    def rounded_geometric_mean(*values: float, scale: float = None) -> int:
-        """Return the geometric mean of the input parameters, rounded to the
-        nearest integer.
-
-        Parameters
-        ----------
-        values : float
-            The values to be averaged.
-
-        scale : float
-            Optional multiplicative scale factor, to be applied before the geometric
-            average is computed.
-
-        Returns
-        -------
-        int
-            The (rounded) geometric mean of the input data.
-        """
-        if scale is not None:
-            values = [value * scale for value in values]
-        return round(np.prod(values)**(1. / len(values)))
-
-    def equivalent_square_side(self) -> int:
-        """Return the side of the equivalent square, rounded to the nearest integer
-        (which is basically the geometric mean of the rectangle width and height).
-
-        Whenever the `fractional` word is used in the context of a rectangle, this
-        is the scale constituting the multiplier for the operation at hand.
-
-        Returns
-        -------
-        int
-            The (rounded) side of the square with the same area as the rectangle.
-        """
-        return self.rounded_geometric_mean(self.width, self.height)
+        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
 
     def pad(self, top: int, right: int = None, bottom: int = None, left: int = None) -> Rectangle:
         """Create a new rectangle padding the original one according to the input
@@ -295,7 +275,7 @@ def open_image(file_path: PathLike) -> PIL.Image.Image:
     PIL.Image.Image
         The actual image object.
     """
-    logger.info(f'Loading image data from {file_path}...')
+    logger.debug(f'Loading image data from {file_path}...')
     with PIL.Image.open(file_path) as image:
         image = image.copy()
         PIL.ImageOps.exif_transpose(image, in_place=True)
