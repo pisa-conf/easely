@@ -385,38 +385,36 @@ def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     Rectangle
         A new Rectangle object, ready for cropping.
     """
-    # Cache the original width and height of the rectangle, as we will need them later on.
-    width, height = rectangle.width, rectangle.height
     # Promote the rectangle to a square with approximately the same area.
-    rectangle = rectangle.isoarea_square()
-    # First of all, pad the rectangle on the four sides as intended.
-    logger.debug("Running rectangle-padding step to identify crop area...")
+    square = rectangle.isoarea_square()
+    # First of all, pad the square on the four sides as intended.
     # Remember that the horizontal padding is referred to the size of the
     # rectangle returned by the face-detection stage...
     right = round(horizontal_padding * rectangle.width)
     # ... the top padding is determined by the corresponding scale factor...
     top = round(top_scale_factor * right)
-    # ... and we put on the bottom whatever is left.
+    # ... and we put on the bottom whatever is left---note that by definition the
+    # result is a square.
     bottom = 2 * right - top
-    rectangle = rectangle.pad(top, right, bottom)
-    # If the padded rectangle is fitting into the original image, then all we
-    # have to do is to make sure that the origin is such that the rectangle
+    square = square.pad(top, right, bottom, right)
+    # If the padded square is fitting into the original image, then all we
+    # have to do is to make sure that the origin is such that the square
     # itself is actually fully contained in the image---and apply a simple shift
     # if that is not the case.
-    if rectangle.fits_within(image_width, image_height):
-        return rectangle.shift_to_fit(image_width, image_height)
+    if square.fits_within(image_width, image_height):
+        return square.shift_to_fit(image_width, image_height)
     # And here comes all the fun, as we do have to do our best to get a good
     # face crop when the embedding image is not as large as we would have wanted.
     # After some trial and error I think the best we can do, here, is to
     # pick the largest square fitting into the original image and centered
     # on the rectangle returned by opencv.
-    logger.debug(f"Padded rectangle too large for the {image_width} x {image_height} image...")
-    rectangle.width = rectangle.height = min(image_width, image_height)
-    rectangle.x0 = rectangle.x0 - (rectangle.width - width) // 2
-    rectangle.y0 = rectangle.y0 - (rectangle.height - height) // 2
-    rectangle = rectangle.shift_to_fit(image_width, image_height)
-    logger.debug(f"Cropping area refined to {rectangle}.")
-    return rectangle
+    logger.debug(f"Padded square too large for the {image_width} x {image_height} image...")
+    square.width = square.height = min(image_width, image_height)
+    square.x0 = rectangle.x0 - (square.width - rectangle.width) // 2
+    square.y0 = rectangle.y0 - (square.height - rectangle.height) // 2
+    square = square.shift_to_fit(image_width, image_height)
+    logger.debug(f"Cropping area refined to {square}.")
+    return square
 
 
 def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
