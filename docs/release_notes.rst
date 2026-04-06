@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.4.0 (2026-04-06)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Face-detection code refactored and cleaned up.
 * New YuNet model added.
 * Documentation updated.
