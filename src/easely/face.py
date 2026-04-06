@@ -237,7 +237,7 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
     nms_threshold: float = 0.3, top_k: int = 5000) -> List[Box]:
     """Run the YuNet face detection model.
 
-    The YuNet outout is of the form of a numpy array where each candidate face is
+    The YuNet output is of the form of a numpy array where each candidate face is
     represented by a 15-element vector
 
     * 0-1: x, y of bbox top left corner
@@ -258,12 +258,8 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
 
     Arguments
     ---------
-    file_path : PathLike
+    file_path : PathLike0
         The path to input image file.
-
-    min_fractional_area : float
-        The minimum area of the detected face bounding box as a fraction of the original
-        image area. Objects smaller than that are ignored.
 
     score_threshold : float
         The confidence score threshold for the face detection (0--1). This simply
@@ -290,7 +286,7 @@ def run_yunet(file_path: PathLike, score_threshold: float = 0.7,
     """
     image = _read_image(file_path)
     height, width, _ = image.shape
-    model = cv2.FaceDetectorYN.create(_YUNET_FILE_PATH, "", (width, height),
+    model = cv2.FaceDetectorYN.create(f"{_YUNET_FILE_PATH}", "", (width, height),
                 score_threshold, nms_threshold, top_k)
     _, candidates = model.detect(image)
     # Note the face detection returns None if no face is found.
@@ -389,6 +385,9 @@ def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     Rectangle
         A new Rectangle object, ready for cropping.
     """
+    # Cache the original width and height of the rectangle, as we will need them later on.
+    width, height = rectangle.width, rectangle.height
+    # Promote the rectangle to a square with approximately the same area.
     rectangle = rectangle.isoarea_square()
     # First of all, pad the rectangle on the four sides as intended.
     logger.debug("Running rectangle-padding step to identify crop area...")
@@ -413,8 +412,8 @@ def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     # on the rectangle returned by opencv.
     logger.debug(f"Padded rectangle too large for the {image_width} x {image_height} image...")
     rectangle.width = rectangle.height = min(image_width, image_height)
-    rectangle.x0 = rectangle.x0 - (rectangle.width - rectangle.width) // 2
-    rectangle.y0 = rectangle.y0 - (rectangle.height - rectangle.height) // 2
+    rectangle.x0 = rectangle.x0 - (rectangle.width - width) // 2
+    rectangle.y0 = rectangle.y0 - (rectangle.height - height) // 2
     rectangle = rectangle.shift_to_fit(image_width, image_height)
     logger.debug(f"Cropping area refined to {rectangle}.")
     return rectangle
@@ -496,8 +495,13 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     if interactive:
         # For debugging purposes, we offer some insight into the face-detection process.
         draw = PIL.ImageDraw.Draw(image)
+        font_name = "DejaVuSans.ttf"
         font_size = 20
-        font = PIL.ImageFont.truetype("DejaVuSans.ttf", font_size)
+        try:
+            font = PIL.ImageFont.truetype(font_name, font_size)
+        except:
+            logger.warning(f"Could not load font {font_name}, using default...")
+            font = PIL.ImageFont.load_default()
         # Draw all the candidate rectangles (if any) in blue...
         for i, rectangle in enumerate(candidates):
             draw.rectangle(rectangle.bounding_box(), outline="blue", width=2)

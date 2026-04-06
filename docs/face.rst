@@ -13,7 +13,7 @@ file into the corresponding cropped headshot. Internally, the process happens in
 
 * first the actual face detection is performed, leveraging the facilities provided by
   the `opencv <https://opencv.org/>`_ library; note that the actual opencv call are
-  wrapped into the thin layer :func:`~easely.face.run_face_recognition`, which
+  wrapped into the thin layer :func:`~easely.face.run_face_detection`, which
   unifies the interface across different face-detection models and transforms the
   output into a list of :class:`~easely.face.Box` objects;
 * then the best candidate box is selected and post-processed into the final square
