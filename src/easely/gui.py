@@ -22,7 +22,6 @@ This module contains all the widgets that are relevant for the slideshow.
 import datetime
 import os
 import time
-from abc import ABC, abstractmethod
 from enum import Enum, IntEnum, auto
 
 
