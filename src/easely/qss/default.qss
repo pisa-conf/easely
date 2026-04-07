@@ -5,7 +5,11 @@ QWidget {
 QLabel {
   font-family: "Comfortaa";
   color: black;
-  font-size: 16px;
+  font-size: 24px;
+}
+
+QTreeWidget {
+  font-size: 28px;
 }
 
 QLabel#title {
