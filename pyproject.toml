@@ -70,6 +70,14 @@ easely = "easely.cli:main"
 [tool.hatch.version]
 path = "src/easely/_version.py"
 
+
+[tool.setuptools.package-data]
+mypkg = [
+  "data/*",
+  "graphics/*",
+  "qss/*",
+  ]
+
 # ruff configuration, see
 # https://docs.astral.sh/ruff/configuration/
 # for the ultimate reference.
