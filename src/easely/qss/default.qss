@@ -9,7 +9,15 @@ QLabel {
 }
 
 QTreeWidget {
-  font-size: 28px;
+  font-size: 24px;
+}
+
+QTreeWidget::item {
+    font-size: 24px;
+}
+
+QHeaderView::section {
+    font-size: 28px;
 }
 
 QLabel#title {
