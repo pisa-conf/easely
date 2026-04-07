@@ -311,16 +311,15 @@ class ScreenHeader(ScreenHeaderMinimal):
         self.qrcode_label.setFixedSize(portrait_height, portrait_height)
         self.qrcode_label.setAlignment(QtCore.Qt.AlignCenter)
         # ... the presenter name/affiliation QLabel...
-        self.presenter_label = QtWidgets.QLabel()
-        self.presenter_label.setWordWrap(True)
-        self.presenter_label.setAlignment(QtCore.Qt.AlignTop)
+        self.presenter_name_label = QtWidgets.QLabel()
+        self.presenter_name_label.setObjectName("presenter_name")
+        self.presenter_affiliation_label = QtWidgets.QLabel()
+        self.presenter_affiliation_label.setObjectName("presenter_affiliation")
         # ... the poster roster table...
         self.table = RosterTable(portrait_height)
         self._roster = None
         super().__init__(title, **kwargs)
         self.setFixedHeight(height)
-        if False:
-            self.show_debug_borders()
 
     def _setup_layout(self, bottom_margin: int = 10):
         """Overloaded method.
@@ -330,16 +329,10 @@ class ScreenHeader(ScreenHeaderMinimal):
         self.layout().addWidget(self.portrait_label, 2, 0)
         self.layout().addWidget(self.qrcode_label, 2, 1)
         self.layout().addWidget(self.table, 2, 2)
-        self.layout().addWidget(self.presenter_label, 3, 0, 1, 2)
-        self.layout().addWidget(self.status_label, 3, 2)
+        self.layout().addWidget(self.presenter_name_label, 4, 0)
+        self.layout().addWidget(self.presenter_affiliation_label, 5, 0)
+        self.layout().addWidget(self.status_label, 4, 2, 2, 1)
         self.layout().setRowMinimumHeight(self.layout().rowCount(), bottom_margin)
-
-    def show_debug_borders(self):
-        """Show the relevant widget borders to debug the geometry.
-        """
-        for item in (self.title_label, self.subtitle_label, self.portrait_label,
-            self.qrcode_label, self.presenter_label, self.table, self.status_label):
-            item.setStyleSheet('border: 1px solid black;')
 
     def set_roster(self, roster):
         """Set the poster roster for the table.
@@ -357,9 +350,8 @@ class ScreenHeader(ScreenHeaderMinimal):
         """Update the presenter name and affiliation.
         """
         presenter = poster.presenter
-        text = f'<font color="black" size="4">{presenter.full_name()}</font><br/>'\
-               f'<font color="gray" size="2">{presenter.affiliation}</font><br/>'
-        self.presenter_label.setText(text)
+        self.presenter_name_label.setText(presenter.full_name())
+        self.presenter_affiliation_label.setText(presenter.affiliation)
 
     def set_poster(self, poster):
         """Set the poster for the header.

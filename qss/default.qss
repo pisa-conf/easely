@@ -1,5 +1,5 @@
 QWidget {
-    /* border: 1px solid red; */
+    border: 1px solid red;
 }
 
 QLabel {
@@ -19,12 +19,12 @@ QLabel#subtitle {
   margin-left: 16px;
 }
 
-QLabel#name {
+QLabel#presenter_name {
   margin-top: 8px;
   margin-bottom: 0px;
 }
 
-QLabel#affiliation {
+QLabel#presenter_affiliation {
   color: gray;
   font-size: 12px;
 }
