@@ -36,6 +36,7 @@ QLabel#subtitle {
 QLabel#presenter_name {
   margin-top: 0px;
   margin-bottom: 0px;
+  min-width: 400px;
 }
 
 QLabel#presenter_affiliation {
@@ -47,6 +48,6 @@ QLabel#status_message {
   font-size: 12px;
 }
 
-QFrame#header {
-  background-color: blue;
+QTableWidget#roster_table {
+  min-height: 200px;
 }

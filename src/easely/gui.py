@@ -36,6 +36,24 @@ from .profile import psstatus
 from .program import Poster, PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
 
 
+class WidgetName(str, Enum):
+
+    """Enum for the names of the widgets in the GUI.
+
+    This is used to set the object name of the widgets, which is then used in
+    the qss stylesheet to set their style.
+    """
+
+    TITLE = "title"
+    SUBTITLE = "subtitle"
+    STATUS_MESSAGE = "status_message"
+    HEADSHOT = "headshot"
+    QR_CODE = "qr_code"
+    PRESENTER_NAME = "presenter_name"
+    PRESENTER_AFFILIATION = "presenter_affiliation"
+    ROSTER_TABLE = "roster_table"
+
+
 class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
 
     """Graphic effect for picture fade-in/out.
@@ -111,18 +129,13 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
         self._timer.timeout.connect(self._decrease_opacity)
 
 
-
-
-
-
-
 class RosterTable(QtWidgets.QTableWidget):
 
     """Custom QTableWidget to display a poster roster.
 
-    In addition to the basic functionality of the base class, this is designed
-    to highlight one row at a time (e.g., by setting a different color) in
-    order to visually indicate the poster being displayed at any given time.
+    In addition to the basic functionality of the base class, this is designed to
+    highlight one row at a time (e.g., by setting a different color) in order to visually
+    indicate the poster being displayed at any given time.
 
     Arguments
     ---------
@@ -134,23 +147,18 @@ class RosterTable(QtWidgets.QTableWidget):
         (i.e., not highlighted) color.
     """
 
-    def __init__(self, height: int, row_height: int = 26,
-        default_rgb: int = 175):
-        """Constructor,
+    def __init__(self, default_rgb: int = 175) -> None:
+        """Constructor.
         """
         super().__init__()
         self.setColumnCount(3)
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
-        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
-        self.verticalHeader().setMinimumSectionSize(row_height)
-        self.verticalHeader().setDefaultSectionSize(row_height)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setShowGrid(False)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.setStyleSheet("border: 0px")
         self.setEnabled(False)
-        self.setMaximumHeight(height)
+        self.setObjectName(WidgetName.ROSTER_TABLE)
         self._default_color = QtGui.QColor(default_rgb, default_rgb, default_rgb)
         self._highlight_color = QtGui.QColor(0, 0, 0)
         self._highlighted_row = None
@@ -221,12 +229,6 @@ class RosterTable(QtWidgets.QTableWidget):
         self._highlighted_row = row
 
 
-
-
-
-
-
-
 class ScreenHeaderBase(QtWidgets.QWidget):
 
     """Base class for the screen header.
@@ -243,16 +245,19 @@ class ScreenHeaderBase(QtWidgets.QWidget):
         """
         super().__init__(parent)
         self.setLayout(QtWidgets.QGridLayout())
-        self.title_label = QtWidgets.QLabel(self)
-        self.title_label.setObjectName("title")
-        self.set_title(title)
-        self.subtitle_label = QtWidgets.QLabel(self)
-        self.subtitle_label.setObjectName("subtitle")
-        self.set_subtitle(subtitle)
-        self.status_message_label = QtWidgets.QLabel(self)
-        self.status_message_label.setObjectName("status_message")
-        # Note that setting text alignment is not supported via qss.
+        self.title_label = self._create_label(WidgetName.TITLE, title)
+        self.subtitle_label = self._create_label(WidgetName.SUBTITLE, subtitle)
+        self.status_message_label = self._create_label(WidgetName.STATUS_MESSAGE)
         self.status_message_label.setAlignment(QtCore.Qt.AlignBottom)
+
+    def _create_label(self, object_name: WidgetName, text: str = None) -> QtWidgets.QLabel:
+        """Create a new label with the given object name, and return it.
+        """
+        label = QtWidgets.QLabel(self)
+        label.setObjectName(object_name)
+        if text is not None:
+            label.setText(text)
+        return label
 
     def set_title(self, text: str = None) -> None:
         """Set the title.
@@ -303,14 +308,10 @@ class ScreenHeader(ScreenHeaderBase):
         """Constructor.
         """
         super().__init__(None, title)
-        self.headshot_label = QtWidgets.QLabel()
-        #self.headshot_label.setFixedSize(portrait_height, portrait_height)
-        self.qrcode_label = QtWidgets.QLabel()
-        #self.qrcode_label.setFixedSize(portrait_height, portrait_height)
-        self.presenter_name_label = QtWidgets.QLabel()
-        self.presenter_name_label.setObjectName("presenter_name")
-        self.presenter_affiliation_label = QtWidgets.QLabel()
-        self.presenter_affiliation_label.setObjectName("presenter_affiliation")
+        self.headshot_label = self._create_label(WidgetName.HEADSHOT)
+        self.qrcode_label = self._create_label(WidgetName.QR_CODE)
+        self.presenter_name_label = self._create_label(WidgetName.PRESENTER_NAME)
+        self.presenter_affiliation_label = self._create_label(WidgetName.PRESENTER_AFFILIATION)
         self.table = RosterTable(portrait_height)
         self._roster = None
         self.layout().addWidget(self.title_label, 0, 0, 1, 3)
