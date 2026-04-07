@@ -351,7 +351,12 @@ class ScreenHeader(ScreenHeaderMinimal):
         """
         presenter = poster.presenter
         self.presenter_name_label.setText(presenter.full_name())
-        self.presenter_affiliation_label.setText(presenter.affiliation)
+        # In some cases the presenter affiliation may be missing, so we catch the
+        # TypeError exception and set the affiliation label to an empty string.
+        try:
+            self.presenter_affiliation_label.setText(presenter.affiliation)
+        except TypeError:
+            self.presenter_affiliation_label.setText("")
 
     def set_poster(self, poster):
         """Set the poster for the header.
