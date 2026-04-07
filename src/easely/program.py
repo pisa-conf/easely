@@ -20,9 +20,9 @@
 import datetime
 import importlib.resources
 import os
-import pathlib
 import random
 from collections import Counter
+from dataclasses import dataclass
 
 import pandas as pd
 
@@ -41,6 +41,7 @@ MISSING_POSTER_PATH = _GRAPHICS_FOLDER_PATH.joinpath('pisameet2024.png')
 MISSING_QRCODE_PATH = _GRAPHICS_FOLDER_PATH.joinpath('unknown_qrcode.png')
 
 
+@dataclass(frozen=True)
 class Presenter:
 
     """Presenter descriptor.
@@ -57,12 +58,9 @@ class Presenter:
         The presenter affiliation.
     """
 
-    def __init__(self, first_name: str, last_name: str, affiliation: str) -> None:
-        """Constructor
-        """
-        self.first_name = first_name
-        self.last_name = last_name
-        self.affiliation = affiliation
+    first_name: str
+    last_name: str
+    affiliation: str
 
     def full_name(self) -> str:
         """Return the presenter full name.
@@ -75,14 +73,13 @@ class Presenter:
         return f'{self.full_name()} ({self.affiliation})'
 
 
-
 class Poster:
 
     """Poster descriptor.
 
     Arguments
     ---------
-    friedly_id : int
+    friendly_id : int
         The human-readable identifier assigned to the poster by indico.
 
     db_id : int
