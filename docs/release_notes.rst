@@ -10,6 +10,11 @@ Release notes
 * Bug fix in the generation of the program excel file.
 * Obsolete ``scripts`` and ``templates`` directories removed.
 * Documentation updated.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/22
+  - https://github.com/pisa-conf/easely/issues/16
+
 
 
 Version 0.4.0 (2026-04-06)

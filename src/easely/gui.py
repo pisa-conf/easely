@@ -311,7 +311,7 @@ class ScreenHeader(ScreenHeaderBase):
         self.qrcode_label = self._create_label(WidgetName.QR_CODE)
         self.presenter_name_label = self._create_label(WidgetName.PRESENTER_NAME)
         self.presenter_affiliation_label = self._create_label(WidgetName.PRESENTER_AFFILIATION)
-        self.table = RosterTable(portrait_height)
+        self.table = RosterTable()
         self._roster = None
         self.layout().addWidget(self.title_label, 0, 0, 1, 3)
         self.layout().addWidget(self.subtitle_label, 1, 0, 1, 3)

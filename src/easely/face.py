@@ -35,8 +35,8 @@ from .typing_ import PathLike
 
 # Path to the folder containing all the opencv model files.
 _DATA_DIR = importlib.resources.files(__package_name__).joinpath('data')
-_CASCADE_FILE_PATH = _DATA_DIR / "haarcascade_frontalface_default.xml"
-_YUNET_FILE_PATH = _DATA_DIR / "face_detection_yunet_2023mar.onnx"
+_CASCADE_FILE_PATH = _DATA_DIR.joinpath("haarcascade_frontalface_default.xml")
+_YUNET_FILE_PATH = _DATA_DIR.joinpath("face_detection_yunet_2023mar.onnx")
 
 
 class FaceDetection(str, Enum):

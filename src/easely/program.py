@@ -29,15 +29,16 @@ import pandas as pd
 from . import __name__ as __package_name__
 from .__qt__ import QtCore, QtGui
 from .logging_ import logger
+from .paths import contribution_file_name
 
 DATE_FORMAT =  '%d/%m/%Y'
 DATE_PRETTY_FORMAT = '%A, %B %d, %Y'
 DATETIME_FORMAT =  f'{DATE_FORMAT} %H:%M'
 
 _GRAPHICS_FOLDER_PATH = importlib.resources.files(__package_name__).joinpath('graphics')
-MISSING_PICTURE_PATH = _GRAPHICS_FOLDER_PATH / 'unknown_female.png'
-MISSING_POSTER_PATH = _GRAPHICS_FOLDER_PATH / 'pisameet2024.png'
-MISSING_QRCODE_PATH = _GRAPHICS_FOLDER_PATH / 'unknown_qrcode.png'
+MISSING_PICTURE_PATH = _GRAPHICS_FOLDER_PATH.joinpath('unknown_female.png')
+MISSING_POSTER_PATH = _GRAPHICS_FOLDER_PATH.joinpath('pisameet2024.png')
+MISSING_QRCODE_PATH = _GRAPHICS_FOLDER_PATH.joinpath('unknown_qrcode.png')
 
 
 class Presenter:
@@ -331,10 +332,9 @@ class PosterCollectionBase:
         """Return the file name for any of the pixmaps for a given poster.
 
         The rule, here, is that all the pixmpas share the same file name
-        (e.g., 0003.png) and live in different folders.
+        (e.g., 0027.png) and live in different folders.
         """
-        # TODO: use the thing in paths!!!!
-        return f'{poster_id:04d}.png'
+        return contribution_file_name(poster_id, '.png')
 
     def _image_path_base(self, poster_id: int, folder_name: str, default: str):
         """Generic function to build the path to the actual pixmap file for a given poster.
