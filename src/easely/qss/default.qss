@@ -1,5 +1,5 @@
 QWidget {
-    border: 1px solid red;
+    border: 0px solid red;
 }
 
 QLabel {
@@ -49,5 +49,5 @@ QLabel#status_message {
 }
 
 QTableWidget#roster_table {
-  min-height: 200px;
+  min-height: 180px;
 }
