@@ -79,7 +79,7 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
         """
         opacity = self.opacity() - self._step
         if opacity <= 0.:
-            self._timer.disconnect()
+            self._timer.timeout.disconnect()
             self.setOpacity(0.)
         self.setOpacity(opacity)
 
@@ -92,7 +92,7 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
         """
         opacity = self.opacity() + self._step
         if opacity >= 1.:
-            self._timer.disconnect()
+            self._timer.timeout.disconnect()
             self.setOpacity(1.)
         self.setOpacity(opacity)
 
