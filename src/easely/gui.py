@@ -34,7 +34,6 @@ from .profile import psstatus
 from .program import Poster, PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
 
 
-
 class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
 
     """Graphic effect for picture fade-in/out.
@@ -232,8 +231,6 @@ class ScreenHeaderMinimal(QtWidgets.QWidget):
     def __init__(self, title: str, *args, **kwargs):
         """Constructor.
         """
-        title_font_size = kwargs.get('title_font_size', 20)
-        subtitle_font_size = kwargs.get('subtitle_font_size', 18)
         bottom_row_height = kwargs.get('bottom_row_height', 15)
         horizontal_spacing = kwargs.get('horizontal_spacing', 30)
         vertical_spacing = kwargs.get('vertical_spacing', 8)
@@ -245,15 +242,11 @@ class ScreenHeaderMinimal(QtWidgets.QWidget):
         self.layout().setContentsMargins(margin, margin, margin, margin)
         # Create all the necessary widgets: the title Qlabel...
         self.title_label = QtWidgets.QLabel()
-        font = self.title_label.font()
-        font.setPointSize(title_font_size)
-        self.title_label.setFont(font)
+        self.title_label.setObjectName("title")
         self.title_label.setText(title)
         # ... the subtitle QLabel...
         self.subtitle_label = QtWidgets.QLabel()
-        font = self.subtitle_label.font()
-        font.setPointSize(subtitle_font_size)
-        self.subtitle_label.setFont(font)
+        self.subtitle_label.setObjectName("subtitle")
         # ... and the status message label.
         self.status_label = QtWidgets.QLabel()
         self.status_label.setAlignment(QtCore.Qt.AlignTop)
@@ -266,6 +259,7 @@ class ScreenHeaderMinimal(QtWidgets.QWidget):
     def _setup_layout(self):
         """Setup the layout.
         """
+
         self.layout().addWidget(self.title_label, 0, 0, 1, 3)
         self.layout().addWidget(self.subtitle_label, 1, 0, 1, 3)
         self.layout().addWidget(self.status_label, 2, 0, 1, 3)

@@ -6,14 +6,12 @@ QLabel {
 
 QLabel#title {
   font-size: 28px;
-  color: white;
   margin-top: 16px;
   margin-left: 16px;
 }
 
 QLabel#subtitle {
   font-size: 22px;
-  color: white;
   margin-left: 16px;
 }
 
