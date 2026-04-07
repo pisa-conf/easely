@@ -72,7 +72,7 @@ path = "src/easely/_version.py"
 
 
 [tool.setuptools.package-data]
-mypkg = [
+easely = [
   "data/*",
   "graphics/*",
   "qss/*",
