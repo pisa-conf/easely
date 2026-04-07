@@ -329,8 +329,8 @@ class ScreenHeader(ScreenHeaderMinimal):
         self.layout().addWidget(self.portrait_label, 2, 0)
         self.layout().addWidget(self.qrcode_label, 2, 1)
         self.layout().addWidget(self.table, 2, 2)
-        self.layout().addWidget(self.presenter_name_label, 4, 0)
-        self.layout().addWidget(self.presenter_affiliation_label, 5, 0)
+        self.layout().addWidget(self.presenter_name_label, 4, 0, 1, 2)
+        self.layout().addWidget(self.presenter_affiliation_label, 5, 0, 1, 2)
         self.layout().addWidget(self.status_label, 4, 2, 2, 1)
         self.layout().setRowMinimumHeight(self.layout().rowCount(), bottom_margin)
 
