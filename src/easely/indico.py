@@ -21,17 +21,18 @@ import datetime
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List
 
 import pandas as pd
 import requests
 
+from . import schema
 from .logging_ import logger
 from .paths import sanitize_file_path, sanitize_folder_path
-from .program import PosterCollectionBase, DATETIME_FORMAT
 from .qrcode_ import generate_qrcode
 from .typing_ import PathLike
 
+# Internal date and time formats used by indico in the .json files.
+# Note these are self-contained within this module.
 _DATE_FORMAT = "%Y-%m-%d"
 _TIME_FORMAT = "%H:%M:%S"
 _DATETIME_FORMAT = f"{_DATE_FORMAT} {_TIME_FORMAT}"
@@ -226,8 +227,8 @@ class Contribution(AbstractIndicoObject):
     title: str
     presenter: Presenter
     url: str
-    attachment_urls: List[str] = field(default_factory=list)
-    attachment_timestamps: List[str] = field(default_factory=list)
+    attachment_urls: list[str] = field(default_factory=list)
+    attachment_timestamps: list[str] = field(default_factory=list)
 
     @classmethod
     def from_json_dict(cls, data: dict):
@@ -248,6 +249,11 @@ class Contribution(AbstractIndicoObject):
                 contribution.attachment_urls.append(attachment["download_url"])
                 contribution.attachment_timestamps.append(attachment["modified_dt"])
         return contribution
+
+    def __lt__(self, other) -> bool:
+        """Comparison operator to sort the contributions by the friendly id.
+        """
+        return self.friendly_id < other.friendly_id
 
     def file_name(self, file_type: str) -> str:
         """Generate a file name for the contribution based on its ID and the specified
@@ -305,8 +311,8 @@ class Contribution(AbstractIndicoObject):
             # If we have the file locally, and we have track of the timestamp, and that
             # matches the one in the .json file, there is no point in downloading another
             # identical copy.
-            if file_path.is_file() and timestamp_file_path.is_file() and not overwrite:
-                if timestamp_file_path.read_text() == timestamp:
+            if file_path.is_file() and timestamp_file_path.is_file() and not overwrite and \
+                timestamp_file_path.read_text() == timestamp:
                     logger.debug(f"{file_path} is up to date, skipping...")
                     continue
             # Otherwise we can go ahead and download the file.
@@ -381,12 +387,12 @@ class Session(AbstractIndicoObject):
     """
 
     id: int
-    start_date: datetime.datetime
-    end_date: datetime.datetime
+    start_datetime: datetime.datetime
+    end_datetime: datetime.datetime
     title: str
     url: str
     is_poster: bool
-    contributions: List[Contribution] = field(default_factory=list)
+    contributions: list[Contribution] = field(default_factory=list)
 
     @classmethod
     def from_json_dict(cls, data: dict):
@@ -399,7 +405,14 @@ class Session(AbstractIndicoObject):
         for contribution_data in data["contributions"]:
             contribution = Contribution.from_json_dict(contribution_data)
             session.contributions.append(contribution)
+        # Sort the contributions by their friendly id.
+        session.contributions.sort()
         return session
+
+    def __lt__(self, other) -> bool:
+        """Comparison operator to sort the sessions by the session id.
+        """
+        return self.id < other.id
 
     def __len__(self) -> int:
         """Return the number of contributions in the session.
@@ -483,7 +496,7 @@ class Event:
             self.session_dict[session.id] = session
         logger.info(f"{len(self.session_dict)} session(s) found.")
 
-    def poster_sessions(self, remove_empty: bool = True) -> List[Session]:
+    def poster_sessions(self, remove_empty: bool = True, sort: bool = True) -> list[Session]:
         """Return the list of poster sessions in the event, and by default remove
         those with no contributions.
 
@@ -492,17 +505,22 @@ class Event:
         remove_empty : bool
             Whether to remove the sessions with no contributions from the list (default True).
 
+        sort : bool
+            Whether to sort the sessions by their ID (default True).
+
         Returns
         -------
-        List[Session]
+        list[Session]
             The list of poster sessions in the event.
         """
         sessions = [session for session in self.session_dict.values() if session.is_poster]
         if remove_empty:
             sessions = [session for session in sessions if len(session) > 0]
+        if sort:
+            sessions.sort()
         return sessions
 
-    def poster_contributions_ids(self, sort: bool = True) -> List[int]:
+    def poster_contributions_ids(self, sort: bool = True) -> list[int]:
         """Return the list of contributions in the poster sessions of the event.
 
         Arguments
@@ -512,7 +530,7 @@ class Event:
 
         Returns
         -------
-        List[int]
+        list[int]
             The list of contribution IDs in the poster sessions of the event.
         """
         ids = []
@@ -523,14 +541,14 @@ class Event:
         return ids
 
     @staticmethod
-    def _write_xls(writer: pd.ExcelWriter, sheet_name: str, col_names: list, data: list,
+    def _write_xls(writer: pd.ExcelWriter, sheet_schema: schema.SheetSchema , data: list,
         col_widths: list = None) -> None:
         """Convenience function to write a sheet in the .xls file with the given arguments.
         """
-        data_frame = pd.DataFrame(data, columns=col_names)
-        data_frame.to_excel(writer, sheet_name=sheet_name, index=False)
+        data_frame = pd.DataFrame(data, columns=sheet_schema.col_headers())
+        data_frame.to_excel(writer, sheet_name=sheet_schema.name, index=False)
         if col_widths is not None:
-            sheet = writer.sheets[sheet_name]
+            sheet = writer.sheets[sheet_schema.name]
             for i, width in enumerate(col_widths):
                 sheet.set_column(i, i, width)
 
@@ -553,25 +571,26 @@ class Event:
         logger.info(f"Writing poster roster to {file_path}...")
         writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
         sessions = self.poster_sessions()
+
         # Write the program sheet with the session data.
-        sheet_name = PosterCollectionBase.PROGRAM_SHEET_NAME
-        col_names = PosterCollectionBase.PROGRAM_COL_NAMES
         data = [
             (session.id,
              session.title,
-             session.start_date.strftime(DATETIME_FORMAT),
-             session.end_date.strftime(DATETIME_FORMAT)
+             session.start_datetime.strftime(schema.DATETIME_FORMAT),
+             session.end_datetime.strftime(schema.DATETIME_FORMAT)
              )
             for session in sessions
         ]
-        self._write_xls(writer, sheet_name, col_names, data, col_widths=[12, 100, 20, 20])
+        self._write_xls(writer, schema.program_schema(), data, col_widths=[12, 100, 20, 20])
+
+        # Write the mapping between the host names and the screen ids.
+        self._write_xls(writer, schema.hosts_schema(), [], col_widths=[20, 20])
+
         # Create the ancillary sheets with the actual contributions.
-        col_names = PosterCollectionBase.SESSION_COL_NAMES
         for session in sessions:
             contributions = session.contributions
             data = [
                 (contribution.friendly_id,
-                 contribution.db_id,
                  "",
                  contribution.title,
                  contribution.presenter.first_name,
@@ -580,7 +599,8 @@ class Event:
                  )
                 for contribution in contributions
             ]
-            self._write_xls(writer, f"{session.id}", col_names, data, col_widths=[12, 12, 12, 100, 20, 20, 60])
+            _schema = schema.session_schema(session.id)
+            self._write_xls(writer, _schema, data, col_widths=[12, 12, 100, 20, 20, 60])
         # Close the output file.
         writer.close()
         logger.info("Done.")
@@ -605,7 +625,7 @@ class Event:
         int
             The number of attachments downloaded.
         """
-        logger.info(f"Downloading attachments for all poster sessions in the event...")
+        logger.info("Downloading attachments for all poster sessions in the event...")
         kwargs = dict(folder_path=folder_path, file_types=file_types, overwrite=overwrite)
         num_downloads = 0
         for session in self.poster_sessions():
@@ -628,12 +648,13 @@ class Event:
             Whether to overwrite existing output files.
         """
         folder_path = sanitize_folder_path(folder_path, create=True)
-        logger.info(f"Generating QR codes for all poster sessions in the event...")
+        logger.info("Generating QR codes for all poster sessions in the event...")
         for session in self.poster_sessions():
             for contribution in session.contributions:
                 file_path = folder_path / contribution.file_name("png")
                 if file_path.is_file() and not overwrite:
-                    logger.info(f"QR code for contribution {contribution.friendly_id} already exists, skipping...")
+                    _id = contribution.friendly_id
+                    logger.info(f"QR code for contribution {_id} already exists, skipping...")
                     continue
                 generate_qrcode(contribution.url, file_path, size=size, overwrite=overwrite)
         logger.info("Done.")
