@@ -177,7 +177,7 @@ class Poster:
         """Poster pretty print.
         """
         title = self.short_title(max_chars)
-        return f'[{self.friendly_id:03}] {title} ({self.presenter.full_name()})'
+        return f'[{self.friendly_id:04d}] {title} ({self.presenter.full_name()})'
 
     def __str__(self):
         """String formatting.
@@ -329,9 +329,9 @@ class PosterCollectionBase:
         """Return the file name for any of the pixmaps for a given poster.
 
         The rule, here, is that all the pixmpas share the same file name
-        (e.g., 003.png) and live in different folders.
+        (e.g., 0003.png) and live in different folders.
         """
-        return f'{poster_id:03d}.png'
+        return f'{poster_id:04d}.png'
 
     def _image_path_base(self, poster_id: int, folder_name: str, default: str):
         """Generic function to build the path to the actual pixmap file for a given poster.
