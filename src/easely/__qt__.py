@@ -17,17 +17,17 @@
 """Convenience module handling the Qt-related import.
 """
 
-import pathlib
+import importlib.resources
 import sys
 
 from loguru import logger
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from . import __name__ as __package_name__
 from .typing_ import PathLike
 
 
-_QSS_DIR = pathlib.Path(__file__).parent.parent.parent / 'qss'
-_DEFAULT_STYLESHEET_PATH = _QSS_DIR / 'default.qss'
+_DEFAULT_STYLESHEET_PATH = importlib.resources.files(__package_name__).joinpath('qss/default.qss')
 
 
 def exec_qapp(qapp: QtWidgets.QApplication) -> int:
