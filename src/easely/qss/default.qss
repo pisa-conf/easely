@@ -1,0 +1,53 @@
+QWidget {
+    border: 0px solid red;
+}
+
+QLabel {
+  font-family: "Comfortaa";
+  color: black;
+  font-size: 24px;
+}
+
+QTreeWidget {
+  font-size: 24px;
+}
+
+QTreeWidget::item {
+  font-size: 24px;
+}
+
+QHeaderView::section {
+    font-size: 28px;
+}
+
+QLabel#title {
+  font-size: 40px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  margin-left: 0px;
+}
+
+QLabel#subtitle {
+  font-size: 32px;
+  margin-bottom: 12px;
+  margin-left: 0px;
+}
+
+QLabel#presenter_name {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  min-width: 400px;
+}
+
+QLabel#presenter_affiliation {
+  color: gray;
+  font-size: 14px;
+}
+
+QLabel#status_message {
+  font-size: 12px;
+}
+
+QTableWidget#roster_table {
+  min-height: 180px;
+}

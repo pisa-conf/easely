@@ -13,14 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Convenience module handling the Qt-related import.
 """
 
+import importlib.resources
 import sys
 
 from loguru import logger
 from PySide6 import QtCore, QtGui, QtWidgets
+
+from . import __name__ as __package_name__
+from .typing_ import PathLike
+
+
+_DEFAULT_STYLESHEET_PATH = importlib.resources.files(__package_name__).joinpath('qss/default.qss')
 
 
 def exec_qapp(qapp: QtWidgets.QApplication) -> int:
@@ -33,7 +39,8 @@ def exec_qapp(qapp: QtWidgets.QApplication) -> int:
     return sys.exit(qapp.exec_())
 
 
-def bootstrap_window(WindowClass: type, padding: int=20, **kwargs) -> QtWidgets.QApplication:
+def bootstrap_window(WindowClass: type, padding: int=20,
+    stylesheet_path: PathLike = _DEFAULT_STYLESHEET_PATH, **kwargs) -> QtWidgets.QApplication:
     """Bootstrap the poster application.
 
     This is a small helper function to automate a series of operations that are
@@ -56,6 +63,9 @@ def bootstrap_window(WindowClass: type, padding: int=20, **kwargs) -> QtWidgets.
         The application instance.
     """
     app = QtWidgets.QApplication(sys.argv)
+    logger.info(f'Applying stylesheet {stylesheet_path} to the main application...')
+    with open(stylesheet_path, 'r') as stylesheet:
+        app.setStyleSheet(stylesheet.read())
     if kwargs.get("poster_width") is None:
         poster_width = app.screens()[0].size().width() - padding
         logger.info(f"Setting poster width to {poster_width} (based on the screen size)")

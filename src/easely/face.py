@@ -17,7 +17,7 @@
 """Face-detection and cropping facilities.
 """
 
-import pathlib
+import importlib.resources
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Tuple
@@ -27,15 +27,16 @@ import numpy as np
 import PIL.ImageDraw
 import PIL.ImageFont
 
+from . import __name__ as __package_name__
 from .img2 import Rectangle, elliptical_mask, open_image, resize_image, save_image
 from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
 
 # Path to the folder containing all the opencv model files.
-_DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
-_CASCADE_FILE_PATH = _DATA_DIR / "haarcascade_frontalface_default.xml"
-_YUNET_FILE_PATH = _DATA_DIR / "face_detection_yunet_2023mar.onnx"
+_DATA_DIR = importlib.resources.files(__package_name__).joinpath('data')
+_CASCADE_FILE_PATH = _DATA_DIR.joinpath("haarcascade_frontalface_default.xml")
+_YUNET_FILE_PATH = _DATA_DIR.joinpath("face_detection_yunet_2023mar.onnx")
 
 
 class FaceDetection(str, Enum):
