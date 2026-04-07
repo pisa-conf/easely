@@ -375,8 +375,9 @@ class ScreenHeader(ScreenHeaderMinimal):
         """Clear the header.
         """
         super().clear()
-        self.presenter_label.setText('')
-        self.status_label.setText('')
+        self.presenter_name_label.setText("")
+        self.presenter_affiliation_label.setText("")
+        self.status_label.setText("")
         self.table.clear()
         self.portrait_label.clear()
         self.qrcode_label.clear()
