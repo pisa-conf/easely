@@ -21,13 +21,13 @@ QHeaderView::section {
 }
 
 QLabel#title {
-  font-size: 28px;
+  font-size: 50px;
   margin-top: 16px;
   margin-left: 16px;
 }
 
 QLabel#subtitle {
-  font-size: 22px;
+  font-size: 36px;
   margin-left: 16px;
 }
 

@@ -237,9 +237,9 @@ class ScreenHeaderMinimal(QtWidgets.QWidget):
         margin = kwargs.get('margin', 0)
         super().__init__()
         self.setLayout(QtWidgets.QGridLayout())
-        self.layout().setHorizontalSpacing(horizontal_spacing)
-        self.layout().setVerticalSpacing(vertical_spacing)
-        self.layout().setContentsMargins(margin, margin, margin, margin)
+        #self.layout().setHorizontalSpacing(horizontal_spacing)
+        #self.layout().setVerticalSpacing(vertical_spacing)
+        #self.layout().setContentsMargins(margin, margin, margin, margin)
         # Create all the necessary widgets: the title Qlabel...
         self.title_label = QtWidgets.QLabel()
         self.title_label.setObjectName("title")
@@ -254,7 +254,7 @@ class ScreenHeaderMinimal(QtWidgets.QWidget):
         self._setup_layout()
         # And freeze the height of the last column to add a minimum space between
         # the header and the actual content.
-        self.layout().setRowMinimumHeight(self.layout().columnCount(), bottom_row_height)
+        #self.layout().setRowMinimumHeight(self.layout().columnCount(), bottom_row_height)
 
     def _setup_layout(self):
         """Setup the layout.
@@ -319,7 +319,7 @@ class ScreenHeader(ScreenHeaderMinimal):
         self.table = RosterTable(portrait_height)
         self._roster = None
         super().__init__(title, **kwargs)
-        self.setFixedHeight(height)
+        #self.setFixedHeight(height)
 
     def _setup_layout(self, bottom_margin: int = 10):
         """Overloaded method.
