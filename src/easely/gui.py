@@ -20,9 +20,11 @@ This module contains all the widgets that are relevant for the slideshow.
 """
 
 import datetime
-from enum import Enum, IntEnum, auto
 import os
 import time
+from abc import ABC, abstractmethod
+from enum import Enum, IntEnum, auto
+
 
 import pandas as pd
 
@@ -38,10 +40,9 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
 
     """Graphic effect for picture fade-in/out.
 
-    This is simple graphic effect allowing a fade-in/out effect to a gradual
-    change in the opacity. Internally, the transitions are controlled via a
-    QTimer() object increasing or decreasing the opacity by a fixed amount
-    (the _step class member) at each timeout.
+    This is simple graphic effect allowing a fade-in/out effect to a gradual change in the
+    opacity. Internally, the transitions are controlled via a QTimer() object increasing
+    or decreasing the opacity by a fixed amount (the _step class member) at each timeout.
 
     Arguments
     ---------
@@ -108,6 +109,10 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
         if start_from_one:
             self.setOpacity(1.)
         self._timer.timeout.connect(self._decrease_opacity)
+
+
+
+
 
 
 
@@ -217,122 +222,105 @@ class RosterTable(QtWidgets.QTableWidget):
 
 
 
-class ScreenHeaderMinimal(QtWidgets.QWidget):
+
+
+
+
+
+class ScreenHeaderBase(QtWidgets.QWidget):
+
+    """Base class for the screen header.
+
+    Note this creates the widgets for the title, subtitle and status message, but
+    does not add anything to the layout, as the positioning depends on which kind
+    of header is being implemented, and is delegated to subclasses. You should never
+    need to instantiate this class directly, but rather one of its subclasses.
+    """
+
+    def __init__(self, parent: QtWidgets.QWidget = None, title: str = None,
+        subtitle: str = None) -> None:
+        """Constructor.
+        """
+        super().__init__(parent)
+        self.setLayout(QtWidgets.QGridLayout())
+        self.title_label = QtWidgets.QLabel(self)
+        self.title_label.setObjectName("title")
+        self.set_title(title)
+        self.subtitle_label = QtWidgets.QLabel(self)
+        self.subtitle_label.setObjectName("subtitle")
+        self.set_subtitle(subtitle)
+        self.status_message_label = QtWidgets.QLabel(self)
+        self.status_message_label.setObjectName("status_message")
+        # Note that setting text alignment is not supported via qss.
+        self.status_message_label.setAlignment(QtCore.Qt.AlignBottom)
+
+    def set_title(self, text: str = None) -> None:
+        """Set the title.
+        """
+        self.title_label.setText(text or "")
+
+    def set_subtitle(self, text: str = None) -> None:
+        """Set the subtitle.
+        """
+        self.subtitle_label.setText(text or "")
+
+    def set_status_message(self, text: str = None) -> None:
+        """Set the status text label.
+        """
+        self.status_message_label.setText(text or "")
+
+    def clear(self):
+        """Generic function to clear the header.
+
+        By default this is only clearing the status message, but actual subclasses
+        may do something more elaborated.
+        """
+        self.status_message_label.setText("")
+
+
+class ScreenHeaderMinimal(ScreenHeaderBase):
 
     """Minimal screen header.
 
-    This is a composite object including:
-
-    * a QLabel object for the title (typically, the conference name and location);
-    * a QLabel object for the subtitle (e.g., indicating the session);
-    * a QLabel object for a status message.
+    This is used for the cases where you only need a title, a subtitle and a status message.
     """
 
-    def __init__(self, title: str, *args, **kwargs):
+    def __init__(self, title: str = None, subtitle: str = None):
         """Constructor.
         """
-        bottom_row_height = kwargs.get('bottom_row_height', 15)
-        horizontal_spacing = kwargs.get('horizontal_spacing', 30)
-        vertical_spacing = kwargs.get('vertical_spacing', 8)
-        margin = kwargs.get('margin', 0)
-        super().__init__()
-        self.setLayout(QtWidgets.QGridLayout())
-        #self.layout().setHorizontalSpacing(horizontal_spacing)
-        #self.layout().setVerticalSpacing(vertical_spacing)
-        #self.layout().setContentsMargins(margin, margin, margin, margin)
-        # Create all the necessary widgets: the title Qlabel...
-        self.title_label = QtWidgets.QLabel()
-        self.title_label.setObjectName("title")
-        self.title_label.setText(title)
-        # ... the subtitle QLabel...
-        self.subtitle_label = QtWidgets.QLabel()
-        self.subtitle_label.setObjectName("subtitle")
-        # ... and the status message label.
-        self.status_label = QtWidgets.QLabel()
-        self.status_label.setAlignment(QtCore.Qt.AlignTop)
-        # Setup the payout.
-        self._setup_layout()
-        # And freeze the height of the last column to add a minimum space between
-        # the header and the actual content.
-        #self.layout().setRowMinimumHeight(self.layout().columnCount(), bottom_row_height)
-
-    def _setup_layout(self):
-        """Setup the layout.
-        """
-
-        self.layout().addWidget(self.title_label, 0, 0, 1, 3)
-        self.layout().addWidget(self.subtitle_label, 1, 0, 1, 3)
-        self.layout().addWidget(self.status_label, 2, 0, 1, 3)
-
-    def set_subtitle(self, text):
-        """Set the subtitle.
-        """
-        self.subtitle_label.setText(text)
-
-    def set_status(self, text):
-        """Set the status text label.
-        """
-        text = f'<font color="white" size="4">F</font><br/>'\
-               f'<font color="black" size="2">{text}</font><br/>'
-        self.status_label.setText(text)
-
-    def clear(self):
-        """Clear the header.
-        """
-        self.status_label.setText('')
+        super().__init__(None, title, subtitle)
+        self.layout().addWidget(self.title_label, 0, 0)
+        self.layout().addWidget(self.subtitle_label, 1, 0)
+        self.layout().addWidget(self.status_message_label, 2, 0)
 
 
-
-class ScreenHeader(ScreenHeaderMinimal):
+class ScreenHeader(ScreenHeaderBase):
 
     """Fully fledged poster header.
-
-    This is a composite object that can be used as a generic header for
-    different kinds of displays. More specifically, it includes:
-
-    * a QLabel object for the title (typically, the conference name and location);
-    * a QLabel object for the subtitle (e.g., indicating the session);
-    * a Qlabel object for the presenter pic;
-    * a QLabel object for the QR code pointing at the indico page of the poster;
-    * a QLabel object holding the name and affiliation of the presenter;
-    * a RosterTable object for the list of posters;
-    * a QLabel object for a status message.
     """
 
-    def __init__(self, title: str, height: int, portrait_height: int, **kwargs):
+    def __init__(self, title: str, portrait_height: int = 200):
         """Constructor.
         """
-        # ... the presenter portrait QLabel...
-        self.portrait_label = QtWidgets.QLabel()
-        self.portrait_label.setFixedSize(portrait_height, portrait_height)
-        self.portrait_label.setAlignment(QtCore.Qt.AlignLeft)
-        # ... the QR code QLabel...
+        super().__init__(None, title)
+        self.headshot_label = QtWidgets.QLabel()
+        #self.headshot_label.setFixedSize(portrait_height, portrait_height)
         self.qrcode_label = QtWidgets.QLabel()
-        self.qrcode_label.setFixedSize(portrait_height, portrait_height)
-        self.qrcode_label.setAlignment(QtCore.Qt.AlignCenter)
-        # ... the presenter name/affiliation QLabel...
+        #self.qrcode_label.setFixedSize(portrait_height, portrait_height)
         self.presenter_name_label = QtWidgets.QLabel()
         self.presenter_name_label.setObjectName("presenter_name")
         self.presenter_affiliation_label = QtWidgets.QLabel()
         self.presenter_affiliation_label.setObjectName("presenter_affiliation")
-        # ... the poster roster table...
         self.table = RosterTable(portrait_height)
         self._roster = None
-        super().__init__(title, **kwargs)
-        #self.setFixedHeight(height)
-
-    def _setup_layout(self, bottom_margin: int = 10):
-        """Overloaded method.
-        """
         self.layout().addWidget(self.title_label, 0, 0, 1, 3)
         self.layout().addWidget(self.subtitle_label, 1, 0, 1, 3)
-        self.layout().addWidget(self.portrait_label, 2, 0)
+        self.layout().addWidget(self.headshot_label, 2, 0)
         self.layout().addWidget(self.qrcode_label, 2, 1)
         self.layout().addWidget(self.table, 2, 2)
         self.layout().addWidget(self.presenter_name_label, 4, 0, 1, 2)
         self.layout().addWidget(self.presenter_affiliation_label, 5, 0, 1, 2)
-        self.layout().addWidget(self.status_label, 4, 2, 2, 1)
-        self.layout().setRowMinimumHeight(self.layout().rowCount(), bottom_margin)
+        self.layout().addWidget(self.status_message_label, 4, 2, 2, 1)
 
     def set_roster(self, roster):
         """Set the poster roster for the table.
@@ -343,7 +331,7 @@ class ScreenHeader(ScreenHeaderMinimal):
     def _update_pixmaps(self, poster):
         """Update the two pixmaps.
         """
-        self.portrait_label.setPixmap(poster.presenter_pixmap)
+        self.headshot_label.setPixmap(poster.presenter_pixmap)
         self.qrcode_label.setPixmap(poster.qrcode_pixmap)
 
     def _update_presenter(self, poster):
@@ -382,9 +370,9 @@ class ScreenHeader(ScreenHeaderMinimal):
         super().clear()
         self.presenter_name_label.setText("")
         self.presenter_affiliation_label.setText("")
-        self.status_label.setText("")
+        self.status_message_label.setText("")
         self.table.clear()
-        self.portrait_label.clear()
+        self.headshot_label.clear()
         self.qrcode_label.clear()
 
 
@@ -429,7 +417,7 @@ class DisplaWindowBase(QtWidgets.QWidget):
         self.setLayout(QtWidgets.QGridLayout())
         self.layout().setColumnMinimumWidth(0, self.poster_width)
         header_title = f'{kwargs["conference_name"]} - {kwargs["conference_location"]} - {kwargs["conference_dates"]}'
-        self.header = header_class(header_title, kwargs['header_height'], kwargs['portrait_height'])
+        self.header = header_class(header_title)
         self.poster_label = QtWidgets.QLabel()
         self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
         self.debug_label = QtWidgets.QLabel()
@@ -502,7 +490,7 @@ class DisplaWindowBase(QtWidgets.QWidget):
     def update_header_status(self):
         """Update the header information.
         """
-        self.header.set_status(self.status_message())
+        self.header.set_status_message(self.status_message())
 
     def status_message(self):
         """Do nothing hook to be reimplemented by derived classes.
