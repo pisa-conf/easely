@@ -570,8 +570,8 @@ class Event:
         for session in sessions:
             contributions = session.contributions
             data = [
-                (contribution.db_id,
-                 contribution.friendly_id,
+                (contribution.friendly_id,
+                 contribution.db_id,
                  "",
                  contribution.title,
                  contribution.presenter.first_name,
