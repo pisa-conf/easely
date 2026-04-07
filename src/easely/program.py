@@ -331,6 +331,7 @@ class PosterCollectionBase:
         The rule, here, is that all the pixmpas share the same file name
         (e.g., 0003.png) and live in different folders.
         """
+        # TODO: use the thing in paths!!!!
         return f'{poster_id:04d}.png'
 
     def _image_path_base(self, poster_id: int, folder_name: str, default: str):
