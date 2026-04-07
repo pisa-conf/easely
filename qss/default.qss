@@ -1,0 +1,36 @@
+QLabel {
+  font-family: "Comfortaa";
+  color: black;
+  font-size: 16px;
+}
+
+QLabel#title {
+  font-size: 28px;
+  color: white;
+  margin-top: 16px;
+  margin-left: 16px;
+}
+
+QLabel#subtitle {
+  font-size: 22px;
+  color: white;
+  margin-left: 16px;
+}
+
+QLabel#name {
+  margin-top: 8px;
+  margin-bottom: 0px;
+}
+
+QLabel#affiliation {
+  color: gray;
+  font-size: 12px;
+}
+
+QLabel#message {
+  font-size: 12px;
+}
+
+QFrame#header {
+  background-color: blue;
+}
