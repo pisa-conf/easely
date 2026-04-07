@@ -3,6 +3,14 @@
 Release notes
 =============
 
+* Major restructuring of the GUI code to allow for qss-driven styling and customization.
+* ``data``, ``qss`` and ``graphics`` directories moved into ``src``, and marked for
+  shipping with the package in the ``pyproject.toml`` file.
+* ``importlib.resources`` consistently used to load data files, instead of hardcoding paths.
+* Bug fix in the generation of the program excel file.
+* Obsolete ``scripts`` and ``templates`` directories removed.
+* Documentation updated.
+
 
 Version 0.4.0 (2026-04-06)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
