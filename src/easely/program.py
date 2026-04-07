@@ -17,14 +17,16 @@
 """Basic description of the conference program.
 """
 
-from collections import Counter
 import datetime
+import importlib.resources
 import os
 import pathlib
 import random
+from collections import Counter
 
 import pandas as pd
 
+from . import __name__ as __package_name__
 from .__qt__ import QtCore, QtGui
 from .logging_ import logger
 
@@ -32,7 +34,7 @@ DATE_FORMAT =  '%d/%m/%Y'
 DATE_PRETTY_FORMAT = '%A, %B %d, %Y'
 DATETIME_FORMAT =  f'{DATE_FORMAT} %H:%M'
 
-_GRAPHICS_FOLDER_PATH = pathlib.Path(__file__).parent.parent.parent / 'graphics'
+_GRAPHICS_FOLDER_PATH = importlib.resources.files(__package_name__).joinpath('graphics')
 MISSING_PICTURE_PATH = _GRAPHICS_FOLDER_PATH / 'unknown_female.png'
 MISSING_POSTER_PATH = _GRAPHICS_FOLDER_PATH / 'pisameet2024.png'
 MISSING_QRCODE_PATH = _GRAPHICS_FOLDER_PATH / 'unknown_qrcode.png'
