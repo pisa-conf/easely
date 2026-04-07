@@ -304,11 +304,11 @@ class ScreenHeader(ScreenHeaderMinimal):
         """
         # ... the presenter portrait QLabel...
         self.portrait_label = QtWidgets.QLabel()
-        #self.portrait_label.setFixedSize(portrait_height, portrait_height)
+        self.portrait_label.setFixedSize(portrait_height, portrait_height)
         self.portrait_label.setAlignment(QtCore.Qt.AlignLeft)
         # ... the QR code QLabel...
         self.qrcode_label = QtWidgets.QLabel()
-        #self.qrcode_label.setFixedSize(portrait_height, portrait_height)
+        self.qrcode_label.setFixedSize(portrait_height, portrait_height)
         self.qrcode_label.setAlignment(QtCore.Qt.AlignCenter)
         # ... the presenter name/affiliation QLabel...
         self.presenter_name_label = QtWidgets.QLabel()
