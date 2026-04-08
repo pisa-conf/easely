@@ -41,6 +41,7 @@ dependencies = [
   "PySide6",
   "qrcode",
   "requests",
+  "xlsxwriter",
   ]
 
 # Optional dependencies are listed here, grouped into logical sections.
