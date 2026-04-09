@@ -67,10 +67,58 @@ class Presenter:
         """
         return f'{self.first_name} {self.last_name}'
 
+    def short_affiliation(self, max_chars=25) -> str:
+        """Return a shortened version of the affiliation, trimmed to a fixed maximum
+        number of characters if too long.
+        """
+        if len(self.affiliation) <= max_chars:
+            return self.affiliation.ljust(max_chars)
+        return f'{self.affiliation[:max_chars - 3]}...'
+
     def __str__(self) -> str:
         """String formatting.
         """
         return f'{self.full_name()} ({self.affiliation})'
+
+
+@dataclass(frozen=True)
+class PosterContribution:
+
+    """Poster contribution descriptor.
+
+    Arguments
+    ---------
+    friendly_id : int
+        The unique identifier of the contribution in indico.
+
+    screen_id : int
+        The identifier of the screen the contribution needs to be projected on.
+
+    title : str
+        The contribution title.
+
+    presenter : Presenter instance
+        The contribution presenter.
+    """
+
+    friendly_id: int
+    screen_id: int
+    title: str
+    presenter: Presenter
+
+    @classmethod
+    def from_dataframe_row(cls, row):
+        """Create a PosterContribution object from a dataframe row.
+        """
+        pass
+
+    def short_title(self, max_chars=40):
+        """Return a shortened version of the title, trimmed to a fixed maximum
+        number of characters if too long.
+        """
+        if len(self.title) <= max_chars:
+            return self.title.ljust(max_chars)
+        return f'{self.title[:max_chars - 3]}...'
 
 
 class Poster:
