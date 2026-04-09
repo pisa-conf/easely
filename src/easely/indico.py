@@ -581,10 +581,12 @@ class Event:
              )
             for session in sessions
         ]
-        self._write_xls(writer, schema.program_schema(), data, col_widths=[12, 100, 20, 20])
+        _schema = schema.program_schema()
+        self._write_xls(writer, _schema, data, col_widths=[12, 100, 20, 20])
 
         # Write the mapping between the host names and the screen ids.
-        self._write_xls(writer, schema.hosts_schema(), [], col_widths=[20, 20])
+        _schema = schema.hosts_schema()
+        self._write_xls(writer, _schema, [], col_widths=[20, 20])
 
         # Create the ancillary sheets with the actual contributions.
         for session in sessions:
