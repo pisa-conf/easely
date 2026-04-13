@@ -17,11 +17,12 @@
 """Basic schema for the main excel configuration file.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # We default to a ISO 8601-like format for the date and time, skipping the internal ``T``
 # separator, as well as the timezone information.
-DATETIME_FORMAT =  "%Y-%m-%d %H:%M:%S"
+DATE_FORMAT = "%Y-%m-%d"
+DATETIME_FORMAT =  f"{DATE_FORMAT} %H:%M:%S"
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,39 @@ class SheetSchema:
         """
 
         return tuple(col.header for col in self.columns)
+
+
+@dataclass(frozen=True)
+class DictSheetSchema(SheetSchema):
+
+    """Sheet schema descriptor for sheets that are expected as key-value pairs.
+
+    The information is organized with a simple, two-column layout where the
+    first column contains the key and the second contains the corresponding value.
+    """
+
+    columns: tuple[Column, ...] = field(
+        default=(
+            Column(key="key", header="Key", type_=str),
+            Column(key="value", header="Value", type_=str),
+        ),
+        init=False
+    )
+    required_keys: tuple[str, ...]
+
+
+def conference_schema() -> SheetSchema:
+
+    """Build the schema for the conference sheet.
+
+    This includes the basic conference metadata, such as the conference name,
+    location and dates.
+    """
+
+    return DictSheetSchema(
+        name="Conference",
+        required_keys=("conference_name", "location", "start_date", "end_date"),
+    )
 
 
 def program_schema() -> SheetSchema:

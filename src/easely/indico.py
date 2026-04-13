@@ -490,8 +490,13 @@ class Event:
         if data["count"] != 1:
             raise RuntimeError(f"Expected count=1 in {file_path}, got {data['count']}")
         self.url = data["url"]
+        results = data["results"][0]
+        self.title = results["title"]
+        self.location = results["location"]
+        self.start_date = AbstractIndicoObject.parse_date(results["startDate"])
+        self.end_date = AbstractIndicoObject.parse_date(results["endDate"])
         self.session_dict = {}
-        for session_data in data["results"][0]["sessions"]:
+        for session_data in results["sessions"]:
             session = Session.from_json_dict(session_data)
             self.session_dict[session.id] = session
         logger.info(f"{len(self.session_dict)} session(s) found.")
@@ -571,6 +576,17 @@ class Event:
         logger.info(f"Writing poster roster to {file_path}...")
         writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
         sessions = self.poster_sessions()
+
+        # Write the main sheet with the basic conference metadata.
+        _schema = schema.conference_schema()
+        values = (
+            self.title,
+            self.location,
+            self.start_date.strftime(schema.DATE_FORMAT),
+            self.end_date.strftime(schema.DATE_FORMAT),
+            )
+        data = zip(_schema.required_keys, values)
+        self._write_xls(writer, _schema, data, col_widths=[25, 100])
 
         # Write the program sheet with the session data.
         data = [
