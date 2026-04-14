@@ -259,9 +259,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         report = subparsers.add_parser("report",
             help="dump a text report on the program",
             formatter_class=self._FORMATTER_CLASS)
-        self.add_config_file(report)
+        #self.add_config_file(report)
         self.add_logging_level(report)
-        report.set_defaults(runner=self.dump_report)
+        report.set_defaults(runner=tasks.report)
 
     @staticmethod
     def add_config_file(parser: argparse.ArgumentParser) -> None:
@@ -351,12 +351,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Start the session directory.
         """
         return bootstrap_window(SessionDirectory, **kwargs)
-
-    def dump_report(self, **kwargs) -> None:
-        """Dump a text report on the program.
-        """
-        program = PosterProgram(kwargs.get("cfgfile"))
-        program.dump_report()
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
