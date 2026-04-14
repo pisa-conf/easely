@@ -94,10 +94,10 @@ class Poster:
     presenter: Presenter
 
     @classmethod
-    def from_dataframe_row(cls, row):
+    def from_dataframe_row(cls, row: pd.core.series.Series) -> "Poster":
         """Create a Poster object from a dataframe row.
         """
-        pass
+        return cls(*row[:-3], Presenter(*row[-3:]))
 
     def short_title(self, max_chars=40):
         """Return a shortened version of the title, trimmed to a fixed maximum
@@ -132,6 +132,11 @@ class Session:
         """
         return cls(*row)
 
+    def __len__(self) -> int:
+        """Return the number of contributions in the session.
+        """
+        return len(self.contributions)
+
 
 class Program:
 
@@ -151,44 +156,84 @@ class Program:
         logger.info(f"Loading program data from {file_path}...")
         # Read the first worksheet, with the conference metadata.
         schema_ = schema.conference_schema()
-        logger.debug(f"Reading worksheet {schema_.name}...")
+        df = self._read_sheet(file_path, schema_)
         key_col, value_col = schema_.col_headers()
-        df = pd.read_excel(file_path, sheet_name=schema_.name, header=0)
-        self._validate_sheet(df, schema_)
         metadata = df.dropna(subset=[key_col]).set_index(key_col)[value_col].to_dict()
         self.conference_name = metadata['conference_name']
         self.location = metadata['location']
         self.start_date = self.parse_date(metadata['start_date'])
         self.end_date = self.parse_date(metadata['end_date'])
-        logger.debug(f"{self.conference_name}, {self.location}, {self.start_date}--{self.end_date}.")
         # Read the program worksheet, with the list of sessions.
-        schema_ = schema.program_schema()
-        logger.debug(f"Reading worksheet {schema_.name}...")
-        df = pd.read_excel(file_path, sheet_name=schema_.name, header=0)
-        self._validate_sheet(df, schema_)
-        for _, row in df.iterrows():
+        self.session_dict = {}
+        for _, row in self._read_sheet(file_path, schema.program_schema()).iterrows():
             session = Session.from_dataframe_row(row)
-            print(session)
+            self.session_dict[session.id] = session
+        # Read the mapping between host ids and screen ids.
+        self.screen_dict = {}
+        for _, row in self._read_sheet(file_path, schema.hosts_schema()).iterrows():
+            host_id, screen_id = row
+            self.screen_dict[host_id] = screen_id
+        # Read all the session sheets.
+        for session_id, session in self.session_dict.items():
+            for _, row in self._read_sheet(file_path, schema.session_schema(session_id)).iterrows():
+                poster = Poster.from_dataframe_row(row)
+                session.contributions.append(poster)
 
     @staticmethod
-    def _validate_sheet(df: pd.DataFrame, schema_: schema.SheetSchema) -> None:
-        """Validate a dataframe against the provided schema, raising an exception if the
-        validation fails.
+    def _read_sheet(file_path: PathLike, schema_: schema.SheetSchema) -> pd.DataFrame:
+        """Read a worksheet from the program excel file and return it as a dataframe.
+
+        Arguments
+        ---------
+        file_path : PathLike
+             The path to the program excel file.
+
+        schema_ : SheetSchema instance
+             The schema of the worksheet to read.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+             The worksheet content as a dataframe.
         """
+        logger.debug(f"Reading worksheet {schema_.name}...")
+        df = pd.read_excel(file_path, sheet_name=schema_.name, header=0)
         if tuple(df.columns) != schema_.col_headers():
             raise ValueError(
                 f"Invalid columns in '{schema_.name}'. "
                 f"Expected {schema_.col_headers()}, got {tuple(df.columns)}"
             )
+        logger.debug(f"Done, {len(df)} row(s) read out.")
+        return df
 
     @staticmethod
     def parse_datetime(datetime_str: str) -> date:
         """Parse a datetime string in the proper schema format and return a datetime object.
+
+        Arguments
+        ---------
+        datetime_str : str
+            The datetime string to parse.
+
+        Returns
+        -------
+        datetime : datetime.datetime
+            The parsed datetime object.
         """
         return datetime.strptime(datetime_str, schema.DATETIME_FORMAT)
 
     @staticmethod
     def parse_date(date_str: str) -> date:
         """Parse a date string in the proper schema format and return a date object.
+
+        Arguments
+        ---------
+        date_str : str
+            The date string to parse.
+
+        Returns
+        -------
+        date : datetime.date
+            The parsed date object.
         """
         return datetime.strptime(date_str, schema.DATE_FORMAT).date()
