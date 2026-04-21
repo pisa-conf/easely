@@ -18,8 +18,8 @@
 """
 
 import random
+import datetime
 from dataclasses import dataclass, field
-from datetime import date, datetime
 
 import pandas as pd
 
@@ -134,8 +134,8 @@ class Session:
 
     id: int
     title: str
-    start_datetime: datetime
-    end_datetime: datetime
+    start_datetime: datetime.datetime
+    end_datetime: datetime.datetime
     posters: list[Poster] = field(default_factory=list)
 
     def __post_init__(self):
@@ -159,6 +159,24 @@ class Session:
         """Return the number of posters in the session.
         """
         return len(self.posters)
+
+    def ongoing(self, current_datetime: datetime.datetime = None) -> bool:
+        """Return True if the session is ongoing.
+
+        Arguments
+        ---------
+        current_datetime : datetime.datetime, optional
+            The datetime to check against. If None, the current datetime is used.
+
+        Returns
+        -------
+        ongoing : bool
+            True if the session is ongoing, False otherwise.
+        """
+        if current_datetime is None:
+            current_datetime = datetime.datetime.now()
+        # Note we want one <= and one <!
+        return self.start_datetime <= current_datetime < self.end_datetime
 
 
 class Program:
@@ -230,7 +248,7 @@ class Program:
         return df
 
     @staticmethod
-    def parse_datetime(datetime_str: str) -> date:
+    def parse_datetime(datetime_str: str) -> datetime.datetime:
         """Parse a datetime string in the proper schema format and return a datetime object.
 
         Arguments
@@ -243,10 +261,10 @@ class Program:
         datetime : datetime.datetime
             The parsed datetime object.
         """
-        return datetime.strptime(datetime_str, schema.DATETIME_FORMAT)
+        return datetime.datetime.strptime(datetime_str, schema.DATETIME_FORMAT)
 
     @staticmethod
-    def parse_date(date_str: str) -> date:
+    def parse_date(date_str: str) -> datetime.date:
         """Parse a date string in the proper schema format and return a date object.
 
         Arguments
@@ -259,7 +277,22 @@ class Program:
         date : datetime.date
             The parsed date object.
         """
-        return datetime.strptime(date_str, schema.DATE_FORMAT).date()
+        return datetime.datetime.strptime(date_str, schema.DATE_FORMAT).date()
+
+    def ongoing_sessions(self, current_datetime: datetime.datetime = None) -> list[Session]:
+        """Return the list of ongoing sessions.
+
+        Arguments
+        ---------
+        current_datetime : datetime.datetime, optional
+            The datetime to check against. If None, the current datetime is used.
+
+        Returns
+        -------
+        ongoing_sessions : list[Session]
+            The list of ongoing sessions.
+        """
+        return [session for session in self.session_dict.values() if session.ongoing(current_datetime)]
 
     def random_poster(self) -> Poster:
         """Return a random poster from the program.

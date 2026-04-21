@@ -32,7 +32,8 @@ from .logging_ import logger
 from .screen import read_screen_id
 from .magic import read_magic_file
 from .profile import psstatus
-from .program import Poster, PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
+from .program import PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
+from .program2 import Poster, Program, Session
 
 
 class WidgetName(str, Enum):
@@ -1028,6 +1029,7 @@ class SessionDirectory(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
+        self.program = Program(kwargs.get('cfgfile'))
         super().__init__(header_class=ScreenHeaderMinimal, **kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         subtitle = f'{self.DISPLAY_TYPE}'
@@ -1045,7 +1047,6 @@ class SessionDirectory(DisplaWindowBase):
         self.reload_timer.timeout.connect(self._check_reload)
         self._reload_due = None
         # Load the program
-        self.program = PosterProgram(kwargs.get('cfgfile'))
         self.__num_sessions = self._load_program()
         self.__current_index = -1
 
@@ -1075,14 +1076,12 @@ class SessionDirectory(DisplaWindowBase):
         self._reload_due = None
         self.tree_widget.clear()
         items = []
-        for session, posters in self.program.items():
-            if not session.ongoing(self.display_datetime):
-                continue
+        for session in self.program.ongoing_sessions(self.display_datetime):
             end = session.end
             if self._reload_due is None or end < self._reload_due:
                 self._reload_due = end
             item = QtWidgets.QTreeWidgetItem([session.title])
-            for poster in posters:
+            for poster in session.posters:
                 presenter = poster.presenter
                 affiliation = presenter.affiliation
                 if pd.isna(affiliation):
