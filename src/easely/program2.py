@@ -118,7 +118,7 @@ class Session:
     title: str
     start_datetime: datetime
     end_datetime: datetime
-    contributions: list[Poster] = field(default_factory=list)
+    posters: list[Poster] = field(default_factory=list)
 
     def __post_init__(self):
         """Post-initialization processing.
@@ -128,14 +128,19 @@ class Session:
 
     @classmethod
     def from_dataframe_row(cls, row: pd.core.series.Series) -> "Session":
-        """Create a Poster object from a dataframe row.
+        """Create a Session object from a dataframe row.
         """
         return cls(*row)
 
-    def __len__(self) -> int:
-        """Return the number of contributions in the session.
+    def add(self, poster: Poster) -> None:
+        """Add a poster to the session.
         """
-        return len(self.contributions)
+        self.posters.append(poster)
+
+    def __len__(self) -> int:
+        """Return the number of posters in the session.
+        """
+        return len(self.posters)
 
 
 class Program:
@@ -177,7 +182,7 @@ class Program:
         for session_id, session in self.session_dict.items():
             for _, row in self._read_sheet(file_path, schema.session_schema(session_id)).iterrows():
                 poster = Poster.from_dataframe_row(row)
-                session.contributions.append(poster)
+                session.add(poster)
 
     @staticmethod
     def _read_sheet(file_path: PathLike, schema_: schema.SheetSchema) -> pd.DataFrame:
