@@ -17,6 +17,7 @@
 """Basic description of the conference program.
 """
 
+import random
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
@@ -26,6 +27,28 @@ from . import schema
 from .logging_ import logger
 from .paths import WorkspaceLayout, sanitize_file_path
 from .typing_ import PathLike
+
+
+def _trim_string(string: str, max_chars: int) -> str:
+    """Return a shortened version of the string, trimmed to a fixed maximum
+    number of characters if too long.
+
+    Arguments
+    ---------
+    string : str
+        The string to shorten.
+
+    max_chars : int
+        The maximum number of characters to keep in the shortened string.
+
+    Returns
+    -------
+    shortened_string : str
+        The shortened version of the string, with "..." appended if it was trimmed.
+    """
+    if len(string) <= max_chars:
+        return string.ljust(max_chars)
+    return f'{string[:max_chars - 3]}...'
 
 
 @dataclass(frozen=True)
@@ -54,13 +77,10 @@ class Presenter:
         """
         return f'{self.first_name} {self.last_name}'
 
-    def short_affiliation(self, max_chars=25) -> str:
-        """Return a shortened version of the affiliation, trimmed to a fixed maximum
-        number of characters if too long.
+    def short_affiliation(self, max_chars: int = 25) -> str:
+        """Return a shortened version of the affiliation.
         """
-        if len(self.affiliation) <= max_chars:
-            return self.affiliation.ljust(max_chars)
-        return f'{self.affiliation[:max_chars - 3]}...'
+        return _trim_string(self.affiliation, max_chars)
 
     def __str__(self) -> str:
         """String formatting.
@@ -99,13 +119,11 @@ class Poster:
         """
         return cls(*row[:-3], Presenter(*row[-3:]))
 
-    def short_title(self, max_chars=40):
+    def short_title(self, max_chars: int = 40):
         """Return a shortened version of the title, trimmed to a fixed maximum
         number of characters if too long.
         """
-        if len(self.title) <= max_chars:
-            return self.title.ljust(max_chars)
-        return f'{self.title[:max_chars - 3]}...'
+        return _trim_string(self.title, max_chars)
 
 
 @dataclass
@@ -242,3 +260,9 @@ class Program:
             The parsed date object.
         """
         return datetime.strptime(date_str, schema.DATE_FORMAT).date()
+
+    def random_poster(self) -> Poster:
+        """Return a random poster from the program.
+        """
+        session = random.choice(list(self.session_dict.values()))
+        return random.choice(session.posters)
