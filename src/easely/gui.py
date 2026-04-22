@@ -20,7 +20,6 @@ This module contains all the widgets that are relevant for the slideshow.
 """
 
 import datetime
-import os
 import time
 from enum import Enum, IntEnum, auto
 
@@ -32,7 +31,7 @@ from .logging_ import logger
 from .magic import read_magic_file
 from .profile import psstatus
 from .program import PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
-from .program2 import Poster, Program, Session
+from .program2 import Poster, Program
 
 
 class WidgetName(str, Enum):
