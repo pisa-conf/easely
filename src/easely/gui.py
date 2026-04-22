@@ -326,8 +326,7 @@ class ScreenHeader(ScreenHeaderBase):
         """Set the poster roster for the table.
         """
         self._roster = roster
-        # TODO: need to fix this
-        #self.set_subtitle(self._roster.session.title)
+        self.set_subtitle(self._roster.session.title)
 
     def _update_pixmaps(self, poster):
         """Update the two pixmaps.
@@ -599,9 +598,8 @@ class SlideShow(DisplaWindowBase):
         # TODO: This needs to be moved to the proper place.
         #self.poster_roster.load_pixmaps(self.poster_width, self.portrait_height)
         self.header.set_roster(self.poster_roster)
-        # TODO: fixme.
-        #subtitle = f'{self.poster_roster.session.title} (screen #{self.screen_id})'
-        #self.header.set_subtitle(subtitle)
+        subtitle = f'{self.poster_roster.session.title} (screen #{self.program.screen_id})'
+        self.header.set_subtitle(subtitle)
         self.header.table.set_roster(self.poster_roster)
         self._show()
         self.display_poster()
