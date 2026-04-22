@@ -1077,7 +1077,7 @@ class SessionDirectory(DisplaWindowBase):
         self.tree_widget.clear()
         items = []
         for session in self.program.ongoing_sessions(self.display_datetime):
-            end = session.end
+            end = session.end_datetime
             if self._reload_due is None or end < self._reload_due:
                 self._reload_due = end
             item = QtWidgets.QTreeWidgetItem([session.title])
