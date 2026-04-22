@@ -411,6 +411,8 @@ class Program:
                     if roster is None:
                         roster = PosterRoster(session, self.root_dir)
                     roster.append(poster)
+        if roster is None:
+            raise RuntimeError(f"Empty poster roster for screen {self.screen_id}.")
         logger.debug(f"Roster for screen {self.screen_id} includes {len(roster)} poster(s).")
         return roster
 

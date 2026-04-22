@@ -1,4 +1,4 @@
-# Copyright (C) 2021, luca.baldini@pi.infn.it
+# Copyright (C) 2021--2026, the easely team.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,15 +15,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 """Graphical user interface.
-
-This module contains all the widgets that are relevant for the slideshow.
 """
 
 import datetime
 import pathlib
 import time
 from enum import Enum, IntEnum, auto
-
 
 import pandas as pd
 
