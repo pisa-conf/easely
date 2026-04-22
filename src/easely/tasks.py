@@ -30,7 +30,7 @@ from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
 from .paths import WorkspaceLayout, filter_dir, sanitize_file_path, \
     sanitize_folder_path, PROGRAM_FILE_NAME
-from .program2 import Program
+from .program import Program
 from .typing_ import PathLike
 
 

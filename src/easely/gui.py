@@ -28,9 +28,7 @@ from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
 from .magic import read_magic_file
 from .profile import psstatus
-# TODO: remove the program import and module altogether.
-from .program import DATE_FORMAT, DATETIME_FORMAT
-from .program2 import Poster, PosterRoster, Program
+from .program import Poster, PosterRoster, Program
 
 
 class WidgetName(str, Enum):
@@ -401,20 +399,6 @@ class DisplaWindowBase(QtWidgets.QWidget):
         self.poster_width = kwargs['poster_width']
         self.header_height = kwargs['header_height']
         self.portrait_height = kwargs['portrait_height']
-        # Retrieve the display date.
-        display_date = kwargs.get('display_date')
-        # If the --display-date command-line switch is not set we jut cache the
-        # current day and time. Note that we cache both the date and the datetime
-        # of the display.
-        if display_date is None:
-            self.display_date = None#datetime.date.today()
-            self.display_datetime = None#datetime.datetime.now()
-        # Otherwise we also parse the optional display time and proceed.
-        else:
-            display_time = kwargs.get('display_time')
-            display_datetime = f'{display_date} {display_time}'
-            self.display_date = datetime.datetime.strptime(display_date, DATE_FORMAT).date()
-            self.display_datetime = datetime.datetime.strptime(display_datetime, DATETIME_FORMAT)
         # Setup the widget.
         self.setLayout(QtWidgets.QGridLayout())
         self.layout().setColumnMinimumWidth(0, self.poster_width)

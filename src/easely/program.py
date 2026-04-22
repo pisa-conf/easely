@@ -18,502 +18,448 @@
 """
 
 import datetime
-import importlib.resources
-import os
+import pathlib
 import random
-from collections import Counter
-from dataclasses import dataclass
+import socket
+from dataclasses import dataclass, field
 
 import pandas as pd
 
-from . import __name__ as __package_name__
-from .__qt__ import QtCore, QtGui
+from . import schema
 from .logging_ import logger
-from .paths import contribution_file_name
-
-DATE_FORMAT =  '%d/%m/%Y'
-DATE_PRETTY_FORMAT = '%A, %B %d, %Y'
-DATETIME_FORMAT =  f'{DATE_FORMAT} %H:%M'
-
-_GRAPHICS_FOLDER_PATH = importlib.resources.files(__package_name__).joinpath('graphics')
-MISSING_PICTURE_PATH = _GRAPHICS_FOLDER_PATH.joinpath('unknown_female.png')
-MISSING_POSTER_PATH = _GRAPHICS_FOLDER_PATH.joinpath('pisameet2024.png')
-MISSING_QRCODE_PATH = _GRAPHICS_FOLDER_PATH.joinpath('unknown_qrcode.png')
+from .paths import WorkspaceLayout, contribution_file_name, sanitize_file_path
+from .__qt__ import QtGui
+from .typing_ import PathLike
 
 
+def _trim_string(string: str, max_chars: int) -> str:
+    """Return a shortened version of the string, trimmed to a fixed maximum
+    number of characters if too long.
+
+    Arguments
+    ---------
+    string : str
+        The string to shorten.
+
+    max_chars : int
+        The maximum number of characters to keep in the shortened string.
+
+    Returns
+    -------
+    shortened_string : str
+        The shortened version of the string, with "..." appended if it was trimmed.
+    """
+    if len(string) <= max_chars:
+        return string.ljust(max_chars)
+    return f'{string[:max_chars - 3]}...'
+
+
+@dataclass(frozen=True)
+class Presenter:
+
+    """Presenter descriptor.
+
+    Arguments
+    ---------
+    first_name : str
+        The presenter first name (including middle name initials where appropriate).
+
+    last_name : str
+        The presenter last name.
+
+    affiliation : str
+        The presenter affiliation.
+    """
+
+    first_name: str
+    last_name: str
+    affiliation: str
+
+    def full_name(self) -> str:
+        """Return the presenter full name.
+        """
+        return f'{self.first_name} {self.last_name}'
+
+    def short_affiliation(self, max_chars: int = 25) -> str:
+        """Return a shortened version of the affiliation.
+        """
+        return _trim_string(self.affiliation, max_chars)
+
+    def __str__(self) -> str:
+        """String formatting.
+        """
+        return f'{self.full_name()} ({self.affiliation})'
+
+
+@dataclass
 class Poster:
 
-    """Poster descriptor.
+    """Poster contribution descriptor.
 
     Arguments
     ---------
     friendly_id : int
-        The human-readable identifier assigned to the poster by indico.
+        The unique identifier of the contribution in indico.
 
-    db_id : int
-        The unique identifier assigned by indico (this can be used to retrieve the
-        material online).
-
-    screen_id :  int
-        The identifier of the screen the poster needs to be projected on.
+    screen_id : int
+        The identifier of the screen the contribution needs to be projected on.
 
     title : str
-        The poster title.
+        The contribution title.
 
     presenter : Presenter instance
-        The poster presenter.
+        The contribution presenter.
     """
 
-    #pylint: disable=too-many-instance-attributes, too-many-arguments
-
-    def __init__(self, friendly_id: int, db_id: int, screen_id: int,
-        title: str, presenter) -> None:
-        """Constructor.
-        """
-        self.friendly_id = int(friendly_id)
-        self.db_id = int(db_id)
-        self.screen_id = int(screen_id)
-        self.title = title
-        self.presenter = presenter
-        self.poster_pixmap = None
-        self.presenter_pixmap = None
-        self.qrcode_pixmap = None
-        self.session = None
-        self.session_index = None
-        self.program_index = None
+    friendly_id: int
+    screen_id: int
+    title: str
+    presenter: Presenter
 
     @classmethod
-    def from_df_row(cls, row):
-        """Create a PosterSession object from a dataframe row.
+    def from_dataframe_row(cls, row: pd.core.series.Series) -> "Poster":
+        """Create a Poster object from a dataframe row.
         """
-        args = [row[col_name] for col_name in PosterRoster.SESSION_COL_NAMES]
-        if not pd.isna(args[2]):
-            args[2] = int(args[2])
-        return cls(*args[:-3], Presenter(*args[-3:]))
+        return cls(*row[:-3], Presenter(*row[-3:]))
 
-    def short_title(self, max_chars=40):
+    def short_title(self, max_chars: int = 40):
         """Return a shortened version of the title, trimmed to a fixed maximum
         number of characters if too long.
         """
-        if len(self.title) <= max_chars:
-            return self.title.ljust(max_chars)
-        return f'{self.title[:max_chars - 3]}...'
+        return _trim_string(self.title, max_chars)
 
-    @staticmethod
-    def _load_pixmap_w(file_path: str, width: int):
-        """Load the underlying pixmap with a fixed width.
+    def _load_pixmap(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
+        width: int = None, suffix: str = ".png") -> QtGui.QPixmap:
+        """Load a pixmap pertaining to the poster from the file system.
+
+        Note that, unlike the original version of the program, we are always loading
+        image files on the fly and never caching them in the Poster object, even for
+        the slideshow display. This comes at a (small) cost in computational time,
+        but it simplifies the implementation.
+
+        Arguments
+        ---------
+        root_dir : pathlib.Path
+            The path to the root directory for the conference, containing all the files.
+
+        workspace_dir : pathlib.Path
+            The path to the workspace directory containing the files of the given type
+            (e.g., qrcodes, presenters, etc.).
+
+        suffix : str
+            The file suffix for the target file, including the dot, e.g., ".png".
+
+        Returns
+        -------
+        pixmap : QtGui.QPixmap
+            The loaded pixmap, scaled to the given width if specified.
         """
-        logger.debug(f'Loading image data from {file_path}...')
-        return QtGui.QPixmap(str(file_path)).scaledToWidth(width, QtCore.Qt.SmoothTransformation)
+        file_name = contribution_file_name(self.friendly_id, suffix)
+        file_path = root_dir / workspace_dir / file_name
+        pixmap = QtGui.QPixmap(str(file_path))
+        if width is not None:
+            pixmap = pixmap.scaledToWidth(width, QtCore.Qt.SmoothTransformation)
+        return pixmap
 
-    @staticmethod
-    def _load_pixmap_h(file_path: str, height: int):
-        """Load the underlying pixmap with a fixed height.
+    def qrcode_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
+        """Load the QPixmap object with the QR code.
         """
-        logger.debug(f'Loading image data from {file_path}...')
-        return QtGui.QPixmap(str(file_path)).scaledToHeight(height, QtCore.Qt.SmoothTransformation)
+        return self._load_pixmap(root_dir, WorkspaceLayout.QRCODES, width)
 
-    @staticmethod
-    def load_default_pixmaps(poster_width: int, portrait_height: int):
+    def headshot_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
+        """Load the QPixmap object with the presenter headshot.
         """
+        return self._load_pixmap(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS, width)
+
+    def poster_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
+        """Load the QPixmap object with the actual poster.
         """
-        return Poster._load_pixmap_w(MISSING_POSTER_PATH, poster_width),\
-            Poster._load_pixmap_h(MISSING_QRCODE_PATH, portrait_height)
-
-    def load_pixmaps(self, poster_file_path, presenter_file_path, qrcode_file_path,
-        poster_width, portrait_height):
-        """Load all the necessary poster data.
-        """
-        #pylint: disable=too-many-arguments
-        logger.info(f'Loading data for poster {self}...')
-        self.poster_pixmap = self._load_pixmap_w(poster_file_path, poster_width)
-        self.presenter_pixmap = self._load_pixmap_h(presenter_file_path, portrait_height)
-        self.qrcode_pixmap = self._load_pixmap_h(qrcode_file_path, portrait_height)
-
-    def unload_pixmaps(self):
-        """Delete the references to the pixaps, so that the Python garbage collector
-        can free the memory at the next round.
-
-        This can be used, e.g., in the poster browser so that we do not put
-        too many pixmaps in memory as we browse the program.
-        """
-        self.poster_pixmap = None
-        self.presenter_pixmap = None
-        self.qrcode_pixmap = None
-
-    def pretty_print(self, max_chars=40):
-        """Poster pretty print.
-        """
-        title = self.short_title(max_chars)
-        return f'[{self.friendly_id:04d}] {title} ({self.presenter.full_name()})'
-
-    def __str__(self):
-        """String formatting.
-        """
-        return self.pretty_print()
+        return self._load_pixmap(root_dir, WorkspaceLayout.RASTERED_POSTERS, width)
 
 
+@dataclass
+class Session:
 
-class PosterSession:
-
-    """Poster session descriptor.
+    """Session descriptor.
     """
 
-    def __init__(self, id_: int, title: str, start: str , end: str):
-        """Constructor
-        """
-        self.id_ = int(id_)
-        self.title = title
-        self.start = self.parse_datetime(start)
-        self.end = self.parse_datetime(end)
+    id: int
+    title: str
+    start_datetime: datetime.datetime
+    end_datetime: datetime.datetime
+    posters: list[Poster] = field(default_factory=list)
 
-    def parse_datetime(self, text: str):
-        """Parse a datetime string in the proper format.
+    def __post_init__(self):
+        """Post-initialization processing.
         """
-        # pylint: disable=broad-except
-        try:
-            return datetime.datetime.strptime(text, DATETIME_FORMAT)
-        except Exception as exception:
-            logger.warning(f'Invalid date and/or time for session {self.id_} ({exception}).')
-            return None
+        self.start_datetime = Program.parse_datetime(self.start_datetime)
+        self.end_datetime = Program.parse_datetime(self.end_datetime)
 
     @classmethod
-    def from_df_row(cls, row):
-        """Create a PosterSession object from a dataframe row.
+    def from_dataframe_row(cls, row: pd.core.series.Series) -> "Session":
+        """Create a Session object from a dataframe row.
         """
-        return cls(*[row[col_name] for col_name in PosterRoster.PROGRAM_COL_NAMES])
+        return cls(*row)
 
-    def ongoing(self, current_datetime=None) -> bool:
+    def add(self, poster: Poster) -> None:
+        """Add a poster to the session.
+        """
+        self.posters.append(poster)
+
+    def __len__(self) -> int:
+        """Return the number of posters in the session.
+        """
+        return len(self.posters)
+
+    def ongoing(self, current_datetime: datetime.datetime = None) -> bool:
         """Return True if the session is ongoing.
+
+        Arguments
+        ---------
+        current_datetime : datetime.datetime, optional
+            The datetime to check against. If None, the current datetime is used.
+
+        Returns
+        -------
+        ongoing : bool
+            True if the session is ongoing, False otherwise.
         """
         if current_datetime is None:
             current_datetime = datetime.datetime.now()
         # Note we want one <= and one <!
-        return self.start is not None and self.end is not None and \
-            self.start <= current_datetime < self.end
-
-    def __str__(self):
-        """String formatting.
-        """
-        return f'Session {self.id_} ({self.title})'
+        return self.start_datetime <= current_datetime < self.end_datetime
 
 
+class PosterRoster(list):
 
-class PosterCollectionBase:
+    """Poster roster descriptor.
 
-    """Base class for a poster collection.
+    This is a small convenience class to keep track of the posters assigned to
+    a given screen.
 
-    This base class has all the pointers to the relevant directory structure, as
-    well as a reference to the underlying pandas data frame containing the
-    program (and read from the first sheet of the excel configuration file).
-    Note that parsing the session sheets of the excel file is delegated to the
-    sub-classes.
+    .. warning::
 
-    See the PosterRoster and PosterProgram for concrete examples of sub-classes.
+       This class is currently inheriting from list, mainly for backward
+       compatibility, but we should think hard about whether this is a good
+       idea. We should look into which kind of interfaces we really need and
+       implement just those.
 
     Arguments
     ---------
-    config_file_path : str
-        The path to the excel config file with the poster program.
-
-    root_folder_path : str
-        The path to the root folder containing the session material---if None
-        defaults to the directory in which the configuration file is placed.
+    session : Session instance
+        The session the roster is associated with.
     """
 
-    PROGRAM_SHEET_NAME = 'Program'
-    PROGRAM_COL_NAMES = (
-        'Session ID', 'Session Name', 'Start Date', 'End Date'
-        )
-    PROGRAM_COL_DTYPES = {'Session ID': int, 'Start Date': str, 'End Date': str}
-    SESSION_COL_NAMES = (
-        'Friendly ID', 'DB ID', 'Screen ID', 'Title', 'First Name', 'Last Name', 'Affiliation'
-        )
-    SESSION_COL_DTYPES = {'Friendly ID': int, 'DB ID': int, 'Screen ID': int}
-    POSTER_FOLDER_NAME = 'posters_raster'
-    PRESENTER_FOLDER_NAME = 'presenters_crop'
-    QRCODE_FOLDER_NAME = 'qrcodes'
-
-    def __init__(self, config_file_path: str, root_folder_path: str = None) -> None:
+    def __init__(self, session: Session, root_dir: pathlib.Path) -> None:
         """Constructor.
         """
-        self.config_file_path = config_file_path
-        if root_folder_path is None:
-            root_folder_path = os.path.dirname(config_file_path)
-        self.root_folder_path = os.path.abspath(root_folder_path)
-        self.poster_folder_path = os.path.join(self.root_folder_path, self.POSTER_FOLDER_NAME)
-        self.presenter_folder_path = os.path.join(self.root_folder_path, self.PRESENTER_FOLDER_NAME)
-        self.qrcode_folder_path = os.path.join(self.root_folder_path, self.QRCODE_FOLDER_NAME)
-        logger.debug(f'Reading {self.PROGRAM_SHEET_NAME} sheet from {config_file_path}...')
-        self._program_df = pd.read_excel(config_file_path, self.PROGRAM_SHEET_NAME,
-            dtype=self.PROGRAM_COL_DTYPES)
-        logger.debug(f'Done, {len(self._program_df)} row(s) found.')
+        super().__init__()
+        self.session = session
+        self.root_dir = root_dir
 
-    def session_list(self):
-        """Return a list with all the PosterSession objects.
 
-        Note we are filtering the sessions to avoid having multiple copies of the
-        same entry in the menu. This is horrible and should be streamlined.
+class Program:
+
+    """Conference program descriptor.
+
+    Arguments
+    ---------
+    file_path : PathLike
+        The path to the program excel file.
+
+    host_name : str, optional
+        The name of the host computer. If None, the current hostname is used.
+        This is handy for testing and debugging, to simulate the display on
+        different hosts.
+
+    display_datetime : datetime.datetime, optional
+        The datetime to use for the display. If None, the current datetime is used.
+        This is handy for testing and debugging, to simulate the display at
+        different times during (or before/after) the conference.
+    """
+
+    def __init__(self, file_path: PathLike, screen_id: int = None,
+                 display_datetime: datetime.datetime = None) -> None:
+        """Initialize the program from an excel configuration file.
         """
-        sessions = []
-        visited = []
-        for _, row in self._program_df.iterrows():
-            session = PosterSession.from_df_row(row)
-            if session.title not in visited:
-                visited.append(session.title)
-                sessions.append(session)
-        return sessions
-        #return [PosterSession.from_df_row(row) for _, row in self._program_df.iterrows()]
-
-    def session_data_frame(self, session_id):
-        """Return a pandas data frame with all the data for a given session.
-        """
-        # pylint: disable=broad-except
-        logger.info(f'Reading data for session {session_id}...')
-        try:
-            return pd.read_excel(self.config_file_path, str(session_id), dtype=self.SESSION_COL_DTYPES)
-        except Exception as exception:
-            logger.warning(f'Data not available for session {session_id}: {exception}')
-            return None
-
-    def session_poster_list(self, session_id, sort=True):
-        """Return a list of Poster objects for a given session data frame.
-        """
-        data_frame = self.session_data_frame(session_id)
-        if data_frame is None:
-            return []
-        poster_list = [Poster.from_df_row(row) for _, row in data_frame.iterrows()]
-        if sort:
-            poster_list.sort(key=lambda item: item.friendly_id)
-        return poster_list
-
-    def poster_dict(self):
-        """Return a dictionary of lists of Poster objects, indexed by session.
-        """
-        return {session: self.session_poster_list(session.id_) for session in self.session_list()}
+        file_path = sanitize_file_path(file_path, suffix='.xlsx', check_exists=True)
+        self.root_dir = file_path.parent
+        self.display_datetime = display_datetime
+        logger.info(f"Loading program data from {file_path}...")
+        # Read the first worksheet, with the conference metadata.
+        schema_ = schema.conference_schema()
+        df = self._read_sheet(file_path, schema_)
+        key_col, value_col = schema_.col_headers()
+        metadata = df.dropna(subset=[key_col]).set_index(key_col)[value_col].to_dict()
+        self.conference_name = metadata['conference_name']
+        self.location = metadata['location']
+        self.start_date = self.parse_date(metadata['start_date'])
+        self.end_date = self.parse_date(metadata['end_date'])
+        # Read the program worksheet, with the list of sessions.
+        self.session_dict = {}
+        for _, row in self._read_sheet(file_path, schema.program_schema()).iterrows():
+            session = Session.from_dataframe_row(row)
+            self.session_dict[session.id] = session
+        # Read the mapping between host ids and screen ids.
+        self.screen_dict = {screen: host for _, (host, screen) in
+            self._read_sheet(file_path, schema.hosts_schema()).iterrows()}
+        # And, since we are at it, cache the screen id for the current host.
+        self.host_name = socket.gethostname()
+        self.screen_id = screen_id or self.screen_dict.get(self.host_name)
+        logger.debug(f"Host {self.host_name} mapped to screen id {self.screen_id}.")
+        # Read all the session sheets.
+        for session_id, session in self.session_dict.items():
+            for _, row in self._read_sheet(file_path, schema.session_schema(session_id)).iterrows():
+                poster = Poster.from_dataframe_row(row)
+                session.add(poster)
 
     @staticmethod
-    def _image_file_name(poster_id: int):
-        """Return the file name for any of the pixmaps for a given poster.
-
-        The rule, here, is that all the pixmpas share the same file name
-        (e.g., 0027.png) and live in different folders.
-        """
-        return contribution_file_name(poster_id, '.png')
-
-    def _image_path_base(self, poster_id: int, folder_name: str, default: str):
-        """Generic function to build the path to the actual pixmap file for a given poster.
+    def _read_sheet(file_path: PathLike, schema_: schema.SheetSchema) -> pd.DataFrame:
+        """Read a worksheet from the program excel file and return it as a dataframe.
 
         Arguments
         ---------
-        poster_id : int
-            The poster friendly ID.
+        file_path : PathLike
+             The path to the program excel file.
 
-        folder_name : str
-            The name of the folder containing the pixmaps, relative to the root folder.
+        schema_ : SheetSchema instance
+             The schema of the worksheet to read.
 
-        default : str
-            The path to the default pixmap, in case the proper one does not exist.
+        Returns
+        -------
+        df : pandas.DataFrame
+             The worksheet content as a dataframe.
         """
-        file_name = self._image_file_name(poster_id)
-        file_path = os.path.join(self.root_folder_path, folder_name, file_name)
-        if not os.path.exists(file_path):
-            logger.warning(f'Could not find {file_path}...')
-            return default
-        return file_path
+        logger.debug(f"Reading worksheet {schema_.name}...")
+        df = pd.read_excel(file_path, sheet_name=schema_.name, header=0)
+        if tuple(df.columns) != schema_.col_headers():
+            raise ValueError(
+                f"Invalid columns in '{schema_.name}'. "
+                f"Expected {schema_.col_headers()}, got {tuple(df.columns)}"
+            )
+        logger.debug(f"Done, {len(df)} row(s) read out.")
+        return df
 
-    def poster_image_path(self, poster_id):
-        """Return the path to the poster image.
+    @staticmethod
+    def parse_datetime(datetime_str: str) -> datetime.datetime:
+        """Parse a datetime string in the proper schema format and return a datetime object.
+
+        Arguments
+        ---------
+        datetime_str : str
+            The datetime string to parse.
+
+        Returns
+        -------
+        datetime : datetime.datetime
+            The parsed datetime object.
         """
-        return self._image_path_base(poster_id, self.POSTER_FOLDER_NAME, MISSING_POSTER_PATH)
+        return datetime.datetime.strptime(datetime_str, schema.DATETIME_FORMAT)
 
-    def missing_poster_image(self, poster_id):
+    @staticmethod
+    def parse_date(date_str: str) -> datetime.date:
+        """Parse a date string in the proper schema format and return a date object.
+
+        Arguments
+        ---------
+        date_str : str
+            The date string to parse.
+
+        Returns
+        -------
+        date : datetime.date
+            The parsed date object.
         """
+        return datetime.datetime.strptime(date_str, schema.DATE_FORMAT).date()
+
+    def ongoing_sessions(self) -> list[Session]:
+        """Return the list of ongoing sessions.
+
+        Arguments
+        ---------
+        current_datetime : datetime.datetime, optional
+            The datetime to check against. If None, the current datetime is used.
+
+        Returns
+        -------
+        ongoing_sessions : list[Session]
+            The list of ongoing sessions.
         """
-        return self.poster_image_path(poster_id) == MISSING_POSTER_PATH
+        return [session for session in self.session_dict.values() if session.ongoing(self.display_datetime)]
 
-    def presenter_image_path(self, poster_id):
-        """Return the path to the presenter image.
+    def poster_roster(self) -> PosterRoster:
+        """Return the list of posters assigned to the current screen at the
+        given display time.
+
+        .. warning::
+
+           At this moment we are not making any effort to prevent the user from
+           mixing sessions in the roster, but we probably should.
+
+        Returns
+        -------
+        roster : list[Poster]
+            The list of posters assigned to the current screen.
         """
-        return self._image_path_base(poster_id, self.PRESENTER_FOLDER_NAME, MISSING_PICTURE_PATH)
+        if self.screen_id is None:
+            raise ValueError(f"Host {self.host_name} not mapped to any screen.")
+        roster = None
+        for session in self.ongoing_sessions():
+            logger.debug(f"Session '{session.title}' ongoing with {len(session)} poster(s).")
+            for poster in session.posters:
+                if poster.screen_id == self.screen_id:
+                    if roster is None:
+                        roster = PosterRoster(session, self.root_dir)
+                    roster.append(poster)
+        if roster is None:
+            raise RuntimeError(f"Empty poster roster for screen {self.screen_id}.")
+        logger.debug(f"Roster for screen {self.screen_id} includes {len(roster)} poster(s).")
+        return roster
 
-    def missing_presenter_image(self, poster_id):
+    def random_poster(self) -> Poster:
+        """Return a random poster from the program.
         """
-        """
-        return self.presenter_image_path(poster_id) == MISSING_PICTURE_PATH
+        session = random.choice(list(self.session_dict.values()))
+        return random.choice(session.posters)
 
-    def qrcode_image_path(self, poster_id):
-        """Return the path to the qrcode image.
-        """
-        return self._image_path_base(poster_id, self.QRCODE_FOLDER_NAME, MISSING_QRCODE_PATH)
-
-    def missing_qrcode_image(self, poster_id):
-        """
-        """
-        return self.qrcode_image_path(poster_id) == MISSING_QRCODE_PATH
-
-    def load_poster_pixmaps(self, poster, poster_width, portrait_height):
-        """Load all the necessary pixmaps for a given poster.
-        """
-        poster_id = poster.friendly_id
-        poster_file_path = self.poster_image_path(poster_id)
-        presenter_file_path = self.presenter_image_path(poster_id)
-        qrcode_file_path = self.qrcode_image_path(poster_id)
-        poster.load_pixmaps(poster_file_path, presenter_file_path, qrcode_file_path,
-            poster_width, portrait_height)
-
-
-
-class PosterRoster(PosterCollectionBase, list):
-
-    """Poster roster description.
-
-    Arguments
-    ---------
-    config_file_path : str
-        The path to the excel config file with the poster program.
-
-    root_folder_path : str
-        The path to the root folder containing the session material.
-
-    screen_id : int
-        The screen identifier for the poster roster.
-    """
-
-    def __init__(self, config_file_path: str, root_folder_path: str, screen_id: int,
-        display_date: str = None) -> None:
-        """Constructor.
-
-        Note there are two subtle tweaks that we did in 2024, to adapt to the new
-        poster session scheme, where multiple sessions are displayed in parallel:
-        we removede the break within the main for loop, so that the code will look
-        into *all* the sessions happening at a given time, and we assign the session
-        name deep inside the loop, so that, for any given scree ID we pick the proper
-        session. Note this mechanism is fragile and relies on the fact that we
-        do not mix sessions within each screen.
-        """
-        PosterCollectionBase.__init__(self, config_file_path, root_folder_path)
-        list.__init__(self)
-        self.screen_id = screen_id
-        self.session = None
-        logger.info('Populating session list...')
-        for _, program_row in self._program_df.iterrows():
-            session = PosterSession.from_df_row(program_row)
-            if not session.ongoing(display_date):
-                continue
-            logger.info(f'Parsing ongoing {session}...')
-            try:
-                session_df = pd.read_excel(config_file_path, f'{session.id_}')
-                for _, session_row in session_df.iterrows():
-                    poster = Poster.from_df_row(session_row)
-                    if poster.screen_id == self.screen_id:
-                        self.append(poster)
-                        self.session = session
-            except ValueError as exception:
-                logger.warning(f'Data not available for session {session.id_}: {exception}')
-            # The following two lines have been modified to support multiple
-            # poster sessions in parallel---the break is removed and the session
-            # assigned is moved within the for loop.
-            #self.session = session
-            #break
-        if len(self) == 0:
-            logger.warning(f'Empty poster roster for screen {self.screen_id}')
-
-    def load_pixmaps(self, poster_width: int, portrait_height: int):
-        """Load all the poster pixmaps with the proper dimensions.
-        """
-        for poster in self:
-            self.load_poster_pixmaps(poster, poster_width, portrait_height)
-
-    def __str__(self):
-        """String formatting.
-        """
-        return f'Roster for screen {self.screen_id}\n' + '\n'.join([str(poster) for poster in self])
-
-
-
-class PosterProgram(PosterCollectionBase, dict):
-
-    """Full description of a poster program.
-
-    The program is organized as dictionary indexed by PosterSession and whose
-    values are Poster objects.
-    """
-
-    def __init__(self, config_file_path: str, root_folder_path: str = None) -> None:
-        """Constructor
-        """
-        PosterCollectionBase.__init__(self, config_file_path, root_folder_path)
-        dict.__init__(self, self.poster_dict())
-        self.__flattened_list = []
-        program_index = 0
-        for session, posters in self.items():
-            for i, poster in enumerate(posters):
-                poster.session = session
-                poster.program_index = program_index
-                poster.session_index = i
-                program_index += 1
-                self.__flattened_list.append(poster)
-
-    def select_by_program_index(self, index):
-        """Select a poster by program index.
-        """
-        return self.__flattened_list[index % len(self.__flattened_list)]
-
-    def select_by_session_index(self, session, index):
-        """Select a poster by session index.
-        """
-        posters = self[session]
-        return posters[index % len(posters)]
-
-    def random_poster(self):
-        """Return a random poster object from the program.
-        """
-        logger.debug('Picking random poster from the program...')
-        session = random.choice(list(self))
-        logger.debug(session)
-        poster = random.choice(self[session])
-        logger.debug(poster)
-        return poster
-
-    def dump_report(self):
-        """Dump a program report for diagnostics purposes.
-        """
-        basic_stats = {'posters': 0, 'pics': 0, 'qrcodes': 0}
-        missing_stats = {'posters': 0, 'pics': 0, 'qrcodes': 0}
-        missing_pics = []
-        missing_posters = []
-        for session, posters in self.items():
-            logger.info(session)
-            cnt = Counter([poster.screen_id for poster in posters])
-            cnt = dict(sorted(cnt.items()))
-            num_posters = len(posters)
-            mult = cnt.values()
-            num_screens = len(mult)
-            mean_mult = num_posters / num_screens
-            logger.info(f'{num_posters} posters on {num_screens} screen(s), multiplicity: {min(mult)}--{max(mult)} (average {mean_mult:.2f})')
-            for poster in posters:
-                if self.missing_poster_image(poster.friendly_id):
-                    missing_stats['posters'] += 1
-                    missing_posters.append(poster)
-                else:
-                    basic_stats['posters'] += 1
-                if self.missing_presenter_image(poster.friendly_id):
-                    missing_stats['pics'] += 1
-                    if not self.missing_poster_image(poster.friendly_id):
-                        missing_pics.append(poster)
-                else:
-                    basic_stats['pics'] += 1
-                if self.missing_qrcode_image(poster.friendly_id):
-                    missing_stats['qrcodes'] += 1
-                else:
-                    basic_stats['qrcodes'] += 1
-            logger.info(f'Screen statistics: {cnt}')
-        logger.info(f'Basic statistics: {basic_stats}')
-        logger.info(f'Missing elements: {missing_stats}')
-        logger.info(f'Oprhan posters with no presenter pic:')
-        for poster in missing_pics:
-            logger.info(poster)
-        logger.info(f'Missing posters:')
-        for poster in missing_posters:
-            logger.info(poster)
+    # def dump_report(self):
+    #     """Dump a program report for diagnostics purposes.
+    #     """
+    #     basic_stats = {'posters': 0, 'pics': 0, 'qrcodes': 0}
+    #     missing_stats = {'posters': 0, 'pics': 0, 'qrcodes': 0}
+    #     missing_pics = []
+    #     missing_posters = []
+    #     for session, posters in self.items():
+    #         logger.info(session)
+    #         cnt = Counter([poster.screen_id for poster in posters])
+    #         cnt = dict(sorted(cnt.items()))
+    #         num_posters = len(posters)
+    #         mult = cnt.values()
+    #         num_screens = len(mult)
+    #         mean_mult = num_posters / num_screens
+    #         logger.info(f'{num_posters} posters on {num_screens} screen(s), multiplicity: {min(mult)}--{max(mult)} (average {mean_mult:.2f})')
+    #         for poster in posters:
+    #             if self.missing_poster_image(poster.friendly_id):
+    #                 missing_stats['posters'] += 1
+    #                 missing_posters.append(poster)
+    #             else:
+    #                 basic_stats['posters'] += 1
+    #             if self.missing_presenter_image(poster.friendly_id):
+    #                 missing_stats['pics'] += 1
+    #                 if not self.missing_poster_image(poster.friendly_id):
+    #                     missing_pics.append(poster)
+    #             else:
+    #                 basic_stats['pics'] += 1
+    #             if self.missing_qrcode_image(poster.friendly_id):
+    #                 missing_stats['qrcodes'] += 1
+    #             else:
+    #                 basic_stats['qrcodes'] += 1
+    #         logger.info(f'Screen statistics: {cnt}')
+    #     logger.info(f'Basic statistics: {basic_stats}')
+    #     logger.info(f'Missing elements: {missing_stats}')
+    #     logger.info(f'Oprhan posters with no presenter pic:')
+    #     for poster in missing_pics:
+    #         logger.info(poster)
+    #     logger.info(f'Missing posters:')
+    #     for poster in missing_posters:
+    #         logger.info(poster)

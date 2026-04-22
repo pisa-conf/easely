@@ -29,7 +29,7 @@ from easely.__qt__ import bootstrap_window
 from easely.gui import ProgramBrowser, SessionDirectory, SlideShow
 from easely import face
 from easely import tasks
-from easely.program2 import Program
+from easely.program import Program
 
 
 def start_message() -> None:
