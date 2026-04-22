@@ -20,6 +20,7 @@ This module contains all the widgets that are relevant for the slideshow.
 """
 
 import datetime
+import pathlib
 import time
 from enum import Enum, IntEnum, auto
 
@@ -330,8 +331,12 @@ class ScreenHeader(ScreenHeaderBase):
     def _update_pixmaps(self, poster):
         """Update the two pixmaps.
         """
-        self.headshot_label.setPixmap(poster.headshot_pixmap(self._roster.root_dir))
-        self.qrcode_label.setPixmap(poster.qrcode_pixmap(self._roster.root_dir))
+        try:
+            root_dir = self._roster.root_dir
+        except AttributeError:
+            root_dir = pathlib.Path()
+        self.headshot_label.setPixmap(poster.headshot_pixmap(root_dir))
+        self.qrcode_label.setPixmap(poster.qrcode_pixmap(root_dir))
 
     def _update_presenter(self, poster):
         """Update the presenter name and affiliation.
@@ -804,6 +809,7 @@ class ProgramBrowser(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
+        self.program = Program(kwargs.get('cfgfile'))
         super().__init__(**kwargs)
         # Hide the header and the poster label, and show the tree view, instead.
         self.header.set_subtitle(self.DISPLAY_TYPE)
@@ -816,7 +822,6 @@ class ProgramBrowser(DisplaWindowBase):
         # memory taken by the pixmaps when the tree view is restored.
         self.__current_poster = None
         # Load the program.
-        self.program = PosterProgram(kwargs.get('cfgfile'))
         self._load_program()
         # Setup the timers. We have two of them---one for the carousel progression
         # and another one for toggling between the different views.
@@ -839,11 +844,12 @@ class ProgramBrowser(DisplaWindowBase):
         """Load the program into the tree viewer.
         """
         items = []
-        for session, posters in self.program.items():
+        for session in self.program.session_dict.values():
             item = QtWidgets.QTreeWidgetItem([session.title])
-            for poster in posters:
-                if self.program.missing_poster_image(poster.friendly_id):
-                    continue
+            for poster in session.posters:
+                # TODO: fixme.
+                #if self.program.missing_poster_image(poster.friendly_id):
+                #    continue
                 presenter = poster.presenter
                 affiliation = presenter.affiliation
                 if pd.isna(affiliation):
@@ -888,17 +894,19 @@ class ProgramBrowser(DisplaWindowBase):
         # Hide the cutsom tree widget and disable the key-press events.
         self.tree_widget.hide()
         self.tree_widget.disable_key_press_events()
+
+        # TODO: fixme: the unload/load cycle is no more necessary.
         # Unload the pixmaps.
-        self.unload_current_pixmaps()
+        #self.unload_current_pixmaps()
         # Load the necessary pixmaps for the poster.
-        self.program.load_poster_pixmaps(poster, self.poster_width, self.portrait_height)
+        #self.program.load_poster_pixmaps(poster, self.poster_width, self.portrait_height)
         # Update the widgets and show the poster label.
         self.header.set_poster(poster)
         if self.__status == BrowserStatus.CAROUSEL:
             self.header.set_subtitle(f'{self.DISPLAY_TYPE} (random carousel)')
         else:
             self.header.set_subtitle(f'{self.DISPLAY_TYPE} ({poster.session.title})')
-        self.poster_label.setPixmap(poster.poster_pixmap)
+        self.poster_label.setPixmap(poster.poster_pixmap(pathlib.Path()))
         self.poster_label.show()
         self.header.show()
         # Final bookkeeping.
