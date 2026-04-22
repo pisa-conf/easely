@@ -341,6 +341,11 @@ class Program:
         """Return the list of posters assigned to the current screen at the
         given display time.
 
+        .. warninhg::
+
+           At this moment we are not making any effort to prevent the user from
+           mixing sessions in the roster, but we probably should.
+
         Returns
         -------
         roster : list[Poster]
