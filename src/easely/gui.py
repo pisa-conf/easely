@@ -158,7 +158,7 @@ class RosterTable(QtWidgets.QTableWidget):
         self._highlight_color = QtGui.QColor(0, 0, 0)
         self._highlighted_row = None
 
-    def set_text(self, row: int, col: int, text: str):
+    def set_text(self, row: int, col: int, text: str) -> None:
         """Set the text for a given cell.
 
         Note the item is rendered with the default foreground color upon insertion.
@@ -178,7 +178,7 @@ class RosterTable(QtWidgets.QTableWidget):
         item.setForeground(self._default_color)
         self.setItem(row, col, item)
 
-    def set_poster(self, row: int, poster: Poster, title_length=65):
+    def set_poster(self, row: int, poster: Poster, title_length: int = 65) -> None:
         """Populate a given row with the poster information.
 
         Arguments
@@ -193,7 +193,7 @@ class RosterTable(QtWidgets.QTableWidget):
         self.set_text(row, 1, f'{poster.short_title(title_length)}'.ljust(title_length))
         self.set_text(row, 2, f'{poster.presenter.full_name()}')
 
-    def set_roster(self, roster: PosterRoster):
+    def set_roster(self, roster: PosterRoster) -> None:
         """Populate the entire table with a poster roster.
 
         Arguments
@@ -206,7 +206,7 @@ class RosterTable(QtWidgets.QTableWidget):
         for row, poster in enumerate(roster):
             self.set_poster(row, poster)
 
-    def set_current_row(self, row: int):
+    def set_current_row(self, row: int) -> None:
         """Highlight a given row.
 
         Arguments
