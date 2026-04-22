@@ -180,6 +180,32 @@ class Session:
         return self.start_datetime <= current_datetime < self.end_datetime
 
 
+class PosterRoster(list):
+
+    """Poster roster descriptor.
+
+    This is a small convenience class to keep track of the posters assigned to
+    a given screen.
+
+    .. warning::
+
+       This class is currently inheriting from list, mainly for backward
+       compatibility, but we should think hard about whether this is a good
+       idea.
+
+    Arguments
+    ---------
+    session : Session instance
+        The session the roster is associated with.
+    """
+
+    def __init__(self, session: Session) -> None:
+        """Constructor.
+        """
+        super().__init__()
+        self.session = session
+
+
 class Program:
 
     """Conference program descriptor.
@@ -311,7 +337,7 @@ class Program:
         """
         return [session for session in self.session_dict.values() if session.ongoing(self.display_datetime)]
 
-    def poster_roster(self) -> list[Poster]:
+    def poster_roster(self) -> PosterRoster:
         """Return the list of posters assigned to the current screen at the
         given display time.
 
@@ -322,13 +348,14 @@ class Program:
         """
         if self.screen_id is None:
             raise ValueError(f"Host '{self.host_name}' not mapped to a screen.")
-        roster = []
+        roster = None
         for session in self.ongoing_sessions():
             logger.debug(f"Session '{session.title}' ongoing with {len(session)} poster(s).")
             for poster in session.posters:
                 if poster.screen_id == self.screen_id:
+                    if roster is None:
+                        roster = PosterRoster(session)
                     roster.append(poster)
-                    logger.debug(f"'{poster.title}' by {poster.presenter} added.")
         logger.debug(f"Roster for screen {self.screen_id} includes {len(roster)} poster(s).")
         return roster
 
