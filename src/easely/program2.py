@@ -128,26 +128,53 @@ class Poster:
         """
         return _trim_string(self.title, max_chars)
 
-    def _load_pixmap(self, root_dir: pathlib.Path, sub_dir: pathlib.Path,
+    def _load_pixmap(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
         width: int = None, suffix: str = ".png") -> QtGui.QPixmap:
-        """Load
+        """Load a pixmap pertaining to the poster from the file system.
+
+        Note that, unlike the original version of the program, we are always loading
+        image files on the fly and never caching them in the Poster object, even for
+        the slideshow display. This comes at a (small) cost in computational time,
+        but it simplifies the implementation.
+
+        Arguments
+        ---------
+        root_dir : pathlib.Path
+            The path to the root directory for the conference, containing all the files.
+
+        workspace_dir : pathlib.Path
+            The path to the workspace directory containing the files of the given type
+            (e.g., qrcodes, presenters, etc.).
+
+        suffix : str
+            The file suffix for the target file, including the dot, e.g., ".png".
+
+        Returns
+        -------
+        pixmap : QtGui.QPixmap
+            The loaded pixmap, scaled to the given width if specified.
         """
-        file_path = root_dir / sub_dir / contribution_file_name(self.friendly_id, suffix)
-        print(file_path)
+        file_name = contribution_file_name(self.friendly_id, suffix)
+        file_path = root_dir / workspace_dir / file_name
         pixmap = QtGui.QPixmap(str(file_path))
         if width is not None:
             pixmap = pixmap.scaledToWidth(width, QtCore.Qt.SmoothTransformation)
         return pixmap
 
     def qrcode_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
-        """
+        """Load the QPixmap object with the QR code.
         """
         return self._load_pixmap(root_dir, WorkspaceLayout.QRCODES, width)
 
     def headshot_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
+        """Load the QPixmap object with the presenter headshot.
         """
+        return self._load_pixmap(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS, width)
+
+    def poster_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
+        """Load the QPixmap object with the actual poster.
         """
-        return self._load_pixmap(root_dir, WorkspaceLayout.HEADSHOTS, width)
+        return self._load_pixmap(root_dir, WorkspaceLayout.RASTERED_POSTERS, width)
 
 
 @dataclass
@@ -223,11 +250,12 @@ class PosterRoster(list):
         The session the roster is associated with.
     """
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, root_dir: pathlib.Path) -> None:
         """Constructor.
         """
         super().__init__()
         self.session = session
+        self.root_dir = root_dir
 
 
 class Program:
@@ -381,7 +409,7 @@ class Program:
             for poster in session.posters:
                 if poster.screen_id == self.screen_id:
                     if roster is None:
-                        roster = PosterRoster(session)
+                        roster = PosterRoster(session, self.root_dir)
                     roster.append(poster)
         logger.debug(f"Roster for screen {self.screen_id} includes {len(roster)} poster(s).")
         return roster
