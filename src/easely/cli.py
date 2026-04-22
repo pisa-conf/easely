@@ -29,6 +29,7 @@ from easely.__qt__ import bootstrap_window
 from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
 from easely import face
 from easely import tasks
+from easely.program2 import Program
 
 
 def start_message() -> None:
@@ -229,7 +230,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_pause(slideshow)
         self.add_advance(slideshow)
         self.add_fading(slideshow)
-        self.add_datetime(slideshow)
+        self.add_display_datetime(slideshow)
         self.add_logging_level(slideshow)
         slideshow.set_defaults(runner=self.start_slideshow)
 
@@ -296,6 +297,13 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="height of the poster header")
         parser.add_argument("--portrait-height", type=int, default=132,
             help="height of the presenter portraits and QR codes")
+
+    @staticmethod
+    def add_display_datetime(parser: argparse.ArgumentParser) -> None:
+        """Add the display date and time options.
+        """
+        parser.add_argument("--display-datetime", type=Program.parse_datetime, default=None,
+            help="optional date and time for the display, e.g. 2026-01-01 00:00:00")
 
     @staticmethod
     def add_datetime(parser: argparse.ArgumentParser) -> None:

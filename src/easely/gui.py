@@ -327,13 +327,15 @@ class ScreenHeader(ScreenHeaderBase):
         """Set the poster roster for the table.
         """
         self._roster = roster
-        self.set_subtitle(self._roster.session.title)
+        # TODO: need to fix this
+        #self.set_subtitle(self._roster.session.title)
 
     def _update_pixmaps(self, poster):
         """Update the two pixmaps.
         """
-        self.headshot_label.setPixmap(poster.presenter_pixmap)
-        self.qrcode_label.setPixmap(poster.qrcode_pixmap)
+        # TODO: fixme
+        #self.headshot_label.setPixmap(poster.presenter_pixmap)
+        #self.qrcode_label.setPixmap(poster.qrcode_pixmap)
 
     def _update_presenter(self, poster):
         """Update the presenter name and affiliation.
@@ -537,6 +539,7 @@ class SlideShow(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
+        self.program = Program(kwargs.get('cfgfile'), display_datetime=kwargs.get('display_datetime'))
         super().__init__(**kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         self.pause_interval = self.sec_to_msec(kwargs['pause_interval'])
@@ -565,6 +568,10 @@ class SlideShow(DisplaWindowBase):
         if read_magic_file():
             self._load_roster()
             return
+
+        return
+        # TODO: fixme, and think hard about whether we want the roster to
+        # keep track of the session or not.
         # Deal with the case where the session is empty.
         if self.poster_roster.session is None:
             return
@@ -580,8 +587,9 @@ class SlideShow(DisplaWindowBase):
         self.stop()
         self.hide()
         folder_path = os.path.dirname(self.config_file_path)
-        self.poster_roster = PosterRoster(self.config_file_path, folder_path,
-            self.screen_id, self.display_datetime)
+        self.poster_roster = self.program.poster_roster()
+        #self.poster_roster = PosterRoster(self.config_file_path, folder_path,
+        #    self.screen_id, self.display_datetime)
         if len(self.poster_roster) == 0:
             logger.info('Displaying default poster...')
             self._show()
@@ -591,10 +599,12 @@ class SlideShow(DisplaWindowBase):
             self.header.set_subtitle('')
             self.header.qrcode_label.setPixmap(pix2)
             return
-        self.poster_roster.load_pixmaps(self.poster_width, self.portrait_height)
+        # TODO: This needs to be moved to the proper place.
+        #self.poster_roster.load_pixmaps(self.poster_width, self.portrait_height)
         self.header.set_roster(self.poster_roster)
-        subtitle = f'{self.poster_roster.session.title} (screen #{self.screen_id})'
-        self.header.set_subtitle(subtitle)
+        # TODO: fixme.
+        #subtitle = f'{self.poster_roster.session.title} (screen #{self.screen_id})'
+        #self.header.set_subtitle(subtitle)
         self.header.table.set_roster(self.poster_roster)
         self._show()
         self.display_poster()
@@ -654,7 +664,8 @@ class SlideShow(DisplaWindowBase):
             self.__current_index = 0
         self.header.update(self.__current_index)
         poster = self.poster_roster[self.__current_index]
-        self.poster_label.setPixmap(poster.poster_pixmap)
+        # TODO: fixme
+        #self.poster_label.setPixmap(poster.poster_pixmap)
         self.fading_effect.fade_in()
 
     def advance(self) -> None:

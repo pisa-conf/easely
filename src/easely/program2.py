@@ -17,8 +17,9 @@
 """Basic description of the conference program.
 """
 
-import random
 import datetime
+import random
+import socket
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -187,13 +188,26 @@ class Program:
     ---------
     file_path : PathLike
         The path to the program excel file.
+
+    host_name : str, optional
+        The name of the host computer. If None, the current hostname is used.
+        This is handy for testing and debugging, to simulate the display on
+        different hosts.
+
+    display_datetime : datetime.datetime, optional
+        The datetime to use for the display. If None, the current datetime is used.
+        This is handy for testing and debugging, to simulate the display at
+        different times during (or before/after) the conference.
     """
 
-    def __init__(self, file_path: PathLike) -> None:
+    def __init__(self, file_path: PathLike, host_name: str = None,
+                display_datetime: datetime.datetime = None) -> None:
         """Initialize the program from an excel configuration file.
         """
         file_path = sanitize_file_path(file_path, suffix='.xlsx', check_exists=True)
         self.root_dir = file_path.parent
+        self.host_name = host_name if host_name is not None else socket.gethostname()
+        self.display_datetime = display_datetime
         logger.info(f"Loading program data from {file_path}...")
         # Read the first worksheet, with the conference metadata.
         schema_ = schema.conference_schema()
@@ -214,6 +228,9 @@ class Program:
         for _, row in self._read_sheet(file_path, schema.hosts_schema()).iterrows():
             host_id, screen_id = row
             self.screen_dict[host_id] = screen_id
+        # And, since we are at it, cache the screen id for the current host.
+        self.screen_id = self.screen_dict.get(self.host_name)
+        logger.debug(f"Host {self.host_name} mapped to screen id {self.screen_id}.")
         # Read all the session sheets.
         for session_id, session in self.session_dict.items():
             for _, row in self._read_sheet(file_path, schema.session_schema(session_id)).iterrows():
@@ -279,7 +296,7 @@ class Program:
         """
         return datetime.datetime.strptime(date_str, schema.DATE_FORMAT).date()
 
-    def ongoing_sessions(self, current_datetime: datetime.datetime = None) -> list[Session]:
+    def ongoing_sessions(self) -> list[Session]:
         """Return the list of ongoing sessions.
 
         Arguments
@@ -292,7 +309,28 @@ class Program:
         ongoing_sessions : list[Session]
             The list of ongoing sessions.
         """
-        return [session for session in self.session_dict.values() if session.ongoing(current_datetime)]
+        return [session for session in self.session_dict.values() if session.ongoing(self.display_datetime)]
+
+    def poster_roster(self) -> list[Poster]:
+        """Return the list of posters assigned to the current screen at the
+        given display time.
+
+        Returns
+        -------
+        roster : list[Poster]
+            The list of posters assigned to the current screen.
+        """
+        if self.screen_id is None:
+            raise ValueError(f"Host '{self.host_name}' not mapped to a screen.")
+        roster = []
+        for session in self.ongoing_sessions():
+            logger.debug(f"Session '{session.title}' ongoing with {len(session)} poster(s).")
+            for poster in session.posters:
+                if poster.screen_id == self.screen_id:
+                    roster.append(poster)
+                    logger.debug(f"'{poster.title}' by {poster.presenter} added.")
+        logger.debug(f"Roster for screen {self.screen_id} includes {len(roster)} poster(s).")
+        return roster
 
     def random_poster(self) -> Poster:
         """Return a random poster from the program.
