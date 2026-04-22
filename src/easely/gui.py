@@ -29,7 +29,6 @@ import pandas as pd
 
 from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
-from .screen import read_screen_id
 from .magic import read_magic_file
 from .profile import psstatus
 from .program import PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
@@ -539,11 +538,13 @@ class SlideShow(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
-        self.program = Program(kwargs.get('cfgfile'), display_datetime=kwargs.get('display_datetime'))
+        # TODO: fixme, and replace the kwargs with args.
+        self.program = Program(kwargs.get('cfgfile'),
+                               screen_id=kwargs.get('screen_id'),
+                               display_datetime=kwargs.get('display_datetime'))
         super().__init__(**kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         self.pause_interval = self.sec_to_msec(kwargs['pause_interval'])
-        self.screen_id = read_screen_id()
         self.__status = SlideShowStatus.STOPPED
         self.__current_index = 0
         # Setup the timers.
@@ -568,10 +569,6 @@ class SlideShow(DisplaWindowBase):
         if read_magic_file():
             self._load_roster()
             return
-
-        return
-        # TODO: fixme, and think hard about whether we want the roster to
-        # keep track of the session or not.
         # Deal with the case where the session is empty.
         if self.poster_roster.session is None:
             return

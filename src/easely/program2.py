@@ -18,6 +18,7 @@
 """
 
 import datetime
+import pathlib
 import random
 import socket
 from dataclasses import dataclass, field
@@ -26,7 +27,8 @@ import pandas as pd
 
 from . import schema
 from .logging_ import logger
-from .paths import WorkspaceLayout, sanitize_file_path
+from .paths import WorkspaceLayout, contribution_file_name, sanitize_file_path
+from .__qt__ import QtGui
 from .typing_ import PathLike
 
 
@@ -126,6 +128,27 @@ class Poster:
         """
         return _trim_string(self.title, max_chars)
 
+    def _load_pixmap(self, root_dir: pathlib.Path, sub_dir: pathlib.Path,
+        width: int = None, suffix: str = ".png") -> QtGui.QPixmap:
+        """Load
+        """
+        file_path = root_dir / sub_dir / contribution_file_name(self.friendly_id, suffix)
+        print(file_path)
+        pixmap = QtGui.QPixmap(str(file_path))
+        if width is not None:
+            pixmap = pixmap.scaledToWidth(width, QtCore.Qt.SmoothTransformation)
+        return pixmap
+
+    def qrcode_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
+        """
+        """
+        return self._load_pixmap(root_dir, WorkspaceLayout.QRCODES, width)
+
+    def headshot_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
+        """
+        """
+        return self._load_pixmap(root_dir, WorkspaceLayout.HEADSHOTS, width)
+
 
 @dataclass
 class Session:
@@ -191,7 +214,8 @@ class PosterRoster(list):
 
        This class is currently inheriting from list, mainly for backward
        compatibility, but we should think hard about whether this is a good
-       idea.
+       idea. We should look into which kind of interfaces we really need and
+       implement just those.
 
     Arguments
     ---------
@@ -226,13 +250,12 @@ class Program:
         different times during (or before/after) the conference.
     """
 
-    def __init__(self, file_path: PathLike, host_name: str = None,
-                display_datetime: datetime.datetime = None) -> None:
+    def __init__(self, file_path: PathLike, screen_id: int = None,
+                 display_datetime: datetime.datetime = None) -> None:
         """Initialize the program from an excel configuration file.
         """
         file_path = sanitize_file_path(file_path, suffix='.xlsx', check_exists=True)
         self.root_dir = file_path.parent
-        self.host_name = host_name if host_name is not None else socket.gethostname()
         self.display_datetime = display_datetime
         logger.info(f"Loading program data from {file_path}...")
         # Read the first worksheet, with the conference metadata.
@@ -250,12 +273,11 @@ class Program:
             session = Session.from_dataframe_row(row)
             self.session_dict[session.id] = session
         # Read the mapping between host ids and screen ids.
-        self.screen_dict = {}
-        for _, row in self._read_sheet(file_path, schema.hosts_schema()).iterrows():
-            host_id, screen_id = row
-            self.screen_dict[host_id] = screen_id
+        self.screen_dict = {screen: host for _, (host, screen) in
+            self._read_sheet(file_path, schema.hosts_schema()).iterrows()}
         # And, since we are at it, cache the screen id for the current host.
-        self.screen_id = self.screen_dict.get(self.host_name)
+        self.host_name = socket.gethostname()
+        self.screen_id = screen_id or self.screen_dict.get(self.host_name)
         logger.debug(f"Host {self.host_name} mapped to screen id {self.screen_id}.")
         # Read all the session sheets.
         for session_id, session in self.session_dict.items():
@@ -352,7 +374,7 @@ class Program:
             The list of posters assigned to the current screen.
         """
         if self.screen_id is None:
-            raise ValueError(f"Host '{self.host_name}' not mapped to a screen.")
+            raise ValueError(f"Host {self.host_name} not mapped to any screen.")
         roster = None
         for session in self.ongoing_sessions():
             logger.debug(f"Session '{session.title}' ongoing with {len(session)} poster(s).")

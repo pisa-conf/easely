@@ -231,6 +231,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_advance(slideshow)
         self.add_fading(slideshow)
         self.add_display_datetime(slideshow)
+        self.add_screen_id(slideshow)
         self.add_logging_level(slideshow)
         slideshow.set_defaults(runner=self.start_slideshow)
 
@@ -305,14 +306,11 @@ class CliArgumentParser(argparse.ArgumentParser):
         parser.add_argument("--display-datetime", type=Program.parse_datetime, default=None,
             help="optional date and time for the display, e.g. 2026-01-01 00:00:00")
 
-    @staticmethod
-    def add_datetime(parser: argparse.ArgumentParser) -> None:
-        """Add an option to fake a different running date.
+    def add_screen_id(self, parser: argparse.ArgumentParser) -> None:
+        """Add the screen id option.
         """
-        parser.add_argument("--display-date", type=str, default=None,
-            help="optional date, e.g., 23/05/2022")
-        parser.add_argument("--display-time", type=str, default="12:00",
-            help="optional time, e.g., 12:00")
+        parser.add_argument("--screen-id", type=int,
+            help="the id of the screen to be used for the display")
 
     @staticmethod
     def add_pause(parser: argparse.ArgumentParser, default: float=300.) -> None:
