@@ -31,8 +31,9 @@ from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
 from .magic import read_magic_file
 from .profile import psstatus
-from .program import PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
-from .program2 import Poster, Program
+# TODO: remove the program import and module altogether.
+from .program import DATE_FORMAT, DATETIME_FORMAT
+from .program2 import Poster, PosterRoster, Program
 
 
 class WidgetName(str, Enum):
