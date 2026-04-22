@@ -252,7 +252,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_default_arguments(directory)
         self.add_geometry(directory)
         self.add_advance(directory)
-        self.add_datetime(directory)
+        self.add_display_datetime(directory)
         self.add_logging_level(directory)
         directory.set_defaults(runner=self.start_directory)
 
