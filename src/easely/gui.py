@@ -1040,7 +1040,7 @@ class SessionDirectory(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
-        self.program = Program(kwargs.get('cfgfile'))
+        self.program = Program(kwargs.get('cfgfile'), display_datetime=kwargs.get('display_datetime'))
         super().__init__(header_class=ScreenHeaderMinimal, **kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         subtitle = f'{self.DISPLAY_TYPE}'
@@ -1087,7 +1087,7 @@ class SessionDirectory(DisplaWindowBase):
         self._reload_due = None
         self.tree_widget.clear()
         items = []
-        for session in self.program.ongoing_sessions(self.display_datetime):
+        for session in self.program.ongoing_sessions():
             end = session.end_datetime
             if self._reload_due is None or end < self._reload_due:
                 self._reload_due = end
