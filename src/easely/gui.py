@@ -358,10 +358,6 @@ class DisplaWindowBase(QtWidgets.QWidget):
         """Constructor.
         """
         super().__init__()
-        # FIXME: do we want to set the window title?
-        # if self.DISPLAY_TYPE is not None:
-        #     window_title = f'{window_title} -- {self.DISPLAY_TYPE}'
-        # self.setWindowTitle(window_title)
         # Parse the command-line arguments.
         self.config_file_path = kwargs['cfgfile']
         self.display_mode = kwargs['mode']
