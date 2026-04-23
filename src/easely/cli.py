@@ -276,15 +276,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add the default arguments to the given parser.
         """
         self.add_config_file(parser)
-        parser.add_argument("--conference-name", type=str,
-            default="16th Pisa Meeting on Advanced Detectors",
-            help="the conference name")
-        parser.add_argument("--conference-dates", type=str,
-            default="La Biodola, Isola d'Elba",
-            help="the conference dates")
-        parser.add_argument("--conference-location", type=str,
-            default="May 26-June 1, 2024",
-            help="the conference location")
 
     @staticmethod
     def add_geometry(parser: argparse.ArgumentParser, default_header_height: int=310):

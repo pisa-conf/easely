@@ -31,24 +31,6 @@ from .profile import psstatus
 from .program import Poster, PosterRoster, Program
 
 
-class WidgetName(str, Enum):
-
-    """Enum for the names of the widgets in the GUI.
-
-    This is used to set the object name of the widgets, which is then used in
-    the qss stylesheet to set their style.
-    """
-
-    TITLE = "title"
-    SUBTITLE = "subtitle"
-    STATUS_MESSAGE = "status_message"
-    HEADSHOT = "headshot"
-    QR_CODE = "qr_code"
-    PRESENTER_NAME = "presenter_name"
-    PRESENTER_AFFILIATION = "presenter_affiliation"
-    ROSTER_TABLE = "roster_table"
-
-
 class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
 
     """Graphic effect for picture fade-in/out.
@@ -124,6 +106,24 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
         self._timer.timeout.connect(self._decrease_opacity)
 
 
+class WidgetName(str, Enum):
+
+    """Enum for the names of the widgets in the GUI.
+
+    This is used to set the object name of the widgets, which is then used in
+    the qss stylesheet to set their style.
+    """
+
+    TITLE = "title"
+    SUBTITLE = "subtitle"
+    STATUS_MESSAGE = "status_message"
+    HEADSHOT = "headshot"
+    QR_CODE = "qr_code"
+    PRESENTER_NAME = "presenter_name"
+    PRESENTER_AFFILIATION = "presenter_affiliation"
+    ROSTER_TABLE = "roster_table"
+
+
 class RosterTable(QtWidgets.QTableWidget):
 
     """Custom QTableWidget to display a poster roster.
@@ -142,10 +142,10 @@ class RosterTable(QtWidgets.QTableWidget):
         (i.e., not highlighted) color.
     """
 
-    def __init__(self, default_rgb: int = 175) -> None:
+    def __init__(self, parent: QtWidgets.QWidget, default_rgb: int = 175) -> None:
         """Constructor.
         """
-        super().__init__()
+        super().__init__(parent)
         self.setColumnCount(3)
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
@@ -224,34 +224,55 @@ class RosterTable(QtWidgets.QTableWidget):
         self._highlighted_row = row
 
 
-class ScreenHeaderBase(QtWidgets.QWidget):
+class ScreenHeader(QtWidgets.QWidget):
 
-    """Base class for the screen header.
-
-    Note this creates the widgets for the title, subtitle and status message, but
-    does not add anything to the layout, as the positioning depends on which kind
-    of header is being implemented, and is delegated to subclasses. You should never
-    need to instantiate this class directly, but rather one of its subclasses.
+    """Class describing the screen header.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, title: str = None,
-        subtitle: str = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None, title: str = None) -> None:
         """Constructor.
         """
         super().__init__(parent)
+        self._roster = None
         self.setLayout(QtWidgets.QGridLayout())
-        self.title_label = self._create_label(WidgetName.TITLE, title)
-        self.subtitle_label = self._create_label(WidgetName.SUBTITLE, subtitle)
-        self.status_message_label = self._create_label(WidgetName.STATUS_MESSAGE)
-        self.status_message_label.setAlignment(QtCore.Qt.AlignBottom)
+        # Create all the widgets and place them in the grid layout.
+        self.title_label = self._add_qlabel(WidgetName.TITLE, 0, 0, 1, 3)
+        self.subtitle_label = self._add_qlabel(WidgetName.SUBTITLE, 1, 0, 1, 3)
+        self.headshot_label = self._add_qlabel(WidgetName.HEADSHOT, 2, 0)
+        self.qrcode_label = self._add_qlabel(WidgetName.QR_CODE, 2, 1)
+        self.table = RosterTable(self)
+        self.layout().addWidget(self.table, 2, 2)
+        self.presenter_name_label = self._add_qlabel(WidgetName.PRESENTER_NAME, 4, 0, 1, 2)
+        self.presenter_affiliation_label = self._add_qlabel(WidgetName.PRESENTER_AFFILIATION, 5, 0, 1, 2)
+        self.message_label = self._add_qlabel(WidgetName.STATUS_MESSAGE, 4, 2, 2, 1)
+        self.message_label.setAlignment(QtCore.Qt.AlignBottom)
+        # Set the header title.
+        program = self.parent().program
+        dates = f"{program.start_date} - {program.end_date}"
+        title = f"{program.conference_name} - {program.location} - {dates}"
+        self.set_title(title)
 
-    def _create_label(self, object_name: WidgetName, text: str = None) -> QtWidgets.QLabel:
+    def _add_qlabel(self, object_name: WidgetName, row: int, col: int, row_span: int = 1,
+        col_span: int = 1) -> QtWidgets.QLabel:
         """Create a new label with the given object name, and return it.
+
+        This is a small helper function to help setting the object names in a consistent
+        fashion, which is instrumental for the qss stylesheet to work properly.
+
+        Arguments
+        ---------
+        object_name : WidgetName
+            The name of the widget to be created.
+
+        text : str, optional
+            The text to be displayed on the label.
+
+        align : QtCore.Qt.AlignmentFlag, optional
+            The alignment of the text on the label.
         """
         label = QtWidgets.QLabel(self)
         label.setObjectName(object_name)
-        if text is not None:
-            label.setText(text)
+        self.layout().addWidget(label, row, col, row_span, col_span)
         return label
 
     def set_title(self, text: str = None) -> None:
@@ -267,64 +288,25 @@ class ScreenHeaderBase(QtWidgets.QWidget):
     def set_status_message(self, text: str = None) -> None:
         """Set the status text label.
         """
-        self.status_message_label.setText(text or "")
+        self.message_label.setText(text or "")
 
     def clear(self):
-        """Generic function to clear the header.
-
-        By default this is only clearing the status message, but actual subclasses
-        may do something more elaborated.
+        """Generic function to clear the relevant QLabel objects in the header.
         """
-        self.status_message_label.setText("")
+        self.message_label.setText("")
+        self.presenter_name_label.setText("")
+        self.presenter_affiliation_label.setText("")
+        self.table.clear()
+        self.headshot_label.clear()
+        self.qrcode_label.clear()
 
-
-class ScreenHeaderMinimal(ScreenHeaderBase):
-
-    """Minimal screen header.
-
-    This is used for the cases where you only need a title, a subtitle and a status message.
-    """
-
-    def __init__(self, title: str = None, subtitle: str = None):
-        """Constructor.
-        """
-        super().__init__(None, title, subtitle)
-        self.layout().addWidget(self.title_label, 0, 0)
-        self.layout().addWidget(self.subtitle_label, 1, 0)
-        self.layout().addWidget(self.status_message_label, 2, 0)
-
-
-class ScreenHeader(ScreenHeaderBase):
-
-    """Fully fledged poster header.
-    """
-
-    def __init__(self, title: str, portrait_height: int = 200):
-        """Constructor.
-        """
-        super().__init__(None, title)
-        self.headshot_label = self._create_label(WidgetName.HEADSHOT)
-        self.qrcode_label = self._create_label(WidgetName.QR_CODE)
-        self.presenter_name_label = self._create_label(WidgetName.PRESENTER_NAME)
-        self.presenter_affiliation_label = self._create_label(WidgetName.PRESENTER_AFFILIATION)
-        self.table = RosterTable()
-        self._roster = None
-        self.layout().addWidget(self.title_label, 0, 0, 1, 3)
-        self.layout().addWidget(self.subtitle_label, 1, 0, 1, 3)
-        self.layout().addWidget(self.headshot_label, 2, 0)
-        self.layout().addWidget(self.qrcode_label, 2, 1)
-        self.layout().addWidget(self.table, 2, 2)
-        self.layout().addWidget(self.presenter_name_label, 4, 0, 1, 2)
-        self.layout().addWidget(self.presenter_affiliation_label, 5, 0, 1, 2)
-        self.layout().addWidget(self.status_message_label, 4, 2, 2, 1)
-
-    def set_roster(self, roster):
+    def set_roster(self, roster: PosterRoster) -> None:
         """Set the poster roster for the table.
         """
         self._roster = roster
         self.set_subtitle(self._roster.session.title)
 
-    def _update_pixmaps(self, poster):
+    def _update_pixmaps(self, poster: Poster) -> None:
         """Update the two pixmaps.
         """
         try:
@@ -334,7 +316,7 @@ class ScreenHeader(ScreenHeaderBase):
         self.headshot_label.setPixmap(poster.headshot_pixmap(root_dir))
         self.qrcode_label.setPixmap(poster.qrcode_pixmap(root_dir))
 
-    def _update_presenter(self, poster):
+    def _update_presenter(self, poster: Poster) -> None:
         """Update the presenter name and affiliation.
         """
         presenter = poster.presenter
@@ -346,7 +328,7 @@ class ScreenHeader(ScreenHeaderBase):
         except TypeError:
             self.presenter_affiliation_label.setText("")
 
-    def set_poster(self, poster):
+    def set_poster(self, poster: Poster) -> None:
         """Set the poster for the header.
         """
         self._update_pixmaps(poster)
@@ -356,25 +338,13 @@ class ScreenHeader(ScreenHeaderBase):
         self.table.set_poster(0, poster)
         self.table.set_current_row(0)
 
-    def update(self, current_poster_id):
+    def update(self, current_poster_id: int) -> None:
         """Update the header based on the roster information and the current poster.
         """
         poster = self._roster[current_poster_id]
         self._update_pixmaps(poster)
         self._update_presenter(poster)
         self.table.set_current_row(current_poster_id)
-
-    def clear(self):
-        """Clear the header.
-        """
-        super().clear()
-        self.presenter_name_label.setText("")
-        self.presenter_affiliation_label.setText("")
-        self.status_message_label.setText("")
-        self.table.clear()
-        self.headshot_label.clear()
-        self.qrcode_label.clear()
-
 
 
 class DisplaWindowBase(QtWidgets.QWidget):
@@ -384,15 +354,14 @@ class DisplaWindowBase(QtWidgets.QWidget):
 
     DISPLAY_TYPE = None
 
-    def __init__(self, header_class=ScreenHeader, **kwargs):
+    def __init__(self, **kwargs):
         """Constructor.
         """
         super().__init__()
-        self.setStyleSheet('background-color: "white"')
-        window_title = kwargs['conference_name']
-        if self.DISPLAY_TYPE is not None:
-            window_title = f'{window_title} -- {self.DISPLAY_TYPE}'
-        self.setWindowTitle(window_title)
+        # FIXME: do we want to set the window title?
+        # if self.DISPLAY_TYPE is not None:
+        #     window_title = f'{window_title} -- {self.DISPLAY_TYPE}'
+        # self.setWindowTitle(window_title)
         # Parse the command-line arguments.
         self.config_file_path = kwargs['cfgfile']
         self.display_mode = kwargs['mode']
@@ -402,8 +371,7 @@ class DisplaWindowBase(QtWidgets.QWidget):
         # Setup the widget.
         self.setLayout(QtWidgets.QGridLayout())
         self.layout().setColumnMinimumWidth(0, self.poster_width)
-        header_title = f'{kwargs["conference_name"]} - {kwargs["conference_location"]} - {kwargs["conference_dates"]}'
-        self.header = header_class(header_title)
+        self.header = ScreenHeader(self)
         self.poster_label = QtWidgets.QLabel()
         self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
         self.debug_label = QtWidgets.QLabel()
@@ -1017,7 +985,7 @@ class SessionDirectory(DisplaWindowBase):
         """Constructor.
         """
         self.program = Program(kwargs.get('cfgfile'), display_datetime=kwargs.get('display_datetime'))
-        super().__init__(header_class=ScreenHeaderMinimal, **kwargs)
+        super().__init__(**kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         subtitle = f'{self.DISPLAY_TYPE}'
         self.header.set_subtitle(subtitle)
