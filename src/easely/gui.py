@@ -235,7 +235,9 @@ class ScreenHeader(QtWidgets.QWidget):
         self.setLayout(QtWidgets.QGridLayout())
         # Create all the widgets and place them in the grid layout.
         self.title_label = self._add_qlabel(WidgetName.TITLE, 0, 0, 1, 3)
+        self.title_label.setAlignment(QtCore.Qt.AlignCenter)
         self.subtitle_label = self._add_qlabel(WidgetName.SUBTITLE, 1, 0, 1, 3)
+        self.subtitle_label.setAlignment(QtCore.Qt.AlignCenter)
         self.headshot_label = self._add_qlabel(WidgetName.HEADSHOT, 2, 0)
         self.qrcode_label = self._add_qlabel(WidgetName.QR_CODE, 2, 1)
         self.table = RosterTable(self)
