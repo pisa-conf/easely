@@ -134,9 +134,6 @@ class RosterTable(QtWidgets.QTableWidget):
 
     Arguments
     ---------
-    row_height : int
-        The height of each row in the table.
-
     default_rgb : int
         The default value of the three RGB channels for the default
         (i.e., not highlighted) color.
@@ -152,6 +149,7 @@ class RosterTable(QtWidgets.QTableWidget):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setShowGrid(False)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.setEnabled(False)
         self.setObjectName(WidgetName.ROSTER_TABLE)
         self._default_color = QtGui.QColor(default_rgb, default_rgb, default_rgb)

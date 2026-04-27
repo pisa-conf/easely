@@ -22,13 +22,14 @@ QHeaderView::section {
 
 QLabel#title {
   font-size: 50px;
-  margin-top: 16px;
-  margin-bottom: 16px;
+  margin-top: 20px;
+  margin-bottom: 20px;
   margin-left: 0px;
 }
 
 QLabel#subtitle {
-  font-size: 40px;
+  font-size: 44px;
+  margin-top: 20px;
   margin-bottom: 40px;
   margin-left: 0px;
 }
@@ -54,4 +55,9 @@ QTableWidget#roster_table {
   font-size: 28px;
   min-height: 180px;
   margin-left: 40px;
+}
+
+QTableWidget::item {
+  padding-top: 0px;
+  padding-bottom: 20px;
 }
