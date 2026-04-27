@@ -28,8 +28,8 @@ QLabel#title {
 }
 
 QLabel#subtitle {
-  font-size: 32px;
-  margin-bottom: 25px;
+  font-size: 40px;
+  margin-bottom: 40px;
   margin-left: 0px;
 }
 
@@ -47,6 +47,7 @@ QLabel#presenter_affiliation {
 
 QLabel#status_message {
   font-size: 20px;
+  margin-left: 40px;
 }
 
 QTableWidget#roster_table {
