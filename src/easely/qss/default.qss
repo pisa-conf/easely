@@ -34,14 +34,15 @@ QLabel#subtitle {
 }
 
 QLabel#presenter_name {
+  font-size: 30px;
   margin-top: 0px;
   margin-bottom: 0px;
   min-width: 400px;
 }
 
 QLabel#presenter_affiliation {
+  font-size: 30px;
   color: gray;
-  font-size: 14px;
 }
 
 QLabel#status_message {
