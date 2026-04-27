@@ -46,7 +46,7 @@ QLabel#presenter_affiliation {
 }
 
 QLabel#status_message {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 QTableWidget#roster_table {
