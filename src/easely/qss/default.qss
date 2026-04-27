@@ -35,10 +35,12 @@ QLabel#subtitle {
 
 QLabel#headshot {
   max-width: 250px;
+  max-height: 250px;
 }
 
 QLabel#qr_code {
   max-width: 250px;
+  max-height: 250px;
 }
 
 QLabel#presenter_name {
