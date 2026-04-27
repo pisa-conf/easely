@@ -33,16 +33,6 @@ QLabel#subtitle {
   margin-left: 0px;
 }
 
-QLabel#headshot {
-  max-width: 250px;
-  max-height: 250px;
-}
-
-QLabel#qr_code {
-  max-width: 250px;
-  max-height: 250px;
-}
-
 QLabel#presenter_name {
   font-size: 32px;
   margin-top: 0px;
