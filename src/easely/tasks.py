@@ -116,7 +116,7 @@ class QrcodesDefaults:
 
     file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.json"
     folder_path: PathLike = pathlib.Path.cwd() / WorkspaceLayout.QRCODES
-    size: int = 500
+    size: int = 250
     overwrite: bool = False
 
 
@@ -292,7 +292,7 @@ class FacecropDefaults:
     input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
     targets: List[int] = None
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
-    size: int = 500
+    size: int = QrcodesDefaults.size
     circular_mask: bool = False
     model: face.FaceDetection = face.FaceDetection.CASCADE
     min_fractional_area: float = 0.02
