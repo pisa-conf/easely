@@ -314,12 +314,7 @@ class ScreenHeader(QtWidgets.QWidget):
         """
         presenter = poster.presenter
         self.presenter_name_label.setText(presenter.full_name())
-        # In some cases the presenter affiliation may be missing, so we catch the
-        # TypeError exception and set the affiliation label to an empty string.
-        try:
-            self.presenter_affiliation_label.setText(presenter.affiliation)
-        except TypeError:
-            self.presenter_affiliation_label.setText("")
+        self.presenter_affiliation_label.setText(presenter.short_affiliation())
 
     def set_poster(self, poster: Poster) -> None:
         """Set the poster for the header.

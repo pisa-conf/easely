@@ -82,8 +82,14 @@ class Presenter:
 
     def short_affiliation(self, max_chars: int = 25) -> str:
         """Return a shortened version of the affiliation.
+
+        Note that we encapsulate this into a try-except block in order to cope
+        with the case where the affiliation is missing (i.e., nan).
         """
-        return _trim_string(self.affiliation, max_chars)
+        try:
+            return _trim_string(self.affiliation, max_chars)
+        except TypeError:
+            return ""
 
     def __str__(self) -> str:
         """String formatting.
