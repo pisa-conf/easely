@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.5.0 (2026-05-04)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * New format for the xlsx configuration file.
 * Minimal fixes to get all the three GUI applications up and running again.
 * Major restructuring of the GUI code to allow for qss-driven styling and customization.
