@@ -131,10 +131,14 @@ class Poster:
     def from_dataframe_row(cls, row: pd.core.series.Series) -> "Poster":
         """Create a Poster object from a dataframe row.
         """
+        # FIXME: this should go into the Presenter class.
         first_name, last_name, affiliation = row[-3:]
         first_name = first_name.title().replace(' ', '').strip()
         last_name = last_name.title().replace(' ', '').strip()
-        affiliation = affiliation.strip()
+        try:
+            affiliation = affiliation.strip()
+        except AttributeError:
+            pass
         presenter = Presenter(first_name, last_name, affiliation)
         return cls(*row[:-3], presenter)
 
