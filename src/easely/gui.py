@@ -246,11 +246,7 @@ class ScreenHeader(QtWidgets.QWidget):
         self.presenter_affiliation_label = self._add_qlabel(WidgetName.PRESENTER_AFFILIATION, 5, 0, 1, 2)
         self.message_label = self._add_qlabel(WidgetName.STATUS_MESSAGE, 4, 2, 2, 1)
         self.message_label.setAlignment(QtCore.Qt.AlignBottom)
-        # Set the header title.
-        program = self.parent().program
-        dates = f"{program.start_date} - {program.end_date}"
-        title = f"{program.conference_name} - {program.location} - {dates}"
-        self.set_title(title)
+        self.set_title(self.parent().program.pretty_title())
 
     def _add_qlabel(self, object_name: WidgetName, row: int, col: int, row_span: int = 1,
         col_span: int = 1) -> QtWidgets.QLabel:

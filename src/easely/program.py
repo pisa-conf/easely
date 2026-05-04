@@ -313,6 +313,19 @@ class Program:
                 poster = Poster.from_dataframe_row(row)
                 session.add(poster)
 
+    def pretty_title(self) -> str:
+        """Return a pretty title for the program, to be used in the GUI header.
+        """
+        start_month = datetime.datetime.strftime(self.start_date, "%B")
+        end_month = datetime.datetime.strftime(self.end_date, "%B")
+        en_dash = "\u2013"
+        if start_month == end_month:
+            span = f"{start_month} {self.start_date.day}{en_dash}{self.end_date.day}"
+        else:
+            span = f"{start_month} {self.start_date.day}{en_dash}{end_month} {self.end_date.day}"
+        span = f"{span}, {self.start_date.year}"
+        return f"{self.conference_name} ({self.location}, {span})"
+
     @staticmethod
     def _read_sheet(file_path: PathLike, schema_: schema.SheetSchema) -> pd.DataFrame:
         """Read a worksheet from the program excel file and return it as a dataframe.
