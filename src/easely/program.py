@@ -75,6 +75,63 @@ class Presenter:
     last_name: str
     affiliation: str
 
+    @staticmethod
+    def sanitize_argument(argument: str, title_case: bool, nan_value: str = "") -> str:
+        """Sanitize a single presenter argument.
+
+        Arguments
+        ---------
+        argument : str
+            The argument to sanitize.
+
+        title_case : bool
+            Whether to convert the argument to title case.
+
+        nan_value : str, optional
+            The value to return if the argument is NaN.
+
+        Returns
+        -------
+        sanitized_argument : str
+            The sanitized argument.
+        """
+        # If the argument is NaN, return the specified value.
+        if pd.isna(argument):
+            return nan_value
+        # Replace all instances of multiple consecutive spaces with a single space,
+        # and strip the spaces on both ends.
+        argument = ' '.join(argument.split())
+        # Convert to title case if requested.
+        if title_case:
+            argument = argument.title()
+        return argument
+
+    @staticmethod
+    def sanitize_args(first_name: str, last_name: str, affiliation: str) -> tuple[str, str, str]:
+        """Sanitize the presenter arguments.
+
+        Arguments
+        ---------
+        first_name : str
+            The presenter first name.
+
+        last_name : str
+            The presenter last name.
+
+        affiliation : str
+            The presenter affiliation.
+
+        Returns
+        -------
+        sanitized_args : tuple[str, str, str]
+            The sanitized presenter arguments, in the same order as the input.
+        """
+        return (
+            Presenter.sanitize_argument(first_name, title_case=True),
+            Presenter.sanitize_argument(last_name, title_case=True),
+            Presenter.sanitize_argument(affiliation, title_case=False, nan_value="")
+        )
+
     def full_name(self) -> str:
         """Return the presenter full name.
         """
@@ -131,15 +188,7 @@ class Poster:
     def from_dataframe_row(cls, row: pd.core.series.Series) -> "Poster":
         """Create a Poster object from a dataframe row.
         """
-        # FIXME: this should go into the Presenter class.
-        first_name, last_name, affiliation = row[-3:]
-        first_name = first_name.title().replace('  ', ' ').strip()
-        last_name = last_name.title().replace('  ', ' ').strip()
-        try:
-            affiliation = affiliation.strip()
-        except AttributeError:
-            pass
-        presenter = Presenter(first_name, last_name, affiliation)
+        presenter = Presenter(*Presenter.sanitize_args(*row[-3:]))
         return cls(*row[:-3], presenter)
 
     def short_title(self, max_chars: int = 40):
