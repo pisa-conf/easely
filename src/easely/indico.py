@@ -493,6 +493,7 @@ class Event:
         results = data["results"][0]
         self.title = results["title"]
         self.location = results["location"]
+        self.agenda_url = results["url"]
         self.start_date = AbstractIndicoObject.parse_date(results["startDate"])
         self.end_date = AbstractIndicoObject.parse_date(results["endDate"])
         self.session_dict = {}
@@ -666,6 +667,10 @@ class Event:
             Whether to overwrite existing output files.
         """
         folder_path = sanitize_folder_path(folder_path, create=True)
+        logger.info("Generating default QR code for the event...")
+        # FIXME: avoid hard-coding the default file name for the event QR code.
+        file_path = folder_path / "default.png"
+        generate_qrcode(self.agenda_url, file_path, size=size, overwrite=overwrite)
         logger.info("Generating QR codes for all poster sessions in the event...")
         for session in self.poster_sessions():
             for contribution in session.contributions:
