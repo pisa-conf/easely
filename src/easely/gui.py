@@ -148,13 +148,22 @@ class RosterTable(QtWidgets.QTableWidget):
         self.verticalHeader().hide()
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setShowGrid(False)
-        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        #self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.setEnabled(False)
         self.setObjectName(WidgetName.ROSTER_TABLE)
         self._default_color = QtGui.QColor(default_rgb, default_rgb, default_rgb)
         self._highlight_color = QtGui.QColor(0, 0, 0)
         self._highlighted_row = None
+
+    def resizeEvent(self, event):
+        """Overloaded method to control the column widths when the table is resized.
+        """
+        super().resizeEvent(event)
+        width = self.viewport().width()
+        self.setColumnWidth(0, int(0.05 * width))
+        self.setColumnWidth(1, int(0.70 * width))
+        self.setColumnWidth(2, int(0.25 * width))
 
     def set_text(self, row: int, col: int, text: str) -> None:
         """Set the text for a given cell.
@@ -189,8 +198,7 @@ class RosterTable(QtWidgets.QTableWidget):
         """
         self.set_text(row, 0, f'[{poster.friendly_id}]')
         self.set_text(row, 1, f'{poster.short_title(title_length)}'.ljust(title_length))
-        # Note the extra spaces at the begin to simulate separation between columns.
-        self.set_text(row, 2, f'    {poster.presenter.full_name()}')
+        self.set_text(row, 2, f'{poster.presenter.full_name()}')
 
     def set_roster(self, roster: PosterRoster) -> None:
         """Populate the entire table with a poster roster.
