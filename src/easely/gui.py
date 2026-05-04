@@ -176,8 +176,7 @@ class RosterTable(QtWidgets.QTableWidget):
         item.setForeground(self._default_color)
         self.setItem(row, col, item)
 
-    def set_poster(self, row: int, poster: Poster, title_length: int = 65,
-                   title_span: float = 0.8) -> None:
+    def set_poster(self, row: int, poster: Poster, title_length: int = 65) -> None:
         """Populate a given row with the poster information.
 
         Arguments
@@ -192,10 +191,6 @@ class RosterTable(QtWidgets.QTableWidget):
         self.set_text(row, 1, f'{poster.short_title(title_length)}'.ljust(title_length))
         # Note the extra spaces at the begin to simulate separation between columns.
         self.set_text(row, 2, f'    {poster.presenter.full_name()}')
-        # Set the column widths.
-        width = self.viewport().width();
-        self.setColumnWidth(0, width * title_span);
-        self.setColumnWidth(1, width * (1 - title_span));
 
     def set_roster(self, roster: PosterRoster) -> None:
         """Populate the entire table with a poster roster.
