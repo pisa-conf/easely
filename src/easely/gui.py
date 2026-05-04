@@ -231,6 +231,7 @@ class ScreenHeader(QtWidgets.QWidget):
         """Constructor.
         """
         super().__init__(parent)
+        self.program = parent.program
         self._roster = None
         self.setLayout(QtWidgets.QGridLayout())
         # Create all the widgets and place them in the grid layout.
@@ -246,7 +247,7 @@ class ScreenHeader(QtWidgets.QWidget):
         self.presenter_affiliation_label = self._add_qlabel(WidgetName.PRESENTER_AFFILIATION, 5, 0, 1, 2)
         self.message_label = self._add_qlabel(WidgetName.STATUS_MESSAGE, 4, 2, 2, 1)
         self.message_label.setAlignment(QtCore.Qt.AlignBottom)
-        self.set_title(self.parent().program.pretty_title())
+        self.set_title(self.program.pretty_title())
 
     def _add_qlabel(self, object_name: WidgetName, row: int, col: int, row_span: int = 1,
         col_span: int = 1) -> QtWidgets.QLabel:
@@ -305,12 +306,8 @@ class ScreenHeader(QtWidgets.QWidget):
     def _update_pixmaps(self, poster: Poster) -> None:
         """Update the two pixmaps.
         """
-        try:
-            root_dir = self._roster.root_dir
-        except AttributeError:
-            root_dir = pathlib.Path()
-        self.headshot_label.setPixmap(poster.headshot_pixmap(root_dir))
-        self.qrcode_label.setPixmap(poster.qrcode_pixmap(root_dir))
+        self.headshot_label.setPixmap(poster.headshot_pixmap(self.program.root_dir))
+        self.qrcode_label.setPixmap(poster.qrcode_pixmap(self.program.root_dir))
 
     def _update_presenter(self, poster: Poster) -> None:
         """Update the presenter name and affiliation.
