@@ -26,9 +26,10 @@ from enum import Enum
 from easely import __name__ as __package_name__
 from easely import __version__, logging_
 from easely.__qt__ import bootstrap_window
-from easely.gui import PosterProgram, ProgramBrowser, SessionDirectory, SlideShow
+from easely.gui import ProgramBrowser, SessionDirectory, SlideShow
 from easely import face
 from easely import tasks
+from easely.program import Program
 
 
 def start_message() -> None:
@@ -229,7 +230,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_pause(slideshow)
         self.add_advance(slideshow)
         self.add_fading(slideshow)
-        self.add_datetime(slideshow)
+        self.add_display_datetime(slideshow)
+        self.add_screen_id(slideshow)
         self.add_logging_level(slideshow)
         slideshow.set_defaults(runner=self.start_slideshow)
 
@@ -251,7 +253,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_default_arguments(directory)
         self.add_geometry(directory)
         self.add_advance(directory)
-        self.add_datetime(directory)
+        self.add_display_datetime(directory)
         self.add_logging_level(directory)
         directory.set_defaults(runner=self.start_directory)
 
@@ -259,9 +261,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         report = subparsers.add_parser("report",
             help="dump a text report on the program",
             formatter_class=self._FORMATTER_CLASS)
-        self.add_config_file(report)
+        #self.add_config_file(report)
         self.add_logging_level(report)
-        report.set_defaults(runner=self.dump_report)
+        report.set_defaults(runner=tasks.report)
 
     @staticmethod
     def add_config_file(parser: argparse.ArgumentParser) -> None:
@@ -274,37 +276,30 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add the default arguments to the given parser.
         """
         self.add_config_file(parser)
-        parser.add_argument("--conference-name", type=str,
-            default="16th Pisa Meeting on Advanced Detectors",
-            help="the conference name")
-        parser.add_argument("--conference-dates", type=str,
-            default="La Biodola, Isola d'Elba",
-            help="the conference dates")
-        parser.add_argument("--conference-location", type=str,
-            default="May 26-June 1, 2024",
-            help="the conference location")
 
     @staticmethod
-    def add_geometry(parser: argparse.ArgumentParser, default_header_height: int=310):
+    def add_geometry(parser: argparse.ArgumentParser):
         """Add all the geometry options.
         """
         parser.add_argument("--mode", type=str, default="fullscreen", choices=VALID_DISPLAY_MODES,
             help="display geometry")
         parser.add_argument("--poster-width", type=int, default=None,
             help="width of the poster display (from the screen size by default)")
-        parser.add_argument("--header-height", type=int, default=default_header_height,
-            help="height of the poster header")
         parser.add_argument("--portrait-height", type=int, default=132,
             help="height of the presenter portraits and QR codes")
 
     @staticmethod
-    def add_datetime(parser: argparse.ArgumentParser) -> None:
-        """Add an option to fake a different running date.
+    def add_display_datetime(parser: argparse.ArgumentParser) -> None:
+        """Add the display date and time options.
         """
-        parser.add_argument("--display-date", type=str, default=None,
-            help="optional date, e.g., 23/05/2022")
-        parser.add_argument("--display-time", type=str, default="12:00",
-            help="optional time, e.g., 12:00")
+        parser.add_argument("--display-datetime", type=Program.parse_datetime, default=None,
+            help="optional date and time for the display, e.g. 2026-01-01 00:00:00")
+
+    def add_screen_id(self, parser: argparse.ArgumentParser) -> None:
+        """Add the screen id option.
+        """
+        parser.add_argument("--screen-id", type=int,
+            help="the id of the screen to be used for the display")
 
     @staticmethod
     def add_pause(parser: argparse.ArgumentParser, default: float=300.) -> None:
@@ -351,12 +346,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Start the session directory.
         """
         return bootstrap_window(SessionDirectory, **kwargs)
-
-    def dump_report(self, **kwargs) -> None:
-        """Dump a text report on the program.
-        """
-        program = PosterProgram(kwargs.get("cfgfile"))
-        program.dump_report()
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
