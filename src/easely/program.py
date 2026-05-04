@@ -313,7 +313,7 @@ class Program:
             session = Session.from_dataframe_row(row)
             self.session_dict[session.id] = session
         # Read the mapping between host ids and screen ids.
-        self.screen_dict = {screen: host for _, (host, screen) in
+        self.screen_dict = {host: screen for _, (host, screen) in
             self._read_sheet(file_path, schema.hosts_schema()).iterrows()}
         # And, since we are at it, cache the screen id for the current host.
         self.host_name = socket.gethostname()
