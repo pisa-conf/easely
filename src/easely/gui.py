@@ -139,17 +139,18 @@ class RosterTable(QtWidgets.QTableWidget):
         (i.e., not highlighted) color.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget, default_rgb: int = 175) -> None:
+    def __init__(self, parent: QtWidgets.QWidget, default_rgb: int = 175,
+                 col_spans: tuple = (0.075, 0.675, 0.25)) -> None:
         """Constructor.
         """
         super().__init__(parent)
+        self._col_spans = col_spans
         self.setColumnCount(3)
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setShowGrid(False)
-        #self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.setShowGrid(False)
         self.setEnabled(False)
         self.setObjectName(WidgetName.ROSTER_TABLE)
         self._default_color = QtGui.QColor(default_rgb, default_rgb, default_rgb)
@@ -161,9 +162,8 @@ class RosterTable(QtWidgets.QTableWidget):
         """
         super().resizeEvent(event)
         width = self.viewport().width()
-        self.setColumnWidth(0, int(0.075 * width))
-        self.setColumnWidth(1, int(0.675 * width))
-        self.setColumnWidth(2, int(0.25 * width))
+        for i, span in enumerate(self._col_spans):
+            self.setColumnWidth(i, int(span * width))
 
     def set_text(self, row: int, col: int, text: str) -> None:
         """Set the text for a given cell.
