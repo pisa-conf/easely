@@ -161,8 +161,8 @@ class RosterTable(QtWidgets.QTableWidget):
         """
         super().resizeEvent(event)
         width = self.viewport().width()
-        self.setColumnWidth(0, int(0.05 * width))
-        self.setColumnWidth(1, int(0.70 * width))
+        self.setColumnWidth(0, int(0.075 * width))
+        self.setColumnWidth(1, int(0.675 * width))
         self.setColumnWidth(2, int(0.25 * width))
 
     def set_text(self, row: int, col: int, text: str) -> None:
