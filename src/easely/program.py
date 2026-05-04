@@ -132,8 +132,9 @@ class Poster:
         """Create a Poster object from a dataframe row.
         """
         first_name, last_name, affiliation = row[-3:]
-        first_name = first_name.title().strip()
-        last_name = last_name.title().strip()
+        first_name = first_name.title().replace(' ', '').strip()
+        last_name = last_name.title().replace(' ', '').strip()
+        affiliation = affiliation.strip()
         presenter = Presenter(first_name, last_name, affiliation)
         return cls(*row[:-3], presenter)
 
