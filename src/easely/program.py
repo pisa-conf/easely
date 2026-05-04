@@ -133,8 +133,8 @@ class Poster:
         """
         # FIXME: this should go into the Presenter class.
         first_name, last_name, affiliation = row[-3:]
-        first_name = first_name.title().replace(' ', '').strip()
-        last_name = last_name.title().replace(' ', '').strip()
+        first_name = first_name.title().replace('  ', ' ').strip()
+        last_name = last_name.title().replace('  ', ' ').strip()
         try:
             affiliation = affiliation.strip()
         except AttributeError:
