@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* New format for the xlsx configuration file.
+* Minimal fixes to get all the three GUI applications up and running again.
 * Major restructuring of the GUI code to allow for qss-driven styling and customization.
 * ``data``, ``qss`` and ``graphics`` directories moved into ``src``, and marked for
   shipping with the package in the ``pyproject.toml`` file.
@@ -12,7 +14,9 @@ Release notes
 * Documentation updated.
 * Pull requests merged and issues closed:
 
+  - https://github.com/pisa-conf/easely/pull/28
   - https://github.com/pisa-conf/easely/pull/22
+  - https://github.com/pisa-conf/easely/issues/20
 
 
 Version 0.4.0 (2026-04-06)
