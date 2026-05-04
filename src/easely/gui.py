@@ -241,8 +241,8 @@ class ScreenHeader(QtWidgets.QWidget):
         self.subtitle_label.setAlignment(QtCore.Qt.AlignCenter)
         self.headshot_label = self._add_qlabel(WidgetName.HEADSHOT, 2, 0)
         self.qrcode_label = self._add_qlabel(WidgetName.QR_CODE, 2, 1)
-        self.table = RosterTable(self)
-        self.layout().addWidget(self.table, 2, 2)
+        self.roster_table = RosterTable(self)
+        self.layout().addWidget(self.roster_table, 2, 2)
         self.presenter_name_label = self._add_qlabel(WidgetName.PRESENTER_NAME, 4, 0, 1, 2)
         self.presenter_affiliation_label = self._add_qlabel(WidgetName.PRESENTER_AFFILIATION, 5, 0, 1, 2)
         self.message_label = self._add_qlabel(WidgetName.STATUS_MESSAGE, 4, 2, 2, 1)
@@ -293,7 +293,7 @@ class ScreenHeader(QtWidgets.QWidget):
         self.message_label.setText("")
         self.presenter_name_label.setText("")
         self.presenter_affiliation_label.setText("")
-        self.table.clear()
+        self.roster_table.clear()
         self.headshot_label.clear()
         self.qrcode_label.clear()
 
@@ -321,10 +321,10 @@ class ScreenHeader(QtWidgets.QWidget):
         """
         self._update_pixmaps(poster)
         self._update_presenter(poster)
-        self.table.clear()
-        self.table.setRowCount(1)
-        self.table.set_poster(0, poster)
-        self.table.set_current_row(0)
+        self.roster_table.clear()
+        self.roster_table.setRowCount(1)
+        self.roster_table.set_poster(0, poster)
+        self.roster_table.set_current_row(0)
 
     def update(self, current_poster_id: int) -> None:
         """Update the header based on the roster information and the current poster.
@@ -332,7 +332,7 @@ class ScreenHeader(QtWidgets.QWidget):
         poster = self._roster[current_poster_id]
         self._update_pixmaps(poster)
         self._update_presenter(poster)
-        self.table.set_current_row(current_poster_id)
+        self.roster_table.set_current_row(current_poster_id)
 
 
 class DisplaWindowBase(QtWidgets.QWidget):
@@ -528,7 +528,7 @@ class SlideShow(DisplaWindowBase):
         self.header.set_roster(self.poster_roster)
         subtitle = f'{self.poster_roster.session.title} (screen #{self.program.screen_id})'
         self.header.set_subtitle(subtitle)
-        self.header.table.set_roster(self.poster_roster)
+        self.header.roster_table.set_roster(self.poster_roster)
         self._show()
         self.display_poster()
         if len(self.poster_roster) > 1:
