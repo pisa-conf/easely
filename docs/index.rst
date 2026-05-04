@@ -39,6 +39,7 @@ easely documentation
    paths
    pdf
    qrcode_
+   schema
 
 .. toctree::
    :maxdepth: 1

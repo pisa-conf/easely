@@ -28,8 +28,9 @@ from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
-from .paths import WorkspaceLayout, filter_dir, friendly_id, sanitize_file_path, \
+from .paths import WorkspaceLayout, filter_dir, sanitize_file_path, \
     sanitize_folder_path, PROGRAM_FILE_NAME
+from .program import Program
 from .typing_ import PathLike
 
 
@@ -373,3 +374,23 @@ def facecrop(
             num_cropped += 1
     logger.info(f"Done, {num_cropped} face images cropped.")
     return num_cropped
+
+
+@dataclass(frozen=True)
+class ReportDefaults:
+
+    """Default values for report generation task parameters.
+    """
+
+    file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.xlsx"
+
+
+def report(file_path: PathLike = ReportDefaults.file_path) -> None:
+    """Generate a report of the program configuration.
+
+    Arguments
+    ---------
+    file_path : PathLike
+        The path to the program excel file.
+    """
+    program = Program(file_path)

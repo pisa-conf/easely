@@ -1,4 +1,4 @@
-# Copyright (C) 2021, luca.baldini@pi.infn.it
+# Copyright (C) 2021--2026, the easely team.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,42 +15,20 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 """Graphical user interface.
-
-This module contains all the widgets that are relevant for the slideshow.
 """
 
 import datetime
-import os
+import pathlib
 import time
 from enum import Enum, IntEnum, auto
-
 
 import pandas as pd
 
 from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
-from .screen import read_screen_id
 from .magic import read_magic_file
 from .profile import psstatus
-from .program import Poster, PosterProgram, PosterRoster, DATE_FORMAT, DATETIME_FORMAT
-
-
-class WidgetName(str, Enum):
-
-    """Enum for the names of the widgets in the GUI.
-
-    This is used to set the object name of the widgets, which is then used in
-    the qss stylesheet to set their style.
-    """
-
-    TITLE = "title"
-    SUBTITLE = "subtitle"
-    STATUS_MESSAGE = "status_message"
-    HEADSHOT = "headshot"
-    QR_CODE = "qr_code"
-    PRESENTER_NAME = "presenter_name"
-    PRESENTER_AFFILIATION = "presenter_affiliation"
-    ROSTER_TABLE = "roster_table"
+from .program import Poster, PosterRoster, Program
 
 
 class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
@@ -128,6 +106,24 @@ class FadingEffect(QtWidgets.QGraphicsOpacityEffect):
         self._timer.timeout.connect(self._decrease_opacity)
 
 
+class WidgetName(str, Enum):
+
+    """Enum for the names of the widgets in the GUI.
+
+    This is used to set the object name of the widgets, which is then used in
+    the qss stylesheet to set their style.
+    """
+
+    TITLE = "title"
+    SUBTITLE = "subtitle"
+    STATUS_MESSAGE = "status_message"
+    HEADSHOT = "headshot"
+    QR_CODE = "qr_code"
+    PRESENTER_NAME = "presenter_name"
+    PRESENTER_AFFILIATION = "presenter_affiliation"
+    ROSTER_TABLE = "roster_table"
+
+
 class RosterTable(QtWidgets.QTableWidget):
 
     """Custom QTableWidget to display a poster roster.
@@ -138,31 +134,29 @@ class RosterTable(QtWidgets.QTableWidget):
 
     Arguments
     ---------
-    row_height : int
-        The height of each row in the table.
-
     default_rgb : int
         The default value of the three RGB channels for the default
         (i.e., not highlighted) color.
     """
 
-    def __init__(self, default_rgb: int = 175) -> None:
+    def __init__(self, parent: QtWidgets.QWidget, default_rgb: int = 175) -> None:
         """Constructor.
         """
-        super().__init__()
+        super().__init__(parent)
         self.setColumnCount(3)
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setShowGrid(False)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.setEnabled(False)
         self.setObjectName(WidgetName.ROSTER_TABLE)
         self._default_color = QtGui.QColor(default_rgb, default_rgb, default_rgb)
         self._highlight_color = QtGui.QColor(0, 0, 0)
         self._highlighted_row = None
 
-    def set_text(self, row: int, col: int, text: str):
+    def set_text(self, row: int, col: int, text: str) -> None:
         """Set the text for a given cell.
 
         Note the item is rendered with the default foreground color upon insertion.
@@ -182,7 +176,7 @@ class RosterTable(QtWidgets.QTableWidget):
         item.setForeground(self._default_color)
         self.setItem(row, col, item)
 
-    def set_poster(self, row: int, poster: Poster, title_length=65):
+    def set_poster(self, row: int, poster: Poster, title_length: int = 65) -> None:
         """Populate a given row with the poster information.
 
         Arguments
@@ -197,7 +191,7 @@ class RosterTable(QtWidgets.QTableWidget):
         self.set_text(row, 1, f'{poster.short_title(title_length)}'.ljust(title_length))
         self.set_text(row, 2, f'{poster.presenter.full_name()}')
 
-    def set_roster(self, roster: PosterRoster):
+    def set_roster(self, roster: PosterRoster) -> None:
         """Populate the entire table with a poster roster.
 
         Arguments
@@ -210,7 +204,7 @@ class RosterTable(QtWidgets.QTableWidget):
         for row, poster in enumerate(roster):
             self.set_poster(row, poster)
 
-    def set_current_row(self, row: int):
+    def set_current_row(self, row: int) -> None:
         """Highlight a given row.
 
         Arguments
@@ -228,34 +222,54 @@ class RosterTable(QtWidgets.QTableWidget):
         self._highlighted_row = row
 
 
-class ScreenHeaderBase(QtWidgets.QWidget):
+class ScreenHeader(QtWidgets.QWidget):
 
-    """Base class for the screen header.
-
-    Note this creates the widgets for the title, subtitle and status message, but
-    does not add anything to the layout, as the positioning depends on which kind
-    of header is being implemented, and is delegated to subclasses. You should never
-    need to instantiate this class directly, but rather one of its subclasses.
+    """Class describing the screen header.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, title: str = None,
-        subtitle: str = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None, title: str = None) -> None:
         """Constructor.
         """
         super().__init__(parent)
+        self.program = parent.program
+        self._roster = None
         self.setLayout(QtWidgets.QGridLayout())
-        self.title_label = self._create_label(WidgetName.TITLE, title)
-        self.subtitle_label = self._create_label(WidgetName.SUBTITLE, subtitle)
-        self.status_message_label = self._create_label(WidgetName.STATUS_MESSAGE)
-        self.status_message_label.setAlignment(QtCore.Qt.AlignBottom)
+        # Create all the widgets and place them in the grid layout.
+        self.title_label = self._add_qlabel(WidgetName.TITLE, 0, 0, 1, 3)
+        self.title_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.subtitle_label = self._add_qlabel(WidgetName.SUBTITLE, 1, 0, 1, 3)
+        self.subtitle_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.headshot_label = self._add_qlabel(WidgetName.HEADSHOT, 2, 0)
+        self.qrcode_label = self._add_qlabel(WidgetName.QR_CODE, 2, 1)
+        self.roster_table = RosterTable(self)
+        self.layout().addWidget(self.roster_table, 2, 2)
+        self.presenter_name_label = self._add_qlabel(WidgetName.PRESENTER_NAME, 4, 0, 1, 2)
+        self.presenter_affiliation_label = self._add_qlabel(WidgetName.PRESENTER_AFFILIATION, 5, 0, 1, 2)
+        self.message_label = self._add_qlabel(WidgetName.STATUS_MESSAGE, 4, 2, 2, 1)
+        self.message_label.setAlignment(QtCore.Qt.AlignBottom)
+        self.set_title(self.program.pretty_title())
 
-    def _create_label(self, object_name: WidgetName, text: str = None) -> QtWidgets.QLabel:
+    def _add_qlabel(self, object_name: WidgetName, row: int, col: int, row_span: int = 1,
+        col_span: int = 1) -> QtWidgets.QLabel:
         """Create a new label with the given object name, and return it.
+
+        This is a small helper function to help setting the object names in a consistent
+        fashion, which is instrumental for the qss stylesheet to work properly.
+
+        Arguments
+        ---------
+        object_name : WidgetName
+            The name of the widget to be created.
+
+        text : str, optional
+            The text to be displayed on the label.
+
+        align : QtCore.Qt.AlignmentFlag, optional
+            The alignment of the text on the label.
         """
         label = QtWidgets.QLabel(self)
         label.setObjectName(object_name)
-        if text is not None:
-            label.setText(text)
+        self.layout().addWidget(label, row, col, row_span, col_span)
         return label
 
     def set_title(self, text: str = None) -> None:
@@ -271,110 +285,54 @@ class ScreenHeaderBase(QtWidgets.QWidget):
     def set_status_message(self, text: str = None) -> None:
         """Set the status text label.
         """
-        self.status_message_label.setText(text or "")
+        self.message_label.setText(text or "")
 
     def clear(self):
-        """Generic function to clear the header.
-
-        By default this is only clearing the status message, but actual subclasses
-        may do something more elaborated.
+        """Generic function to clear the relevant QLabel objects in the header.
         """
-        self.status_message_label.setText("")
+        self.message_label.setText("")
+        self.presenter_name_label.setText("")
+        self.presenter_affiliation_label.setText("")
+        self.roster_table.clear()
+        self.headshot_label.clear()
+        self.qrcode_label.clear()
 
-
-class ScreenHeaderMinimal(ScreenHeaderBase):
-
-    """Minimal screen header.
-
-    This is used for the cases where you only need a title, a subtitle and a status message.
-    """
-
-    def __init__(self, title: str = None, subtitle: str = None):
-        """Constructor.
-        """
-        super().__init__(None, title, subtitle)
-        self.layout().addWidget(self.title_label, 0, 0)
-        self.layout().addWidget(self.subtitle_label, 1, 0)
-        self.layout().addWidget(self.status_message_label, 2, 0)
-
-
-class ScreenHeader(ScreenHeaderBase):
-
-    """Fully fledged poster header.
-    """
-
-    def __init__(self, title: str, portrait_height: int = 200):
-        """Constructor.
-        """
-        super().__init__(None, title)
-        self.headshot_label = self._create_label(WidgetName.HEADSHOT)
-        self.qrcode_label = self._create_label(WidgetName.QR_CODE)
-        self.presenter_name_label = self._create_label(WidgetName.PRESENTER_NAME)
-        self.presenter_affiliation_label = self._create_label(WidgetName.PRESENTER_AFFILIATION)
-        self.table = RosterTable()
-        self._roster = None
-        self.layout().addWidget(self.title_label, 0, 0, 1, 3)
-        self.layout().addWidget(self.subtitle_label, 1, 0, 1, 3)
-        self.layout().addWidget(self.headshot_label, 2, 0)
-        self.layout().addWidget(self.qrcode_label, 2, 1)
-        self.layout().addWidget(self.table, 2, 2)
-        self.layout().addWidget(self.presenter_name_label, 4, 0, 1, 2)
-        self.layout().addWidget(self.presenter_affiliation_label, 5, 0, 1, 2)
-        self.layout().addWidget(self.status_message_label, 4, 2, 2, 1)
-
-    def set_roster(self, roster):
+    def set_roster(self, roster: PosterRoster) -> None:
         """Set the poster roster for the table.
         """
         self._roster = roster
         self.set_subtitle(self._roster.session.title)
 
-    def _update_pixmaps(self, poster):
+    def _update_pixmaps(self, poster: Poster) -> None:
         """Update the two pixmaps.
         """
-        self.headshot_label.setPixmap(poster.presenter_pixmap)
-        self.qrcode_label.setPixmap(poster.qrcode_pixmap)
+        self.headshot_label.setPixmap(poster.headshot_pixmap(self.program.root_dir))
+        self.qrcode_label.setPixmap(poster.qrcode_pixmap(self.program.root_dir))
 
-    def _update_presenter(self, poster):
+    def _update_presenter(self, poster: Poster) -> None:
         """Update the presenter name and affiliation.
         """
         presenter = poster.presenter
         self.presenter_name_label.setText(presenter.full_name())
-        # In some cases the presenter affiliation may be missing, so we catch the
-        # TypeError exception and set the affiliation label to an empty string.
-        try:
-            self.presenter_affiliation_label.setText(presenter.affiliation)
-        except TypeError:
-            self.presenter_affiliation_label.setText("")
+        self.presenter_affiliation_label.setText(presenter.short_affiliation())
 
-    def set_poster(self, poster):
+    def set_poster(self, poster: Poster) -> None:
         """Set the poster for the header.
         """
         self._update_pixmaps(poster)
         self._update_presenter(poster)
-        self.table.clear()
-        self.table.setRowCount(1)
-        self.table.set_poster(0, poster)
-        self.table.set_current_row(0)
+        self.roster_table.clear()
+        self.roster_table.setRowCount(1)
+        self.roster_table.set_poster(0, poster)
+        self.roster_table.set_current_row(0)
 
-    def update(self, current_poster_id):
+    def update(self, current_poster_id: int) -> None:
         """Update the header based on the roster information and the current poster.
         """
         poster = self._roster[current_poster_id]
         self._update_pixmaps(poster)
         self._update_presenter(poster)
-        self.table.set_current_row(current_poster_id)
-
-    def clear(self):
-        """Clear the header.
-        """
-        super().clear()
-        self.presenter_name_label.setText("")
-        self.presenter_affiliation_label.setText("")
-        self.status_message_label.setText("")
-        self.table.clear()
-        self.headshot_label.clear()
-        self.qrcode_label.clear()
-
+        self.roster_table.set_current_row(current_poster_id)
 
 
 class DisplaWindowBase(QtWidgets.QWidget):
@@ -384,40 +342,21 @@ class DisplaWindowBase(QtWidgets.QWidget):
 
     DISPLAY_TYPE = None
 
-    def __init__(self, header_class=ScreenHeader, **kwargs):
+    def __init__(self, **kwargs):
         """Constructor.
         """
         super().__init__()
-        self.setStyleSheet('background-color: "white"')
-        window_title = kwargs['conference_name']
-        if self.DISPLAY_TYPE is not None:
-            window_title = f'{window_title} -- {self.DISPLAY_TYPE}'
-        self.setWindowTitle(window_title)
         # Parse the command-line arguments.
-        self.config_file_path = kwargs['cfgfile']
         self.display_mode = kwargs['mode']
         self.poster_width = kwargs['poster_width']
-        self.header_height = kwargs['header_height']
         self.portrait_height = kwargs['portrait_height']
-        # Retrieve the display date.
-        display_date = kwargs.get('display_date')
-        # If the --display-date command-line switch is not set we jut cache the
-        # current day and time. Note that we cache both the date and the datetime
-        # of the display.
-        if display_date is None:
-            self.display_date = None#datetime.date.today()
-            self.display_datetime = None#datetime.datetime.now()
-        # Otherwise we also parse the optional display time and proceed.
-        else:
-            display_time = kwargs.get('display_time')
-            display_datetime = f'{display_date} {display_time}'
-            self.display_date = datetime.datetime.strptime(display_date, DATE_FORMAT).date()
-            self.display_datetime = datetime.datetime.strptime(display_datetime, DATETIME_FORMAT)
+        # Load the program.
+        args = kwargs['cfgfile'], kwargs.get('screen_id'), kwargs.get('display_datetime')
+        self.program = Program(*args)
         # Setup the widget.
         self.setLayout(QtWidgets.QGridLayout())
         self.layout().setColumnMinimumWidth(0, self.poster_width)
-        header_title = f'{kwargs["conference_name"]} - {kwargs["conference_location"]} - {kwargs["conference_dates"]}'
-        self.header = header_class(header_title)
+        self.header = ScreenHeader(self)
         self.poster_label = QtWidgets.QLabel()
         self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
         self.debug_label = QtWidgets.QLabel()
@@ -539,7 +478,6 @@ class SlideShow(DisplaWindowBase):
         super().__init__(**kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         self.pause_interval = self.sec_to_msec(kwargs['pause_interval'])
-        self.screen_id = read_screen_id()
         self.__status = SlideShowStatus.STOPPED
         self.__current_index = 0
         # Setup the timers.
@@ -567,10 +505,9 @@ class SlideShow(DisplaWindowBase):
         # Deal with the case where the session is empty.
         if self.poster_roster.session is None:
             return
-        if not self.poster_roster.session.ongoing():
+        if not self.poster_roster.session.ongoing(self.program.display_datetime):
             logger.info(f'Session {self.poster_roster.session} is over, reloading the program...')
             self._load_roster()
-            logger.info(f'Current session: {self.poster_roster.session}')
 
     def _load_roster(self):
         """Load a given session from the underlying configuration file.
@@ -578,9 +515,7 @@ class SlideShow(DisplaWindowBase):
         logger.info('Loading poster roster...')
         self.stop()
         self.hide()
-        folder_path = os.path.dirname(self.config_file_path)
-        self.poster_roster = PosterRoster(self.config_file_path, folder_path,
-            self.screen_id, self.display_datetime)
+        self.poster_roster = self.program.poster_roster()
         if len(self.poster_roster) == 0:
             logger.info('Displaying default poster...')
             self._show()
@@ -590,11 +525,10 @@ class SlideShow(DisplaWindowBase):
             self.header.set_subtitle('')
             self.header.qrcode_label.setPixmap(pix2)
             return
-        self.poster_roster.load_pixmaps(self.poster_width, self.portrait_height)
         self.header.set_roster(self.poster_roster)
-        subtitle = f'{self.poster_roster.session.title} (screen #{self.screen_id})'
+        subtitle = f'{self.poster_roster.session.title} (screen #{self.program.screen_id})'
         self.header.set_subtitle(subtitle)
-        self.header.table.set_roster(self.poster_roster)
+        self.header.roster_table.set_roster(self.poster_roster)
         self._show()
         self.display_poster()
         if len(self.poster_roster) > 1:
@@ -653,7 +587,7 @@ class SlideShow(DisplaWindowBase):
             self.__current_index = 0
         self.header.update(self.__current_index)
         poster = self.poster_roster[self.__current_index]
-        self.poster_label.setPixmap(poster.poster_pixmap)
+        self.poster_label.setPixmap(poster.poster_pixmap(self.poster_roster.root_dir))
         self.fading_effect.fade_in()
 
     def advance(self) -> None:
@@ -818,7 +752,6 @@ class ProgramBrowser(DisplaWindowBase):
         # memory taken by the pixmaps when the tree view is restored.
         self.__current_poster = None
         # Load the program.
-        self.program = PosterProgram(kwargs.get('cfgfile'))
         self._load_program()
         # Setup the timers. We have two of them---one for the carousel progression
         # and another one for toggling between the different views.
@@ -841,11 +774,12 @@ class ProgramBrowser(DisplaWindowBase):
         """Load the program into the tree viewer.
         """
         items = []
-        for session, posters in self.program.items():
+        for session in self.program.session_dict.values():
             item = QtWidgets.QTreeWidgetItem([session.title])
-            for poster in posters:
-                if self.program.missing_poster_image(poster.friendly_id):
-                    continue
+            for poster in session.posters:
+                # TODO: fixme.
+                #if self.program.missing_poster_image(poster.friendly_id):
+                #    continue
                 presenter = poster.presenter
                 affiliation = presenter.affiliation
                 if pd.isna(affiliation):
@@ -887,20 +821,12 @@ class ProgramBrowser(DisplaWindowBase):
     def _display_poster(self, poster):
         """Base function to display a poster.
         """
-        # Hide the cutsom tree widget and disable the key-press events.
+        # Hide the custom tree widget and disable the key-press events.
         self.tree_widget.hide()
         self.tree_widget.disable_key_press_events()
-        # Unload the pixmaps.
-        self.unload_current_pixmaps()
-        # Load the necessary pixmaps for the poster.
-        self.program.load_poster_pixmaps(poster, self.poster_width, self.portrait_height)
         # Update the widgets and show the poster label.
         self.header.set_poster(poster)
-        if self.__status == BrowserStatus.CAROUSEL:
-            self.header.set_subtitle(f'{self.DISPLAY_TYPE} (random carousel)')
-        else:
-            self.header.set_subtitle(f'{self.DISPLAY_TYPE} ({poster.session.title})')
-        self.poster_label.setPixmap(poster.poster_pixmap)
+        self.poster_label.setPixmap(poster.poster_pixmap(pathlib.Path()))
         self.poster_label.show()
         self.header.show()
         # Final bookkeeping.
@@ -928,15 +854,15 @@ class ProgramBrowser(DisplaWindowBase):
         """Display the next poster in the program.
         """
         session = self.__current_poster.session
-        index = self.__current_poster.session_index
-        self._display_poster(self.program.select_by_session_index(session, index + 1))
+        index = session.posters.index(self.__current_poster) % len(session.posters)
+        self._display_poster(session.posters[index + 1])
 
     def display_previous_poster(self):
         """Display the previous poster in the program.
         """
         session = self.__current_poster.session
-        index = self.__current_poster.session_index
-        self._display_poster(self.program.select_by_session_index(session, index - 1))
+        index = session.posters.index(self.__current_poster) % len(session.posters)
+        self._display_poster(session.posters[index - 1])
 
     def toggle_view(self):
         """Toggle between the different views.
@@ -955,7 +881,6 @@ class ProgramBrowser(DisplaWindowBase):
         self.toggle_timer.start()
         # Clear up and hide the poster
         self.header.clear()
-        self.header.set_subtitle(f'{self.DISPLAY_TYPE} (tree view)')
         self.poster_label.clear()
         self.poster_label.hide()
         # Show up the tree widget and re-enable the key-press events.
@@ -1023,12 +948,12 @@ class SessionDirectory(DisplaWindowBase):
     """Session directory.
     """
 
-    DISPLAY_TYPE = 'Poster session directory'
+    DISPLAY_TYPE = 'Program directory'
 
     def __init__(self, **kwargs):
         """Constructor.
         """
-        super().__init__(header_class=ScreenHeaderMinimal, **kwargs)
+        super().__init__(**kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         subtitle = f'{self.DISPLAY_TYPE}'
         self.header.set_subtitle(subtitle)
@@ -1045,7 +970,6 @@ class SessionDirectory(DisplaWindowBase):
         self.reload_timer.timeout.connect(self._check_reload)
         self._reload_due = None
         # Load the program
-        self.program = PosterProgram(kwargs.get('cfgfile'))
         self.__num_sessions = self._load_program()
         self.__current_index = -1
 
@@ -1075,14 +999,12 @@ class SessionDirectory(DisplaWindowBase):
         self._reload_due = None
         self.tree_widget.clear()
         items = []
-        for session, posters in self.program.items():
-            if not session.ongoing(self.display_datetime):
-                continue
-            end = session.end
+        for session in self.program.ongoing_sessions():
+            end = session.end_datetime
             if self._reload_due is None or end < self._reload_due:
                 self._reload_due = end
             item = QtWidgets.QTreeWidgetItem([session.title])
-            for poster in posters:
+            for poster in session.posters:
                 presenter = poster.presenter
                 affiliation = presenter.affiliation
                 if pd.isna(affiliation):
