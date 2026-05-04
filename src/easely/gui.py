@@ -863,15 +863,15 @@ class ProgramBrowser(DisplaWindowBase):
         """Display the next poster in the program.
         """
         session = self.__current_poster.session
-        index = session.posters.index(self.__current_poster) % len(session.posters)
-        self._display_poster(session.posters[index + 1])
+        index = (session.posters.index(self.__current_poster) + 1) % len(session.posters)
+        self._display_poster(session.posters[index])
 
     def display_previous_poster(self):
         """Display the previous poster in the program.
         """
         session = self.__current_poster.session
-        index = session.posters.index(self.__current_poster) % len(session.posters)
-        self._display_poster(session.posters[index - 1])
+        index = (session.posters.index(self.__current_poster) - 1) % len(session.posters)
+        self._display_poster(session.posters[index])
 
     def toggle_view(self):
         """Toggle between the different views.
