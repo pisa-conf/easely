@@ -821,21 +821,11 @@ class ProgramBrowser(DisplaWindowBase):
     def _display_poster(self, poster):
         """Base function to display a poster.
         """
-        # Hide the cutsom tree widget and disable the key-press events.
+        # Hide the custom tree widget and disable the key-press events.
         self.tree_widget.hide()
         self.tree_widget.disable_key_press_events()
-
-        # TODO: fixme: the unload/load cycle is no more necessary.
-        # Unload the pixmaps.
-        #self.unload_current_pixmaps()
-        # Load the necessary pixmaps for the poster.
-        #self.program.load_poster_pixmaps(poster, self.poster_width, self.portrait_height)
         # Update the widgets and show the poster label.
         self.header.set_poster(poster)
-        if self.__status == BrowserStatus.CAROUSEL:
-            self.header.set_subtitle(f'{self.DISPLAY_TYPE} (random carousel)')
-        else:
-            self.header.set_subtitle(f'{self.DISPLAY_TYPE} ({poster.session.title})')
         self.poster_label.setPixmap(poster.poster_pixmap(pathlib.Path()))
         self.poster_label.show()
         self.header.show()
@@ -891,7 +881,6 @@ class ProgramBrowser(DisplaWindowBase):
         self.toggle_timer.start()
         # Clear up and hide the poster
         self.header.clear()
-        self.header.set_subtitle(f'{self.DISPLAY_TYPE} (tree view)')
         self.poster_label.clear()
         self.poster_label.hide()
         # Show up the tree widget and re-enable the key-press events.
@@ -959,7 +948,7 @@ class SessionDirectory(DisplaWindowBase):
     """Session directory.
     """
 
-    DISPLAY_TYPE = 'Poster session directory'
+    DISPLAY_TYPE = 'Poster directory'
 
     def __init__(self, **kwargs):
         """Constructor.
