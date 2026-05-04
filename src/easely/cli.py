@@ -278,15 +278,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_config_file(parser)
 
     @staticmethod
-    def add_geometry(parser: argparse.ArgumentParser, default_header_height: int=310):
+    def add_geometry(parser: argparse.ArgumentParser):
         """Add all the geometry options.
         """
         parser.add_argument("--mode", type=str, default="fullscreen", choices=VALID_DISPLAY_MODES,
             help="display geometry")
         parser.add_argument("--poster-width", type=int, default=None,
             help="width of the poster display (from the screen size by default)")
-        parser.add_argument("--header-height", type=int, default=default_header_height,
-            help="height of the poster header")
         parser.add_argument("--portrait-height", type=int, default=132,
             help="height of the presenter portraits and QR codes")
 

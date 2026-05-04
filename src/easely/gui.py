@@ -359,11 +359,12 @@ class DisplaWindowBase(QtWidgets.QWidget):
         """
         super().__init__()
         # Parse the command-line arguments.
-        self.config_file_path = kwargs['cfgfile']
         self.display_mode = kwargs['mode']
         self.poster_width = kwargs['poster_width']
-        self.header_height = kwargs['header_height']
         self.portrait_height = kwargs['portrait_height']
+        # Load the program.
+        args = kwargs['cfgfile'], kwargs.get('screen_id'), kwargs.get('display_datetime')
+        self.program = Program(*args)
         # Setup the widget.
         self.setLayout(QtWidgets.QGridLayout())
         self.layout().setColumnMinimumWidth(0, self.poster_width)
@@ -486,10 +487,6 @@ class SlideShow(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
-        # TODO: fixme, and replace the kwargs with args.
-        self.program = Program(kwargs.get('cfgfile'),
-                               screen_id=kwargs.get('screen_id'),
-                               display_datetime=kwargs.get('display_datetime'))
         super().__init__(**kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         self.pause_interval = self.sec_to_msec(kwargs['pause_interval'])
@@ -755,7 +752,6 @@ class ProgramBrowser(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
-        self.program = Program(kwargs.get('cfgfile'))
         super().__init__(**kwargs)
         # Hide the header and the poster label, and show the tree view, instead.
         self.header.set_subtitle(self.DISPLAY_TYPE)
@@ -980,7 +976,6 @@ class SessionDirectory(DisplaWindowBase):
     def __init__(self, **kwargs):
         """Constructor.
         """
-        self.program = Program(kwargs.get('cfgfile'), display_datetime=kwargs.get('display_datetime'))
         super().__init__(**kwargs)
         self.advance_interval = self.sec_to_msec(kwargs['advance_interval'])
         subtitle = f'{self.DISPLAY_TYPE}'
