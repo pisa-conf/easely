@@ -115,12 +115,17 @@ class Poster:
 
     presenter : Presenter instance
         The contribution presenter.
+
+    session: Session instance, optional
+        The session the contribution belongs to. This is set to None by default and
+        is filled in when the poster is added to a session.
     """
 
     friendly_id: int
     screen_id: int
     title: str
     presenter: Presenter
+    session: "Session" = None
 
     @classmethod
     def from_dataframe_row(cls, row: pd.core.series.Series) -> "Poster":
@@ -210,6 +215,7 @@ class Session:
     def add(self, poster: Poster) -> None:
         """Add a poster to the session.
         """
+        poster.session = self
         self.posters.append(poster)
 
     def __len__(self) -> int:

@@ -854,15 +854,15 @@ class ProgramBrowser(DisplaWindowBase):
         """Display the next poster in the program.
         """
         session = self.__current_poster.session
-        index = self.__current_poster.session_index
-        self._display_poster(self.program.select_by_session_index(session, index + 1))
+        index = session.posters.index(self.__current_poster) % len(session.posters)
+        self._display_poster(session.posters[index + 1])
 
     def display_previous_poster(self):
         """Display the previous poster in the program.
         """
         session = self.__current_poster.session
-        index = self.__current_poster.session_index
-        self._display_poster(self.program.select_by_session_index(session, index - 1))
+        index = session.posters.index(self.__current_poster) % len(session.posters)
+        self._display_poster(session.posters[index - 1])
 
     def toggle_view(self):
         """Toggle between the different views.
@@ -948,7 +948,7 @@ class SessionDirectory(DisplaWindowBase):
     """Session directory.
     """
 
-    DISPLAY_TYPE = 'Poster directory'
+    DISPLAY_TYPE = 'Program directory'
 
     def __init__(self, **kwargs):
         """Constructor.
