@@ -131,7 +131,11 @@ class Poster:
     def from_dataframe_row(cls, row: pd.core.series.Series) -> "Poster":
         """Create a Poster object from a dataframe row.
         """
-        return cls(*row[:-3], Presenter(*row[-3:]))
+        first_name, last_name, affiliation = row[-3:]
+        first_name = first_name.title().strip()
+        last_name = last_name.title().strip()
+        presenter = Presenter(first_name, last_name, affiliation)
+        return cls(*row[:-3], presenter)
 
     def short_title(self, max_chars: int = 40):
         """Return a shortened version of the title, trimmed to a fixed maximum
