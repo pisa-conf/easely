@@ -75,6 +75,63 @@ class Presenter:
     last_name: str
     affiliation: str
 
+    @staticmethod
+    def sanitize_argument(argument: str, title_case: bool, nan_value: str = "") -> str:
+        """Sanitize a single presenter argument.
+
+        Arguments
+        ---------
+        argument : str
+            The argument to sanitize.
+
+        title_case : bool
+            Whether to convert the argument to title case.
+
+        nan_value : str, optional
+            The value to return if the argument is NaN.
+
+        Returns
+        -------
+        sanitized_argument : str
+            The sanitized argument.
+        """
+        # If the argument is NaN, return the specified value.
+        if pd.isna(argument):
+            return nan_value
+        # Replace all instances of multiple consecutive spaces with a single space,
+        # and strip the spaces on both ends.
+        argument = ' '.join(argument.split())
+        # Convert to title case if requested.
+        if title_case:
+            argument = argument.title()
+        return argument
+
+    @staticmethod
+    def sanitize_args(first_name: str, last_name: str, affiliation: str) -> tuple[str, str, str]:
+        """Sanitize the presenter arguments.
+
+        Arguments
+        ---------
+        first_name : str
+            The presenter first name.
+
+        last_name : str
+            The presenter last name.
+
+        affiliation : str
+            The presenter affiliation.
+
+        Returns
+        -------
+        sanitized_args : tuple[str, str, str]
+            The sanitized presenter arguments, in the same order as the input.
+        """
+        return (
+            Presenter.sanitize_argument(first_name, title_case=True),
+            Presenter.sanitize_argument(last_name, title_case=True),
+            Presenter.sanitize_argument(affiliation, title_case=False, nan_value="")
+        )
+
     def full_name(self) -> str:
         """Return the presenter full name.
         """
@@ -131,7 +188,8 @@ class Poster:
     def from_dataframe_row(cls, row: pd.core.series.Series) -> "Poster":
         """Create a Poster object from a dataframe row.
         """
-        return cls(*row[:-3], Presenter(*row[-3:]))
+        presenter = Presenter(*Presenter.sanitize_args(*row[-3:]))
+        return cls(*row[:-3], presenter)
 
     def short_title(self, max_chars: int = 40):
         """Return a shortened version of the title, trimmed to a fixed maximum
@@ -313,7 +371,7 @@ class Program:
             session = Session.from_dataframe_row(row)
             self.session_dict[session.id] = session
         # Read the mapping between host ids and screen ids.
-        self.screen_dict = {screen: host for _, (host, screen) in
+        self.screen_dict = {host: screen for _, (host, screen) in
             self._read_sheet(file_path, schema.hosts_schema()).iterrows()}
         # And, since we are at it, cache the screen id for the current host.
         self.host_name = socket.gethostname()

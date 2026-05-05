@@ -139,22 +139,31 @@ class RosterTable(QtWidgets.QTableWidget):
         (i.e., not highlighted) color.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget, default_rgb: int = 175) -> None:
+    def __init__(self, parent: QtWidgets.QWidget, default_rgb: int = 175,
+                 col_spans: tuple = (0.075, 0.675, 0.25)) -> None:
         """Constructor.
         """
         super().__init__(parent)
+        self._col_spans = col_spans
         self.setColumnCount(3)
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setShowGrid(False)
-        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.setShowGrid(False)
         self.setEnabled(False)
         self.setObjectName(WidgetName.ROSTER_TABLE)
         self._default_color = QtGui.QColor(default_rgb, default_rgb, default_rgb)
         self._highlight_color = QtGui.QColor(0, 0, 0)
         self._highlighted_row = None
+
+    def resizeEvent(self, event):
+        """Overloaded method to control the column widths when the table is resized.
+        """
+        super().resizeEvent(event)
+        width = self.viewport().width()
+        for i, span in enumerate(self._col_spans):
+            self.setColumnWidth(i, int(span * width))
 
     def set_text(self, row: int, col: int, text: str) -> None:
         """Set the text for a given cell.
@@ -335,7 +344,7 @@ class ScreenHeader(QtWidgets.QWidget):
         self.roster_table.set_current_row(current_poster_id)
 
 
-class DisplaWindowBase(QtWidgets.QWidget):
+class DisplayWindowBase(QtWidgets.QWidget):
 
     """Base class for display windows.
     """
@@ -461,7 +470,7 @@ class SlideShowStatus(Enum):
 
 
 
-class SlideShow(DisplaWindowBase):
+class SlideShow(DisplayWindowBase):
 
     """Basic slideshow class.
     """
@@ -729,7 +738,7 @@ class BrowserStatus(Enum):
 
 
 
-class ProgramBrowser(DisplaWindowBase):
+class ProgramBrowser(DisplayWindowBase):
 
     """Poster browser.
     """
@@ -854,15 +863,15 @@ class ProgramBrowser(DisplaWindowBase):
         """Display the next poster in the program.
         """
         session = self.__current_poster.session
-        index = session.posters.index(self.__current_poster) % len(session.posters)
-        self._display_poster(session.posters[index + 1])
+        index = (session.posters.index(self.__current_poster) + 1) % len(session.posters)
+        self._display_poster(session.posters[index])
 
     def display_previous_poster(self):
         """Display the previous poster in the program.
         """
         session = self.__current_poster.session
-        index = session.posters.index(self.__current_poster) % len(session.posters)
-        self._display_poster(session.posters[index - 1])
+        index = (session.posters.index(self.__current_poster) - 1) % len(session.posters)
+        self._display_poster(session.posters[index])
 
     def toggle_view(self):
         """Toggle between the different views.
@@ -943,7 +952,7 @@ class ProgramBrowser(DisplaWindowBase):
 
 
 
-class SessionDirectory(DisplaWindowBase):
+class SessionDirectory(DisplayWindowBase):
 
     """Session directory.
     """

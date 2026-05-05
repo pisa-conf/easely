@@ -39,11 +39,13 @@ QLabel#presenter_name {
   margin-top: 0px;
   margin-bottom: 0px;
   min-width: 400px;
+  min-height: 50px;
 }
 
 QLabel#presenter_affiliation {
   font-size: 30px;
   color: gray;
+  min-height: 50px;
 }
 
 QLabel#status_message {
