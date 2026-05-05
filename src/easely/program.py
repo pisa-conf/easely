@@ -27,7 +27,8 @@ import pandas as pd
 
 from . import schema
 from .logging_ import logger
-from .paths import WorkspaceLayout, contribution_file_name, sanitize_file_path
+from .paths import WorkspaceLayout, contribution_file_name, sanitize_file_path, \
+    default_headshot_path, default_qrcode_path
 from .__qt__ import QtGui
 from .typing_ import PathLike
 
@@ -198,7 +199,7 @@ class Poster:
         return _trim_string(self.title, max_chars)
 
     def _load_pixmap(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
-        width: int = None, suffix: str = ".png") -> QtGui.QPixmap:
+        default: pathlib.Path, width: int = None, suffix: str = ".png") -> QtGui.QPixmap:
         """Load a pixmap pertaining to the poster from the file system.
 
         Note that, unlike the original version of the program, we are always loading
@@ -225,6 +226,9 @@ class Poster:
         """
         file_name = contribution_file_name(self.friendly_id, suffix)
         file_path = root_dir / workspace_dir / file_name
+        if not file_path.is_file():
+            logger.debug(f"File {file_path} not found, using default {default}.")
+            file_path = default
         pixmap = QtGui.QPixmap(str(file_path))
         if width is not None:
             pixmap = pixmap.scaledToWidth(width, QtCore.Qt.SmoothTransformation)
@@ -233,12 +237,14 @@ class Poster:
     def qrcode_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
         """Load the QPixmap object with the QR code.
         """
-        return self._load_pixmap(root_dir, WorkspaceLayout.QRCODES, width)
+        default = default_qrcode_path(root_dir)
+        return self._load_pixmap(root_dir, WorkspaceLayout.QRCODES, default, width)
 
     def headshot_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
         """Load the QPixmap object with the presenter headshot.
         """
-        return self._load_pixmap(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS, width)
+        default = default_headshot_path(root_dir)
+        return self._load_pixmap(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS, default, width)
 
     def poster_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
         """Load the QPixmap object with the actual poster.

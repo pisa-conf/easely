@@ -80,7 +80,7 @@ def default_headshot_path(root_dir: pathlib.Path) -> pathlib.Path:
         The default path for the presenter headshot, i.e., the one that is not
         associated to any specific contribution.
     """
-    return root_dir / WorkspaceLayout.HEADSHOTS / f"{DEFAULT_FILE_NAME}.png"
+    return root_dir / WorkspaceLayout.CROPPED_HEADSHOTS / f"{DEFAULT_FILE_NAME}.png"
 
 
 def contribution_file_name(friendly_id: int, suffix: str) -> str:
