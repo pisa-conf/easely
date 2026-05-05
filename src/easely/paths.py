@@ -43,6 +43,42 @@ class WorkspaceLayout(str, Enum):
     RASTERED_POSTERS = "posters_raster"
 
 
+def default_qrcode_path(root_dir: pathlib.Path) -> pathlib.Path:
+    """Return the default path for the event QR code.
+
+    Arguments
+    ---------
+    root_dir : pathlib.Path
+        The path to the conference root directory.
+
+    Returns
+    -------
+    pathlib.Path
+        The default path for the event QR code, i.e., the one that is not
+        associated to any specific contribution.
+    """
+    return root_dir / WorkspaceLayout.QRCODES / f"{DEFAULT_FILE_NAME}.png"
+
+
+def default_headshot_path(root_dir: pathlib.Path) -> pathlib.Path:
+    """Return the default path for the presenter headshot, which is used when the
+    actual headshots is missing (e.g., if the presenter did not feel like
+    uploading it on indico).
+
+    Arguments
+    ---------
+    root_dir : pathlib.Path
+        The path to the conference root directory.
+
+    Returns
+    -------
+    pathlib.Path
+        The default path for the presenter headshot, i.e., the one that is not
+        associated to any specific contribution.
+    """
+    return root_dir / WorkspaceLayout.HEADSHOTS / f"{DEFAULT_FILE_NAME}.png"
+
+
 def contribution_file_name(friendly_id: int, suffix: str) -> str:
     """Return the standardized file name for a contribution file, given its
     ``friendly_id`` on indico and the expected suffix.

@@ -145,7 +145,7 @@ def qrcodes(
     """
     file_path = sanitize_file_path(file_path, suffix=".json", check_exists=True)
     output_folder = sanitize_folder_path(folder_path, create=True)
-    indico.Event(file_path).generate_poster_qrcodes(output_folder, size=size, overwrite=overwrite)
+    indico.Event(file_path).generate_qrcodes(output_folder, size=size, overwrite=overwrite)
 
 
 @dataclass(frozen=True)
