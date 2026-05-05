@@ -344,7 +344,7 @@ class ScreenHeader(QtWidgets.QWidget):
         self.roster_table.set_current_row(current_poster_id)
 
 
-class DisplaWindowBase(QtWidgets.QWidget):
+class DisplayWindowBase(QtWidgets.QWidget):
 
     """Base class for display windows.
     """
@@ -470,7 +470,7 @@ class SlideShowStatus(Enum):
 
 
 
-class SlideShow(DisplaWindowBase):
+class SlideShow(DisplayWindowBase):
 
     """Basic slideshow class.
     """
@@ -738,7 +738,7 @@ class BrowserStatus(Enum):
 
 
 
-class ProgramBrowser(DisplaWindowBase):
+class ProgramBrowser(DisplayWindowBase):
 
     """Poster browser.
     """
@@ -952,7 +952,7 @@ class ProgramBrowser(DisplaWindowBase):
 
 
 
-class SessionDirectory(DisplaWindowBase):
+class SessionDirectory(DisplayWindowBase):
 
     """Session directory.
     """
