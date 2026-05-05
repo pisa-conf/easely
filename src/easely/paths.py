@@ -25,6 +25,10 @@ from .logging_ import logger
 from .typing_ import PathLike
 
 
+_SRC_DIR = pathlib.Path(__file__).parent
+ASSETS_DIR = _SRC_DIR / "assets"
+
+
 PROGRAM_FILE_NAME = "program"
 DEFAULT_FILE_NAME = "default"
 

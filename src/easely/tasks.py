@@ -29,7 +29,7 @@ from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
 from .paths import WorkspaceLayout, filter_dir, sanitize_file_path, \
-    sanitize_folder_path, PROGRAM_FILE_NAME
+    sanitize_folder_path, ASSETS_DIR, DEFAULT_FILE_NAME, PROGRAM_FILE_NAME
 from .program import Program
 from .typing_ import PathLike
 
@@ -361,6 +361,12 @@ def facecrop(
     """
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
+    # Place the (resized) default headshot image to the output folder.
+    dest = output_dir / f"{DEFAULT_FILE_NAME}.png"
+    if not dest.exists() or overwrite:
+        logger.info(f"Resizing default headshot image...")
+        src = ASSETS_DIR / "headshot_generic.jpg"
+        img.png_resize_to_width(src, dest, size)
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
     detect_kwargs = {}
