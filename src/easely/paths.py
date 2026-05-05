@@ -26,6 +26,7 @@ from .typing_ import PathLike
 
 
 PROGRAM_FILE_NAME = "program"
+DEFAULT_FILE_NAME = "default"
 
 
 class WorkspaceLayout(str, Enum):
@@ -33,12 +34,13 @@ class WorkspaceLayout(str, Enum):
     """Small Enum class with the basic folder structure within each conference root folder.
     """
 
+    ASSETS = "assets"
     ATTACHMENTS = "indico_attachments"
-    QRCODES = "qrcodes"
-    POSTERS = "posters"
-    HEADSHOTS = "presenters"
-    RASTERED_POSTERS = "posters_raster"
     CROPPED_HEADSHOTS = "presenters_crop"
+    HEADSHOTS = "presenters"
+    POSTERS = "posters"
+    QRCODES = "qrcodes"
+    RASTERED_POSTERS = "posters_raster"
 
 
 def contribution_file_name(friendly_id: int, suffix: str) -> str:
