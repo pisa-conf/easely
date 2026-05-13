@@ -4,6 +4,12 @@ Release notes
 =============
 
 
+* Deafult pixmaps for Qr codes and headshots in.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/33
+
+
 Version 0.5.0 (2026-05-04)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
