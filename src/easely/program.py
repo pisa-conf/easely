@@ -238,18 +238,18 @@ class Poster:
         """Load the QPixmap object with the QR code.
         """
         default = default_qrcode_path(root_dir)
-        return self._load_pixmap(root_dir, WorkspaceLayout.QRCODES, default, width)
+        return self._load_pixmap(root_dir, WorkspaceLayout.QRCODES.value, default, width)
 
     def headshot_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
         """Load the QPixmap object with the presenter headshot.
         """
         default = default_headshot_path(root_dir)
-        return self._load_pixmap(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS, default, width)
+        return self._load_pixmap(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS.value, default, width)
 
     def poster_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
         """Load the QPixmap object with the actual poster.
         """
-        return self._load_pixmap(root_dir, WorkspaceLayout.RASTERED_POSTERS, width)
+        return self._load_pixmap(root_dir, WorkspaceLayout.RASTERED_POSTERS.value, width)
 
 
 @dataclass
