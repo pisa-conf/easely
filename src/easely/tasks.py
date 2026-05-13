@@ -74,7 +74,7 @@ def download(
     output_folder = sanitize_folder_path(output_folder, create=True)
     file_path = output_folder / f"{PROGRAM_FILE_NAME}.json"
     indico.download_event_data(url, file_path, overwrite=True)
-    attachments_folder = output_folder / WorkspaceLayout.ATTACHMENTS
+    attachments_folder = output_folder / WorkspaceLayout.ATTACHMENTS.value
     kwargs = dict(file_types=file_types, overwrite=overwrite)
     indico.Event(file_path).download_poster_attachments(attachments_folder, **kwargs)
 
@@ -116,7 +116,7 @@ class QrcodesDefaults:
     """
 
     file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.json"
-    folder_path: PathLike = pathlib.Path.cwd() / WorkspaceLayout.QRCODES
+    folder_path: PathLike = pathlib.Path.cwd() / WorkspaceLayout.QRCODES.value
     size: int = 250
     overwrite: bool = False
 
@@ -155,9 +155,9 @@ class DispatchDefaults:
     """
 
     file_path: PathLike = pathlib.Path.cwd() / f"{PROGRAM_FILE_NAME}.json"
-    attachments_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.ATTACHMENTS
-    posters_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS
-    headshots_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
+    attachments_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.ATTACHMENTS.value
+    posters_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS.value
+    headshots_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS.value
 
 
 def dispatch(
@@ -178,8 +178,8 @@ class RasterizeDefaults:
     """Default values for rasterization task parameters.
     """
 
-    input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS
-    output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS
+    input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS.value
+    output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS.value
     target_width: int = 2120
     intermediate_width: int = 4240
     max_aspect_ratio: float = 1.52
@@ -290,9 +290,9 @@ class FacecropDefaults:
     """Default values for face cropping task parameters.
     """
 
-    input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS
+    input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.HEADSHOTS.value
     targets: List[int] = None
-    output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS
+    output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS.value
     size: int = QrcodesDefaults.size
     circular_mask: bool = False
     model: face.FaceDetection = face.FaceDetection.CASCADE
