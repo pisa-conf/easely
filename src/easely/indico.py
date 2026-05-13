@@ -27,7 +27,7 @@ import requests
 
 from . import schema
 from .logging_ import logger
-from .paths import sanitize_file_path, sanitize_folder_path
+from .paths import sanitize_file_path, sanitize_folder_path, DEFAULT_FILE_NAME
 from .qrcode_ import generate_qrcode
 from .typing_ import PathLike
 
@@ -493,6 +493,7 @@ class Event:
         results = data["results"][0]
         self.title = results["title"]
         self.location = results["location"]
+        self.agenda_url = results["url"]
         self.start_date = AbstractIndicoObject.parse_date(results["startDate"])
         self.end_date = AbstractIndicoObject.parse_date(results["endDate"])
         self.session_dict = {}
@@ -653,7 +654,7 @@ class Event:
         logger.info(f"Done, {num_downloads} file(s) downloaded.")
         return num_downloads
 
-    def generate_poster_qrcodes(self, folder_path: PathLike, size: int,
+    def generate_qrcodes(self, folder_path: PathLike, size: int,
         overwrite: bool = False) -> None:
         """Generate the QR codes for all the poster sessions in the event.
 
@@ -666,6 +667,12 @@ class Event:
             Whether to overwrite existing output files.
         """
         folder_path = sanitize_folder_path(folder_path, create=True)
+        logger.info("Generating default QR code for the event...")
+        # FIXME: this needs to agree with the function in paths that provides the
+        # full path to the default QR code, but we cannot quite use it here, as
+        # as we are not passing the root folder.
+        file_path = folder_path / f"{DEFAULT_FILE_NAME}.png"
+        generate_qrcode(self.agenda_url, file_path, size=size, overwrite=overwrite)
         logger.info("Generating QR codes for all poster sessions in the event...")
         for session in self.poster_sessions():
             for contribution in session.contributions:
