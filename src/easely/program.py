@@ -138,7 +138,7 @@ class Presenter:
         """
         return f'{self.first_name} {self.last_name}'
 
-    def short_affiliation(self, max_chars: int = 25) -> str:
+    def short_affiliation(self, max_chars: int = 32) -> str:
         """Return a shortened version of the affiliation.
 
         Note that we encapsulate this into a try-except block in order to cope
