@@ -835,7 +835,7 @@ class ProgramBrowser(DisplayWindowBase):
         self.tree_widget.disable_key_press_events()
         # Update the widgets and show the poster label.
         self.header.set_poster(poster)
-        self.poster_label.setPixmap(poster.poster_pixmap(pathlib.Path()))
+        self.poster_label.setPixmap(poster.poster_pixmap(self.program.root_dir))
         self.poster_label.show()
         self.header.show()
         # Final bookkeeping.
