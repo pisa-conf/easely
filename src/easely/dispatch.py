@@ -88,7 +88,7 @@ def dispatch_file(src: pathlib.Path, dest: pathlib.Path) -> bool:
 
 
 def dispatch_posters(friendly_ids: List[int], attachments_dir: PathLike,
-    posters_dir: PathLike, pattern: str = "poster") -> int:
+    posters_dir: PathLike, pattern: str = "po") -> int:
     """Dispatch the candidate poster files from the indico attachment folder to
     the target folder holding the poster originals.
 
@@ -146,7 +146,7 @@ def dispatch_posters(friendly_ids: List[int], attachments_dir: PathLike,
 
 
 def dispatch_headshots(friendly_ids: List[int], attachments_dir: PathLike,
-    headshots_dir: PathLike, pattern: str = "picture") -> int:
+    headshots_dir: PathLike, pattern: str = "cp") -> int:
     """Dispatch the candidate headshot files from the indico attachment folder to
     the target folder holding the headshot originals.
 
