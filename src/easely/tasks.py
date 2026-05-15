@@ -28,8 +28,8 @@ from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
-from .paths import WorkspaceLayout, filter_dir, sanitize_file_path, \
-    sanitize_folder_path, ASSETS_DIR, DEFAULT_FILE_NAME, PROGRAM_FILE_NAME
+from .paths import WorkspaceLayout, conference_poster_path, default_poster_path, \
+    sanitize_file_path, sanitize_folder_path, ASSETS_DIR, DEFAULT_FILE_NAME, PROGRAM_FILE_NAME
 from .program import Program
 from .typing_ import PathLike
 
@@ -245,9 +245,16 @@ def rasterize(
     """
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
+    # Populate the input file list
+    file_list = sorted(input_dir.iterdir())
+    # Add the actual conference poster.
+    poster_path = conference_poster_path(input_dir.parent)
+    if poster_path.exists():
+        file_list.append(poster_path)
+    # Ready to go.
     num_rasterized = 0
     logger.info(f"Rasterizing poster files...")
-    for input_file_path in sorted(input_dir.iterdir()):
+    for input_file_path in file_list:
         # TODO: consider moving this into a separate python module.
         if input_file_path.suffix.lower() != ".pdf":
             raise RuntimeError(f"{input_file_path} is not a pdf file")

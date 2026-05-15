@@ -31,6 +31,7 @@ ASSETS_DIR = _SRC_DIR / "assets"
 
 PROGRAM_FILE_NAME = "program"
 DEFAULT_FILE_NAME = "default"
+DEFAULT_POSTER_NAME = "poster"
 
 
 class WorkspaceLayout(str, Enum):
@@ -61,7 +62,7 @@ def default_qrcode_path(root_dir: pathlib.Path) -> pathlib.Path:
         The default path for the event QR code, i.e., the one that is not
         associated to any specific contribution.
     """
-    return root_dir / WorkspaceLayout.QRCODES / f"{DEFAULT_FILE_NAME}.png"
+    return root_dir / WorkspaceLayout.QRCODES.value / f"{DEFAULT_FILE_NAME}.png"
 
 
 def default_headshot_path(root_dir: pathlib.Path) -> pathlib.Path:
@@ -80,7 +81,44 @@ def default_headshot_path(root_dir: pathlib.Path) -> pathlib.Path:
         The default path for the presenter headshot, i.e., the one that is not
         associated to any specific contribution.
     """
-    return root_dir / WorkspaceLayout.CROPPED_HEADSHOTS / f"{DEFAULT_FILE_NAME}.png"
+    return root_dir / WorkspaceLayout.CROPPED_HEADSHOTS.value / f"{DEFAULT_FILE_NAME}.png"
+
+
+def conference_poster_path(root_dir: pathlib.Path) -> pathlib.Path:
+    """Return the path for the conference poster, which is used for the conference
+    poster page (e.g., on the website and in the program booklet).
+
+    Arguments
+    ---------
+    root_dir : pathlib.Path
+        The path to the conference root directory.
+
+    Returns
+    -------
+    pathlib.Path
+        The path for the conference poster, i.e., the one that is not associated
+        to any specific contribution.
+    """
+    return root_dir / WorkspaceLayout.ASSETS.value / f"{DEFAULT_POSTER_NAME}.pdf"
+
+
+def default_poster_path(root_dir: pathlib.Path) -> pathlib.Path:
+    """Return the default path for the contribution poster, which is used when the
+    actual poster is missing (e.g., if the presenter did not feel like uploading
+    it on indico).
+
+    Arguments
+    ---------
+    root_dir : pathlib.Path
+        The path to the conference root directory.
+
+    Returns
+    -------
+    pathlib.Path
+        The default path for the contribution poster, i.e., the one that is not
+        associated to any specific contribution.
+    """
+    return root_dir / WorkspaceLayout.RASTERED_POSTERS.value / f"{DEFAULT_POSTER_NAME}.png"
 
 
 def contribution_file_name(friendly_id: int, suffix: str) -> str:
