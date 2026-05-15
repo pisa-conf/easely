@@ -4,9 +4,10 @@ Release notes
 =============
 
 
-* Deafult pixmaps for Qr codes and headshots in.
+* Deafult pixmaps for posters, Qr codes and headshots in.
 * Pull requests merged and issues closed:
 
+  - https://github.com/pisa-conf/easely/pull/36
   - https://github.com/pisa-conf/easely/pull/33
 
 
