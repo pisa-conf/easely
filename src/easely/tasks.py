@@ -28,8 +28,8 @@ from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
 from .logging_ import logger
-from .paths import WorkspaceLayout, conference_poster_path, default_poster_path, \
-    sanitize_file_path, sanitize_folder_path, ASSETS_DIR, DEFAULT_FILE_NAME, PROGRAM_FILE_NAME
+from .paths import WorkspaceLayout, conference_poster_path, sanitize_file_path, \
+    sanitize_folder_path, ASSETS_DIR, DEFAULT_FILE_NAME, PROGRAM_FILE_NAME
 from .program import Program
 from .typing_ import PathLike
 
@@ -249,7 +249,7 @@ def rasterize(
     file_list = sorted(input_dir.iterdir())
     # Add the actual conference poster.
     poster_path = conference_poster_path(input_dir.parent)
-    if poster_path.exists():
+    if poster_path.is_file():
         file_list.append(poster_path)
     # Ready to go.
     num_rasterized = 0
