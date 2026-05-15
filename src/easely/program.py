@@ -27,8 +27,8 @@ import pandas as pd
 
 from . import schema
 from .logging_ import logger
-from .paths import WorkspaceLayout, contribution_file_name, sanitize_file_path, \
-    default_headshot_path, default_qrcode_path
+from .paths import WorkspaceLayout, contribution_file_name, default_poster_path, \
+    sanitize_file_path, default_headshot_path, default_qrcode_path
 from .__qt__ import QtGui
 from .typing_ import PathLike
 
@@ -249,7 +249,8 @@ class Poster:
     def poster_pixmap(self, root_dir: pathlib.Path, width: int = None) -> QtGui.QPixmap:
         """Load the QPixmap object with the actual poster.
         """
-        return self._load_pixmap(root_dir, WorkspaceLayout.RASTERED_POSTERS.value, width)
+        default = default_poster_path(root_dir)
+        return self._load_pixmap(root_dir, WorkspaceLayout.RASTERED_POSTERS.value, default, width)
 
 
 @dataclass
