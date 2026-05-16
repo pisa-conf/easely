@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.6.6 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Not raising an exception on empty poster rosters.
 * Pull requests merged and issues closed:
 
