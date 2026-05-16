@@ -8,6 +8,10 @@ QLabel {
   font-size: 24px;
 }
 
+QLabel#poster {
+  background-color: white;
+}
+
 QTreeWidget {
   font-size: 24px;
 }

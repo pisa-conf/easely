@@ -3,10 +3,15 @@
 Release notes
 =============
 
+* Widget name added to the poster label, and background color set to white to avoid isses
+  with transparency in the poster images.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/42
+
 
 Version 0.6.2 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 * Magic file mechanism removed---the reboot is now handled via ansible.
 * Pull requests merged and issues closed:
@@ -18,7 +23,6 @@ Version 0.6.2 (2026-05-16)
 Version 0.6.1 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 * File filtering for indico downloads made case insensitive.
 * Missing import in tasks restored.
 * Pull requests merged and issues closed:
@@ -29,7 +33,7 @@ Version 0.6.1 (2026-05-16)
 Version 0.6.0 (2026-05-15)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Deafult pixmaps for posters, Qr codes and headshots in.
+* Default pixmaps for posters, Qr codes and headshots in.
 * Pull requests merged and issues closed:
 
   - https://github.com/pisa-conf/easely/pull/36
