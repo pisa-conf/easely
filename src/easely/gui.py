@@ -258,16 +258,15 @@ class ScreenHeader(QtWidgets.QWidget):
         self.message_label.setAlignment(QtCore.Qt.AlignBottom)
         self.set_title(self.program.pretty_title())
 
-    def freeze_title_width(self, width: int) -> None:
-        """Freeze the width of the title label to a given value.
+    def freeze_width(self, width: int) -> None:
+        """Freeze the width.
 
         Arguments
         ---------
         width : int
             The width to be set for the header, in pixels.
         """
-        self.title_label.setFixedWidth(width)
-        self.subtitle_label.setFixedWidth(width)
+        self.setFixedWidth(width)
 
     def _add_qlabel(self, object_name: WidgetName, row: int, col: int, row_span: int = 1,
         col_span: int = 1) -> QtWidgets.QLabel:
@@ -377,7 +376,7 @@ class DisplayWindowBase(QtWidgets.QWidget):
         self.setLayout(QtWidgets.QGridLayout())
         #self.layout().setColumnMinimumWidth(0, self.poster_width)
         self.header = ScreenHeader(self)
-        self.header.freeze_title_width(self.poster_width)
+        self.header.freeze_width(self.poster_width)
         self.poster_label = QtWidgets.QLabel()
         self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
         self.poster_label.setObjectName(WidgetName.POSTER)
@@ -675,7 +674,6 @@ class ProgramTreeWidget(QtWidgets.QTreeWidget):
         """Constructor.
         """
         super().__init__()
-        self.setFixedWidth(width)
         self.__screen_id = screen_id
         if self.__screen_id:
             self.setColumnCount(3)
