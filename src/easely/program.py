@@ -499,6 +499,11 @@ class Program:
         for session in self.ongoing_sessions():
             logger.debug(f"Session '{session.title}' ongoing with {len(session)} poster(s).")
             for poster in session.posters:
+                # Need to handle the case where the poster is not mapped to any screen,
+                # in which case the screen_id is pd.NA.
+                if pd.isna(poster.screen_id):
+                    logger.warning(f"Poster {poster.friendly_id} not mapped to any screen.")
+                    continue
                 if poster.screen_id == self.screen_id:
                     if roster is None:
                         roster = PosterRoster(session, self.root_dir)
