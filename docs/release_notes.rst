@@ -3,6 +3,11 @@
 Release notes
 =============
 
+* Default check on file names in the common tasks, not to chock on temporary local files.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/48
+
 
 Version 1.0.1 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
