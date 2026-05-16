@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* Picking up the autocrop default from the proper place in tasks.
+
 
 Version 0.6.3 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
