@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 1.0.0 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Old, simple report for the conference info restored.
 * Pull requests merged and issues closed:
 
