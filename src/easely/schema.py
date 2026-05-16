@@ -89,12 +89,15 @@ def conference_schema() -> SheetSchema:
 def program_schema() -> SheetSchema:
 
     """Build the schema for the program sheet.
+
+    Note we use pandas nullable dtypes for integers, so that we can transparently
+    handle missing values.
     """
 
     return SheetSchema(
         name="Program",
         columns=(
-            Column(key="id", header="Session ID", type_=int),
+            Column(key="id", header="Session ID", type_="Int32"),
             Column(key="name", header="Session name", type_=str),
             Column(key="start_datetime", header="Session start", type_=str),
             Column(key="end_datetime", header="Session end", type_=str),
@@ -105,26 +108,32 @@ def program_schema() -> SheetSchema:
 def hosts_schema() -> SheetSchema:
 
     """Build the schema for the hosts sheet.
+
+    Note we use pandas nullable dtypes for integers, so that we can transparently
+    handle missing values.
     """
 
     return SheetSchema(
         name="Hosts",
         columns=(
             Column(key="hostname", header="Hostname", type_=str),
-            Column(key="screen_id", header="Screen ID", type_=int),
+            Column(key="screen_id", header="Screen ID", type_="Int32"),
         )
     )
 
 def session_schema(session_id: int) -> SheetSchema:
 
     """Build the schema for a generic session sheet.
+
+    Note we use pandas nullable dtypes for integers, so that we can transparently
+    handle missing values.
     """
 
     return SheetSchema(
         name=f"{session_id}",
         columns=(
-            Column(key="friendly_id", header="Friendly ID", type_=int),
-            Column(key="screen_id", header="Screen ID", type_=int),
+            Column(key="friendly_id", header="Friendly ID", type_="Int32"),
+            Column(key="screen_id", header="Screen ID", type_="Int32"),
             Column(key="title", header="Title", type_=str),
             Column(key="first_name", header="First name", type_=str),
             Column(key="last_name", header="Last name", type_=str),

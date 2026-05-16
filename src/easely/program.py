@@ -190,7 +190,8 @@ class Poster:
         """Create a Poster object from a dataframe row.
         """
         presenter = Presenter(*Presenter.sanitize_args(*row[-3:]))
-        return cls(*row[:-3], presenter)
+        friendly_id, screen_id, title = row[:-3]
+        return cls(friendly_id, screen_id, title, presenter)
 
     def short_title(self, max_chars: int = 40):
         """Return a shortened version of the title, trimmed to a fixed maximum
@@ -421,7 +422,8 @@ class Program:
              The worksheet content as a dataframe.
         """
         logger.debug(f"Reading worksheet {schema_.name}...")
-        df = pd.read_excel(file_path, sheet_name=schema_.name, header=0)
+        type_mapping = {col.header: col.type_ for col in schema_.columns}
+        df = pd.read_excel(file_path, sheet_name=schema_.name, header=0, dtype=type_mapping)
         if tuple(df.columns) != schema_.col_headers():
             raise ValueError(
                 f"Invalid columns in '{schema_.name}'. "
