@@ -3,6 +3,9 @@
 Release notes
 =============
 
+* More meaningful logging of the dispatch process.
+* Stricter matching for the dispatch task in order to minimize multiple matches.
+
 
 Version 1.0.0 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
