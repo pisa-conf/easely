@@ -397,12 +397,33 @@ def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
     return image.crop(rectangle.bounding_box())
 
 
-# def autocrop_image(image: PIL.Image.Image) -> PIL.Image.Image:
-#     """
-#     """
-#     pass
-#
-#
+def autocrop_image(image: PIL.Image.Image, threshold: float = 0.99, padding: float = 0.001,
+                   max_aspect_ratio=1.52) -> PIL.Image.Image:
+    """Autocrop an image by removing the horizontal borders that are mostly empty.
+    """
+    width, height = image.size
+    channel = lambda ch: np.array(image.getdata(0)).reshape((height, width))
+    data = sum(channel(ch) for ch in (0, 1, 2))
+    threshold *= data.max()
+    padding = int(padding * width + 1)
+    hist = data.mean(axis=0)
+    edges, = np.where(np.diff(hist > threshold))
+    xmin = max(edges.min() - padding, 0)
+    xmax = min(edges.max() + padding + 1, width)
+    delta = (xmax - xmin)
+    if height / delta > max_aspect_ratio:
+        logger.warning(f'Cropped width ({delta}) exceeds maximum aspect ratio')
+        pad = int(0.5 * (height / max_aspect_ratio - delta))
+        logger.debug(f'Padding back by {pad} pixels...')
+        xmin -= pad
+        xmax += pad
+    ratio = delta / width
+    logger.debug(f'Horizontal compression ratio: {ratio:.3f}')
+    bbox = (xmin, 0, xmax, height)
+    logger.debug(f'Target bounding box: {bbox}')
+    image = image.crop(bbox)
+
+
 # def pad_image(image: PIL.Image.Image, aspect_ratio: float) -> PIL.Image.Image:
 #     """
 #     """
