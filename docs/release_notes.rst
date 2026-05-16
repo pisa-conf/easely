@@ -4,6 +4,10 @@ Release notes
 =============
 
 
+Version 0.6.1 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 * File filtering for indico downloads made case insensitive.
 * Missing import in tasks restored.
 * Pull requests merged and issues closed:
