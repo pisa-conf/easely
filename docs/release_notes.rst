@@ -4,6 +4,13 @@ Release notes
 =============
 
 
+* File filtering for indico downloads made case insensitive.
+* Missing import in tasks restored.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/39
+
+
 Version 0.6.0 (2026-05-15)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

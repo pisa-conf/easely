@@ -302,7 +302,7 @@ class Contribution(AbstractIndicoObject):
         num_downloads = 0
         for url, timestamp in zip(self.attachment_urls, self.attachment_timestamps):
             # Check if the file type matches the specified file types, if any.
-            if file_types is not None and not url.endswith(file_types):
+            if file_types is not None and not url.lower().endswith(file_types):
                 logger.debug(f"{url} does not match the specified file types, skipping...")
                 continue
             file_name = f"{self.friendly_id:04d}{separator}{url.split('/')[-1]}"
