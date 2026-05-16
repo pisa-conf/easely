@@ -3,6 +3,11 @@
 Release notes
 =============
 
+* Not raising an exception on empty poster rosters.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/45
+
 
 Version 0.6.5 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
