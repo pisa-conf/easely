@@ -3,6 +3,11 @@
 Release notes
 =============
 
+* Old, simple report for the conference info restored.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/46
+
 
 Version 0.6.6 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
