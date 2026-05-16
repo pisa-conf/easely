@@ -121,6 +121,7 @@ class WidgetName(str, Enum):
     PRESENTER_NAME = "presenter_name"
     PRESENTER_AFFILIATION = "presenter_affiliation"
     ROSTER_TABLE = "roster_table"
+    POSTER = "poster"
 
 
 class RosterTable(QtWidgets.QTableWidget):
@@ -367,6 +368,7 @@ class DisplayWindowBase(QtWidgets.QWidget):
         self.header = ScreenHeader(self)
         self.poster_label = QtWidgets.QLabel()
         self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
+        self.poster_label.setObjectName(WidgetName.POSTER)
         self.debug_label = QtWidgets.QLabel()
         self.layout().addWidget(self.header, 0, 0, 1, 3)
         self.layout().addWidget(self.poster_label, 1, 0, 1, 3)
