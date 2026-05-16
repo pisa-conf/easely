@@ -26,7 +26,6 @@ import pandas as pd
 
 from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
-from .magic import read_magic_file
 from .profile import psstatus
 from .program import Poster, PosterRoster, Program
 
@@ -508,9 +507,6 @@ class SlideShow(DisplayWindowBase):
     def _check_reload(self):
         """
         """
-        if read_magic_file():
-            self._load_roster()
-            return
         # Deal with the case where the session is empty.
         if self.poster_roster.session is None:
             return
@@ -997,7 +993,7 @@ class SessionDirectory(DisplayWindowBase):
         """
         """
         logger.debug('Checking if directory needs to be reloaded.')
-        if read_magic_file() or (self._reload_due is not None and datetime.datetime.now() > self._reload_due):
+        if self._reload_due is not None and datetime.datetime.now() > self._reload_due:
             self.__num_sessions = self._load_program()
             self.__current_index = -1
             self.expand_all()

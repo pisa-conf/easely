@@ -4,6 +4,13 @@ Release notes
 =============
 
 
+* Magic file mechanism removed---the reboot is now handled via ansible.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/40
+  - https://github.com/pisa-conf/easely/issues/37
+
+
 Version 0.6.1 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
