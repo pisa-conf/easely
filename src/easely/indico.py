@@ -77,8 +77,9 @@ def download_event_data(url: str, file_path: PathLike, detail: str = "sessions",
         print(f"File {file_path} exists, skipping (delete it or set overwrite=True)...")
         return file_path
     logger.info(f"Retrieving event data from {url}...")
-    resp = requests.get(f"{url}?detail={detail}&pretty=yes")
-    data = resp.json()
+    response = requests.get(f"{url}?detail={detail}&pretty=yes")
+    logger.info(f"Response headers: {response.headers}")
+    data = response.json()
     with open(file_path, "w") as output_file:
         json.dump(data, output_file, indent=4)
     logger.info(f"Event data saved to {file_path}...")
