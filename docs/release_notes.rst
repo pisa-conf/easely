@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.6.4 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Enforcing types (from the underlying shemas) when reading the configuration file.
 * Pull requests merged and issues closed:
 
