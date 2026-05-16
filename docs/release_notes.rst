@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.6.3 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Widget name added to the poster label, and background color set to white to avoid isses
   with transparency in the poster images.
 * Pull requests merged and issues closed:
