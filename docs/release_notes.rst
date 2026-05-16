@@ -6,6 +6,40 @@ Release notes
 * Picking up the autocrop default from the proper place in tasks.
 
 
+Version 1.0.0 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Old, simple report for the conference info restored.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/46
+
+
+Version 0.6.6 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Not raising an exception on empty poster rosters.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/45
+
+
+Version 0.6.5 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Emergency patch for a bug introduced in the previous release.
+
+
+Version 0.6.4 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Enforcing types (from the underlying shemas) when reading the configuration file.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/44
+  - https://github.com/pisa-conf/easely/issues/30
+
+
 Version 0.6.3 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

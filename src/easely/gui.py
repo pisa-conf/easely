@@ -24,6 +24,8 @@ from enum import Enum, IntEnum, auto
 
 import pandas as pd
 
+from easely.paths import default_poster_path
+
 from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
 from .profile import psstatus
@@ -258,6 +260,16 @@ class ScreenHeader(QtWidgets.QWidget):
         self.message_label.setAlignment(QtCore.Qt.AlignBottom)
         self.set_title(self.program.pretty_title())
 
+    def freeze_width(self, width: int) -> None:
+        """Freeze the width.
+
+        Arguments
+        ---------
+        width : int
+            The width to be set for the header, in pixels.
+        """
+        self.setFixedWidth(width)
+
     def _add_qlabel(self, object_name: WidgetName, row: int, col: int, row_span: int = 1,
         col_span: int = 1) -> QtWidgets.QLabel:
         """Create a new label with the given object name, and return it.
@@ -364,8 +376,9 @@ class DisplayWindowBase(QtWidgets.QWidget):
         self.program = Program(*args)
         # Setup the widget.
         self.setLayout(QtWidgets.QGridLayout())
-        self.layout().setColumnMinimumWidth(0, self.poster_width)
+        #self.layout().setColumnMinimumWidth(0, self.poster_width)
         self.header = ScreenHeader(self)
+        self.header.freeze_width(self.poster_width)
         self.poster_label = QtWidgets.QLabel()
         self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
         self.poster_label.setObjectName(WidgetName.POSTER)
@@ -506,10 +519,14 @@ class SlideShow(DisplayWindowBase):
         self.header_timer.start()
         self.reload_timer.start()
 
-    def _check_reload(self):
+    def _check_reload(self) -> None:
+        """Check if the roster needs to be reloaded.
+
+        Note this is not handling the case where we start with an empty roster, as
+        that will remain empty forever.
         """
-        """
-        # Deal with the case where the session is empty.
+        if self.poster_roster is None:
+            return
         if self.poster_roster.session is None:
             return
         if not self.poster_roster.session.ongoing(self.program.display_datetime):
@@ -523,14 +540,13 @@ class SlideShow(DisplayWindowBase):
         self.stop()
         self.hide()
         self.poster_roster = self.program.poster_roster()
-        if len(self.poster_roster) == 0:
+        if self.poster_roster is None:
             logger.info('Displaying default poster...')
             self._show()
-            pix1, pix2 = Poster.load_default_pixmaps(self.poster_width, self.portrait_height)
-            self.poster_label.setPixmap(pix1)
             self.header.clear()
-            self.header.set_subtitle('')
-            self.header.qrcode_label.setPixmap(pix2)
+            pixmap = QtGui.QPixmap(default_poster_path(self.program.root_dir))
+            self.poster_label.setPixmap(pixmap)
+            self.header.set_subtitle('Empty roster')
             return
         self.header.set_roster(self.poster_roster)
         subtitle = f'{self.poster_roster.session.title} (screen #{self.program.screen_id})'
