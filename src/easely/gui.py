@@ -24,6 +24,8 @@ from enum import Enum, IntEnum, auto
 
 import pandas as pd
 
+from easely.paths import default_poster_path
+
 from .__qt__ import QtCore, QtGui, QtWidgets
 from .logging_ import logger
 from .profile import psstatus
@@ -534,14 +536,13 @@ class SlideShow(DisplayWindowBase):
         self.stop()
         self.hide()
         self.poster_roster = self.program.poster_roster()
-        if len(self.poster_roster) == 0:
+        if self.poster_roster is None:
             logger.info('Displaying default poster...')
             self._show()
-            pix1, pix2 = Poster.load_default_pixmaps(self.poster_width, self.portrait_height)
-            self.poster_label.setPixmap(pix1)
             self.header.clear()
-            self.header.set_subtitle('')
-            self.header.qrcode_label.setPixmap(pix2)
+            pixmap = QtGui.QPixmap(default_poster_path(self.program.root_dir))
+            self.poster_label.setPixmap(pixmap)
+            self.header.set_subtitle('Empty roster')
             return
         self.header.set_roster(self.poster_roster)
         subtitle = f'{self.poster_roster.session.title} (screen #{self.program.screen_id})'
