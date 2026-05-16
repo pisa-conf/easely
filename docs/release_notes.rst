@@ -3,6 +3,12 @@
 Release notes
 =============
 
+* Enforcing types (from the underlying shemas) when reading the configuration file.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/44
+  - https://github.com/pisa-conf/easely/issues/30
+
 
 Version 0.6.3 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
