@@ -519,10 +519,14 @@ class SlideShow(DisplayWindowBase):
         self.header_timer.start()
         self.reload_timer.start()
 
-    def _check_reload(self):
+    def _check_reload(self) -> None:
+        """Check if the roster needs to be reloaded.
+
+        Note this is not handling the case where we start with an empty roster, as
+        that will remain empty forever.
         """
-        """
-        # Deal with the case where the session is empty.
+        if self.poster_roster is None:
+            return
         if self.poster_roster.session is None:
             return
         if not self.poster_roster.session.ongoing(self.program.display_datetime):
