@@ -407,3 +407,4 @@ def report(file_path: PathLike = ReportDefaults.file_path) -> None:
         The path to the program excel file.
     """
     program = Program(file_path)
+    program.dump_report()

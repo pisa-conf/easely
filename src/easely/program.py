@@ -21,6 +21,7 @@ import datetime
 import pathlib
 import random
 import socket
+from collections import Counter
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -52,7 +53,7 @@ def _trim_string(string: str, max_chars: int) -> str:
     """
     if len(string) <= max_chars:
         return string.ljust(max_chars)
-    return f'{string[:max_chars - 3]}...'
+    return f"{string[:max_chars - 3]}..."
 
 
 @dataclass(frozen=True)
@@ -199,6 +200,37 @@ class Poster:
         """
         return _trim_string(self.title, max_chars)
 
+    def _image_file_path(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
+                         suffix: str = ".png") -> pathlib.Path:
+        """Return the nominal path to the image file pertaining to the poster
+        for a given workspace directory.
+        """
+        file_name = contribution_file_name(self.friendly_id, suffix)
+        file_path = root_dir / workspace_dir / file_name
+        return file_path
+
+    def missing_image(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
+                      suffix: str = ".png") -> bool:
+        """Check if the image file for the poster is missing.
+
+        Arguments
+        ---------
+        root_dir : pathlib.Path
+            The path to the root directory for the conference, containing all the files.
+
+        workspace_dir : pathlib.Path
+            The path to the workspace directory containing the files of the given type
+
+        suffix : str
+            The file suffix for the target file, including the dot, e.g., ".png".
+
+        Returns
+        -------
+        bool
+            True if the image file is missing, False otherwise.
+        """
+        return not self._image_file_path(root_dir, workspace_dir, suffix).is_file()
+
     def _load_pixmap(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
         default: pathlib.Path, width: int = None, suffix: str = ".png") -> QtGui.QPixmap:
         """Load a pixmap pertaining to the poster from the file system.
@@ -225,8 +257,7 @@ class Poster:
         pixmap : QtGui.QPixmap
             The loaded pixmap, scaled to the given width if specified.
         """
-        file_name = contribution_file_name(self.friendly_id, suffix)
-        file_path = root_dir / workspace_dir / file_name
+        file_path = self._image_file_path(root_dir, workspace_dir, suffix)
         if not file_path.is_file():
             logger.debug(f"File {file_path} not found, using default {default}.")
             file_path = default
@@ -520,44 +551,45 @@ class Program:
         session = random.choice(list(self.session_dict.values()))
         return random.choice(session.posters)
 
-    # def dump_report(self):
-    #     """Dump a program report for diagnostics purposes.
-    #     """
-    #     basic_stats = {'posters': 0, 'pics': 0, 'qrcodes': 0}
-    #     missing_stats = {'posters': 0, 'pics': 0, 'qrcodes': 0}
-    #     missing_pics = []
-    #     missing_posters = []
-    #     for session, posters in self.items():
-    #         logger.info(session)
-    #         cnt = Counter([poster.screen_id for poster in posters])
-    #         cnt = dict(sorted(cnt.items()))
-    #         num_posters = len(posters)
-    #         mult = cnt.values()
-    #         num_screens = len(mult)
-    #         mean_mult = num_posters / num_screens
-    #         logger.info(f'{num_posters} posters on {num_screens} screen(s), multiplicity: {min(mult)}--{max(mult)} (average {mean_mult:.2f})')
-    #         for poster in posters:
-    #             if self.missing_poster_image(poster.friendly_id):
-    #                 missing_stats['posters'] += 1
-    #                 missing_posters.append(poster)
-    #             else:
-    #                 basic_stats['posters'] += 1
-    #             if self.missing_presenter_image(poster.friendly_id):
-    #                 missing_stats['pics'] += 1
-    #                 if not self.missing_poster_image(poster.friendly_id):
-    #                     missing_pics.append(poster)
-    #             else:
-    #                 basic_stats['pics'] += 1
-    #             if self.missing_qrcode_image(poster.friendly_id):
-    #                 missing_stats['qrcodes'] += 1
-    #             else:
-    #                 basic_stats['qrcodes'] += 1
-    #         logger.info(f'Screen statistics: {cnt}')
-    #     logger.info(f'Basic statistics: {basic_stats}')
-    #     logger.info(f'Missing elements: {missing_stats}')
-    #     logger.info(f'Oprhan posters with no presenter pic:')
-    #     for poster in missing_pics:
-    #         logger.info(poster)
-    #     logger.info(f'Missing posters:')
-    #     for poster in missing_posters:
-    #         logger.info(poster)
+    def dump_report(self):
+        """Dump a program report for diagnostics purposes.
+        """
+        basic_stats = {"posters": 0, "pics": 0, "qrcodes": 0}
+        missing_stats = {"posters": 0, "pics": 0, "qrcodes": 0}
+        missing_pics = []
+        missing_posters = []
+        for session in self.session_dict.values():
+            logger.info(f"Reading session '{session.title}'...")
+            posters = session.posters
+            cnt = Counter([poster.screen_id for poster in posters if not pd.isna(poster.screen_id)])
+            cnt = dict(sorted(cnt.items()))
+            num_posters = len(posters)
+            mult = cnt.values()
+            num_screens = len(mult)
+            mean_mult = num_posters / num_screens
+            logger.info(f"{num_posters} posters on {num_screens} screen(s), multiplicity: {min(mult)}--{max(mult)} (average {mean_mult:.2f})")
+            for poster in posters:
+                if poster.missing_image(self.root_dir, WorkspaceLayout.RASTERED_POSTERS.value):
+                    logger.warning(f"Rastered poster {poster.friendly_id} missing.")
+                    missing_stats["posters"] += 1
+                    if poster not in missing_posters:
+                        missing_posters.append(poster)
+                else:
+                    basic_stats["posters"] += 1
+                if poster.missing_image(self.root_dir, WorkspaceLayout.CROPPED_HEADSHOTS.value):
+                    missing_stats["pics"] += 1
+                    missing_pics.append(poster)
+                else:
+                    basic_stats["pics"] += 1
+                if poster.missing_image(self.root_dir, WorkspaceLayout.QRCODES.value):
+                    missing_stats["qrcodes"] += 1
+                else:
+                    basic_stats["qrcodes"] += 1
+            print(f"Screen statistics for session '{session.title}': {cnt}")
+
+        print()
+        print(f"Basic statistics: {basic_stats}")
+        print(f"Missing elements: {missing_stats}")
+        print(f"Missing posters: {[poster.friendly_id for poster in missing_posters]}")
+        print(f"Missing headshots: {[poster.friendly_id for poster in missing_pics]}")
+
