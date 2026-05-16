@@ -558,6 +558,7 @@ class Program:
         missing_stats = {"posters": 0, "pics": 0, "qrcodes": 0}
         missing_pics = []
         missing_posters = []
+        missing_affiliations = []
         for session in self.session_dict.values():
             logger.info(f"Reading session '{session.title}'...")
             posters = session.posters
@@ -568,7 +569,13 @@ class Program:
             num_screens = len(mult)
             mean_mult = num_posters / num_screens
             logger.info(f"{num_posters} posters on {num_screens} screen(s), multiplicity: {min(mult)}--{max(mult)} (average {mean_mult:.2f})")
+
             for poster in posters:
+                if poster.presenter.affiliation == "":
+                    logger.warning(f"Poster {poster.friendly_id} presenter affiliation missing.")
+                    if poster not in missing_affiliations:
+                        missing_affiliations.append(poster)
+
                 if poster.missing_image(self.root_dir, WorkspaceLayout.RASTERED_POSTERS.value):
                     logger.warning(f"Rastered poster {poster.friendly_id} missing.")
                     missing_stats["posters"] += 1
@@ -589,7 +596,7 @@ class Program:
 
         print()
         print(f"Basic statistics: {basic_stats}")
-        print(f"Missing elements: {missing_stats}")
+        print(f"Missing: {missing_stats}")
         print(f"Missing posters: {[poster.friendly_id for poster in missing_posters]}")
         print(f"Missing headshots: {[poster.friendly_id for poster in missing_pics]}")
-
+        print(f"Missing affiliations: {[poster.friendly_id for poster in missing_affiliations]}")
