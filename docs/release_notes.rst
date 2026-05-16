@@ -4,6 +4,10 @@ Release notes
 =============
 
 
+Version 0.6.2 (2026-05-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 * Magic file mechanism removed---the reboot is now handled via ansible.
 * Pull requests merged and issues closed:
 
