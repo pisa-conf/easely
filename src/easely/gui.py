@@ -364,7 +364,7 @@ class DisplayWindowBase(QtWidgets.QWidget):
         self.program = Program(*args)
         # Setup the widget.
         self.setLayout(QtWidgets.QGridLayout())
-        self.layout().setColumnMinimumWidth(0, self.poster_width)
+        #self.layout().setColumnMinimumWidth(0, self.poster_width)
         self.header = ScreenHeader(self)
         self.poster_label = QtWidgets.QLabel()
         self.poster_label.setAlignment(QtCore.Qt.AlignHCenter or QtCore.Qt.AlignTop)
