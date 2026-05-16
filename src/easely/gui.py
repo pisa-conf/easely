@@ -675,6 +675,7 @@ class ProgramTreeWidget(QtWidgets.QTreeWidget):
         """Constructor.
         """
         super().__init__()
+        self.setFixedWidth(width)
         self.__screen_id = screen_id
         if self.__screen_id:
             self.setColumnCount(3)
