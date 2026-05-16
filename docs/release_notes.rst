@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* Emergency patch for a bug introduced in the previous release.
+
 
 Version 0.6.4 (2026-05-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
