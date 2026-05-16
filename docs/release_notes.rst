@@ -29,7 +29,6 @@ Version 0.6.1 (2026-05-16)
 Version 0.6.0 (2026-05-15)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 * Deafult pixmaps for posters, Qr codes and headshots in.
 * Pull requests merged and issues closed:
 
