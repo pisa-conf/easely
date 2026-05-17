@@ -22,13 +22,12 @@ from __future__ import annotations
 import dataclasses
 import numbers
 import random
-from typing import Tuple
 
-from loguru import logger
 import numpy as np
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageOps
+from loguru import logger
 
 from .typing_ import PathLike
 
@@ -85,7 +84,7 @@ class Rectangle:
             raise ValueError(f'Negative width or height for {self}')
 
     @classmethod
-    def from_bounding_box(cls, bounding_box: Tuple[int, int, int, int]) -> Rectangle:
+    def from_bounding_box(cls, bounding_box: tuple[int, int, int, int]) -> Rectangle:
         """Create a Rectangle object from a bounding box, i.e., a four-element tuple of
         the form (xmin, ymin, xmax, ymax).
         """
@@ -128,7 +127,7 @@ class Rectangle:
         """
         return Rectangle(self.x0, self.y0, self.width, self.height)
 
-    def bounding_box(self) -> Tuple[int, int, int, int]:
+    def bounding_box(self) -> tuple[int, int, int, int]:
         """Return the bounding box corresponding to the rectangle, in the form
         of the four-element tuple (xmin, ymin, xmax, ymax).
 
@@ -212,7 +211,12 @@ class Rectangle:
         right = right if right is not None else top
         bottom = bottom if bottom is not None else top
         left = left if left is not None else right
-        return Rectangle(self.x0 - left, self.y0 - top, self.width + right + left, self.height + top + bottom)
+        return Rectangle(
+            self.x0 - left,
+            self.y0 - top,
+            self.width + right + left,
+            self.height + top + bottom
+            )
 
     def fits_within(self, width: int, height: int) -> bool:
         """Return whether the rectangle fits within a given area, possibly after
@@ -322,7 +326,7 @@ def save_image(image: PIL.Image.Image, file_path: PathLike, **kwargs) -> None:
 
 
 def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
-    resample=PIL.Image.Resampling.LANCZOS, box: Tuple[float, float, float, float] = None,
+    resample=PIL.Image.Resampling.LANCZOS, box: tuple[float, float, float, float] = None,
     reducing_gap: float = None) -> PIL.Image.Image:
     """Resize an existing image.
 
@@ -456,7 +460,7 @@ def autocrop_image(image: PIL.Image.Image, threshold: int = 0) -> PIL.Image.Imag
     return image.copy()
 
 
-def pad_image(image: PIL.Image.Image, border: Tuple[int, int, int, int],
+def pad_image(image: PIL.Image.Image, border: tuple[int, int, int, int],
               fill: str = "white") -> PIL.Image.Image:
     """
     Pad an image with a border.
@@ -466,7 +470,7 @@ def pad_image(image: PIL.Image.Image, border: Tuple[int, int, int, int],
     image : PIL.Image.Image
         The original image.
 
-    border : Tuple[int, int, int, int]
+    border : tuple[int, int, int, int]
         The border sizes for the left, top, right, and bottom sides, respectively.
 
     Returns
@@ -509,7 +513,7 @@ class Tiling:
 
     num_cols: int
     num_rows: int
-    image_size: Tuple[int, int]
+    image_size: tuple[int, int]
     tiling_dict: dict = None
 
     def __post_init__(self) -> None:
