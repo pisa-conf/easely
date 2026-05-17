@@ -98,7 +98,7 @@ class Rectangle:
 
     @classmethod
     def from_bounding_box(cls, bounding_box: tuple[int, int, int, int]) -> Rectangle:
-        """Create a Rectangle object from a bounding box, i.e., a four-element tuple of
+        """Create a new Rectangle object from a bounding box, i.e., a four-element tuple of
         the form (xmin, ymin, xmax, ymax).
         """
         x0, y0, x1, y1 = bounding_box
@@ -106,7 +106,7 @@ class Rectangle:
 
     @classmethod
     def square_from_size(cls, width: int, height: int) -> Rectangle:
-        """Create a new object representing the largest square fitting within a
+        """Create a new Rectangle object representing the largest square fitting within a
         given size, and centered within the corresponding area.
 
         Parameters
@@ -170,6 +170,12 @@ class Rectangle:
             The area of the rectangle in pixel squared.
         """
         return self.width * self.height
+
+    def __lt__(self, other) -> bool:
+        """Comparison operator---this is such that :class:`Rectangle` instances
+        get sorted by area by default.
+        """
+        return self.area() < other.area()
 
     def isoarea_square(self) -> Rectangle:
         """Return the square with (approximately) the same area  and the same
@@ -277,18 +283,6 @@ class Rectangle:
         rectangle.x0 = int(np.clip(rectangle.x0, 0, width - rectangle.width))
         rectangle.y0 = int(np.clip(rectangle.y0, 0, height - rectangle.height))
         return rectangle
-
-    def __eq__(self, other) -> bool:
-        """Overloaded equality operator.
-        """
-        return self.x0 == other.x0 and self.y0 == other.y0 and \
-            self.width == other.width and self.height == other.height
-
-    def __lt__(self, other) -> bool:
-        """Comparison operator---this is such that :class:`Rectangle` instances
-        get sorted by area by default.
-        """
-        return self.area() < other.area()
 
 
 def open_image(file_path: PathLike) -> PIL.Image.Image:
