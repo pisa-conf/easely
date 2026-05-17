@@ -24,6 +24,7 @@ from typing import List, Tuple
 from . import pdf
 from . import face
 from . import img
+from . import img2
 from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
@@ -182,9 +183,10 @@ class RasterizeDefaults:
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS.value
     target_width: int = 2120
     intermediate_width: int = 4240
+    autocrop: bool = True
+    autocrop_threshold: int = 0
     max_aspect_ratio: float = 1.52
     overwrite: bool = False
-    autocrop: bool = True
 
 
 def rasterize(
@@ -193,6 +195,7 @@ def rasterize(
         target_width: int = RasterizeDefaults.target_width,
         intermediate_width: int = RasterizeDefaults.intermediate_width,
         autocrop: bool = RasterizeDefaults.autocrop,
+        autocrop_threshold: int = RasterizeDefaults.autocrop_threshold,
         max_aspect_ratio: float = RasterizeDefaults.max_aspect_ratio,
         overwrite: bool = RasterizeDefaults.overwrite
         ) -> int:
@@ -232,6 +235,9 @@ def rasterize(
         Whether to perform an horizontal autocrop after the initial rasterization
         step (default False).
 
+    autocrop_threshold : int, optional (default 0)
+        The threshold to be used for the autocrop step, in the range [0, 255].
+
     max_aspect_ratio : float, optional
         The maximum aspect ratio (height / width) allowed for the final image.
 
@@ -255,7 +261,6 @@ def rasterize(
     num_rasterized = 0
     logger.info(f"Rasterizing poster files...")
     for input_file_path in file_list:
-        # TODO: consider moving this into a separate python module.
         if input_file_path.suffix.lower() != ".pdf":
             raise RuntimeError(f"{input_file_path} is not a pdf file")
         output_file_path = output_dir / input_file_path.with_suffix(".png").name
@@ -266,26 +271,19 @@ def rasterize(
         if output_file_path.exists() and not overwrite:
             logger.info(f"Output file {output_file_path} exists, skipping...")
             return output_file_path
+
         # Run imagemagick to convert the pdf to png---note this is slightly different
         # depending on whether we want to perform an intermediate rasterization step or not.
         if intermediate_width is None or intermediate_width <= target_width:
             return pdf.run_imagemagick(input_file_path, output_file_path, target_width)
         file_path = pdf.run_imagemagick(input_file_path, output_file_path, intermediate_width)
 
-        # Need some significant refactoring, here. We should open the image file once,
-        # and then operate on the PIL.Image object in memory, instead of saving intermediate
-        # results to disk and reopening them. More or less all the facilities should be
-        # in the raster2.py module. Once we do that, we will not need to recalculate the
-        # page size.
-        original_width, original_height = pdf.page_size(input_file_path)
-        aspect_ratio = original_height / original_width
+        # And, finally, work on the rastered image.
+        image = img2.open_image(file_path)
         if autocrop:
-            img.png_horizontal_autocrop(file_path, file_path)
-        elif aspect_ratio > max_aspect_ratio:
-            logger.warning(f'Aspect ratio ({aspect_ratio:.3f}) is too large for {input_file_path}!')
-            img.png_horizontal_padding(file_path, file_path)
-        logger.debug('Resizing to target width...')
-        img.png_resize_to_width(file_path, file_path, target_width)
+            image = img2.autocrop_image(image, autocrop_threshold)
+        image = img2.resize_image(image, target_width)
+        image.save(file_path)
         num_rasterized += 1
     logger.info(f"Done, {num_rasterized} poster files rasterized.")
     return num_rasterized

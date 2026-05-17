@@ -74,6 +74,14 @@ class Rectangle:
             if not isinstance(item, numbers.Integral):
                 raise RuntimeError(f'Wrong type for {self}')
 
+    @classmethod
+    def from_bounding_box(cls, bounding_box: Tuple[int, int, int, int]) -> Rectangle:
+        """Create a Rectangle object from a bounding box, i.e., a four-element tuple of the form
+          (xmin, ymin, xmax, ymax).
+        """
+        x0, y0, x1, y1 = bounding_box
+        return cls(x0, y0, x1 - x0, y1 - y0)
+
     def copy(self) -> Rectangle:
         """Create an identical copy of the rectangle.
 
@@ -259,7 +267,6 @@ class Rectangle:
         return self.area() < other.area()
 
 
-
 def open_image(file_path: PathLike) -> PIL.Image.Image:
     """Open an existing image in read mode.
 
@@ -371,7 +378,7 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
     elif width is None:
         width = round(height / original_height * original_width)
     # And now we are good to go.
-    logger.info(f'Resizing image {original_width} x {original_height} -> {box} '
+    logger.debug(f'Resizing image {original_width} x {original_height} -> {box} '
         f'-> {width} x {height}...')
     return image.resize((width, height), resample, box, reducing_gap)
 
@@ -393,35 +400,53 @@ def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
         The cropped image.
     """
     width, height = image.size
-    logger.info(f'Cropping image {width} x {height} -> {rectangle}...')
+    logger.debug(f'Cropping image {width} x {height} -> {rectangle}...')
     return image.crop(rectangle.bounding_box())
 
 
-def autocrop_image(image: PIL.Image.Image, threshold: float = 0.99, padding: float = 0.001,
-                   max_aspect_ratio=1.52) -> PIL.Image.Image:
-    """Autocrop an image by removing the horizontal borders that are mostly empty.
+def autocrop_image(image: PIL.Image.Image, threshold: int = 0) -> PIL.Image.Image:
+    """Autocrop an image by removing the borders.
+
+    Arguments
+    ---------
+    image : PIL.Image.Image
+        The original image.
+
+    threshold : int (between 0 and 255)
+        The threshold to be applied to the difference between the original image and the
+        background color. This is used to determine which pixels are considered as
+        part of the content, and which ones are considered as part of the background.
+        Note that do nothing fancy with the threshold and, basically, we only support
+        image modes where the pixel values are encoded as 8-bit integers (i.e, they range
+        from 0 to 255).
+
+    Returns
+    -------
+    PIL.Image.Image
+        The autocropped image.
     """
-    width, height = image.size
-    channel = lambda ch: np.array(image.getdata(0)).reshape((height, width))
-    data = sum(channel(ch) for ch in (0, 1, 2))
-    threshold *= data.max()
-    padding = int(padding * width + 1)
-    hist = data.mean(axis=0)
-    edges, = np.where(np.diff(hist > threshold))
-    xmin = max(edges.min() - padding, 0)
-    xmax = min(edges.max() + padding + 1, width)
-    delta = (xmax - xmin)
-    if height / delta > max_aspect_ratio:
-        logger.warning(f'Cropped width ({delta}) exceeds maximum aspect ratio')
-        pad = int(0.5 * (height / max_aspect_ratio - delta))
-        logger.debug(f'Padding back by {pad} pixels...')
-        xmin -= pad
-        xmax += pad
-    ratio = delta / width
-    logger.debug(f'Horizontal compression ratio: {ratio:.3f}')
-    bbox = (xmin, 0, xmax, height)
-    logger.debug(f'Target bounding box: {bbox}')
-    image = image.crop(bbox)
+    # Make sure the input image is encodes in one of the supported modes, with 8-bit
+    # pixel depth.
+    if image.mode not in ("L", "P", "RGB", "RGBA", "CMYK", "YCbCr"):
+        raise RuntimeError(f"Unsupported image mode {image.mode} for autocropping.")
+    logger.debug(f'Autocropping image with threshold {threshold}...')
+    # Create a new image filled with the background color, which is assumed to be the
+    # color of the pixel on the top-left corner of the image.
+    background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
+    # Compute difference of the original image with the background. This will be
+    # zero for the pixels that are the same as the background, and non-zero for the pixels
+    # that are different from the background.
+    difference = PIL.ImageChops.difference(image, background)
+    # Apply the threshold.
+    difference = difference.point(lambda p: 255 if p > threshold else 0)
+    # Get the bounding box. Note Image.getbbox() returns the smallest rectangle that
+    # contains all non-zero pixels in the image.
+    bbox = difference.getbbox()
+    if bbox:
+        logger.debug(f'Autocrop bounding box: {bbox}.')
+        return crop_image(image, Rectangle.from_bounding_box(bbox))
+    # When no content is found, return a copy of the original image.
+    return image.copy()
 
 
 # def pad_image(image: PIL.Image.Image, aspect_ratio: float) -> PIL.Image.Image:
