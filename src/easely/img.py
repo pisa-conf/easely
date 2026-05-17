@@ -31,6 +31,19 @@ from loguru import logger
 
 from .typing_ import PathLike
 
+__all__ = [
+    "Rectangle",
+    "open_image",
+    "save_image",
+    "resize_image",
+    "crop_image",
+    "autocrop_image",
+    "pad_image",
+    #"elliptical_mask",
+    #"Tiling",
+    #"optimal_rectangular_tiling"
+]
+
 
 @dataclasses.dataclass
 class Rectangle:
