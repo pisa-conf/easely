@@ -23,7 +23,6 @@ from typing import List, Tuple
 
 from . import pdf
 from . import face
-from . import img
 from . import img2
 from . import indico
 from . import __name__ as __package_name__
@@ -371,7 +370,9 @@ def facecrop(
     if not dest.exists() or overwrite:
         logger.info(f"Resizing default headshot image...")
         src = ASSETS_DIR / "headshot_generic.jpg"
-        img.png_resize_to_width(src, dest, size)
+        image = img2.open_image(src)
+        img2.resize_image(image, width=size)
+        img2.save_image(image, dest)
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
     detect_kwargs = {}
