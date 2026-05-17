@@ -277,11 +277,19 @@ def rasterize(
             return pdf.run_imagemagick(input_file_path, output_file_path, target_width)
         file_path = pdf.run_imagemagick(input_file_path, output_file_path, intermediate_width)
 
-        # And, finally, work on the rastered image.
+        # And, finally, work on the rasterized image.
         image = img.open_image(file_path)
         if autocrop:
             image = img.autocrop_image(image, autocrop_threshold)
         image = img.resize_image(image, target_width)
+        aspect_ratio = image.height / image.width
+        # Check the aspect ratio.
+        if aspect_ratio > max_aspect_ratio:
+            logger.warning(f"Aspect ratio {aspect_ratio:.2f} too large, padding...")
+            # Calculate the necessary horizontal padding on both sides to match the
+            # desired aspect ratio, and pad the image accordingly.
+            delta = int(0.5 * (image.height / max_aspect_ratio - image.width))
+            image = img.pad_image(image, (delta, 0, delta, 0))
         image.save(file_path)
         num_rasterized += 1
     logger.info(f"Done, {num_rasterized} poster files rasterized.")

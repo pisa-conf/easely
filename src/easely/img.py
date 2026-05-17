@@ -449,18 +449,26 @@ def autocrop_image(image: PIL.Image.Image, threshold: int = 0) -> PIL.Image.Imag
     return image.copy()
 
 
-# def pad_image(image: PIL.Image.Image, aspect_ratio: float) -> PIL.Image.Image:
-#     """
-#     """
-#      logger.info(f'Padding image {input_file_path}...')
-    # with PIL.Image.open(input_file_path) as img:
-    #     width, height = img.size
-    #     target_width = int(height / aspect_ratio)
-    #     delta = target_width - width
-    #     logger.debug(f'Padding to {target_width} x {height}...')
-    #     output = PIL.Image.new(img.mode, (target_width, height), (255, 255, 255))
-    #     output.paste(img, (delta // 2, 0))
-    #     output.save(output_file_path)
+def pad_image(image: PIL.Image.Image, border: Tuple[int, int, int, int],
+              fill: str = "white") -> PIL.Image.Image:
+    """
+    Pad an image with a border.
+
+    Parameters
+    ----------
+    image : PIL.Image.Image
+        The original image.
+
+    border : Tuple[int, int, int, int]
+        The border sizes for the left, top, right, and bottom sides, respectively.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The padded image.
+    """
+    logger.debug(f'Padding image with border {border}...')
+    return PIL.ImageOps.expand(image, border, fill=fill)
 
 
 def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
