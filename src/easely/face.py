@@ -387,7 +387,7 @@ def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
         A new Rectangle object, ready for cropping.
     """
     # Promote the rectangle to a square with approximately the same area.
-    square = rectangle.isoarea_square()
+    square = rectangle.equal_area_square()
     # First of all, pad the square on the four sides as intended.
     # Remember that the horizontal padding is referred to the size of the
     # rectangle returned by the face-detection stage...
@@ -483,7 +483,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     # If there is no candidate bbox, we make a square one up.
     if num_candidates == 0:
         logger.warning(f"No face candidate found in {file_path}, picking generic square...")
-        candidates.append(Rectangle.square_from_size(*image.size))
+        candidates.append(Rectangle.largest_centered_square(*image.size))
     # In case there are multiple candidates, we pick the largest one.
     if num_candidates > 1:
         logger.warning(f"Multiple face candidates found in {file_path}, picking first...")

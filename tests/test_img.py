@@ -17,6 +17,7 @@ import pytest
 
 from easely import img
 
+
 def test_rectangle(width: int = 100, height: int = 200) -> None:
     """Unit tests for the Rectangle class.
     """
@@ -25,7 +26,9 @@ def test_rectangle(width: int = 100, height: int = 200) -> None:
         img.Rectangle(0., 0., width, height)
     with pytest.raises(ValueError):
         img.Rectangle(0, 0, -1, height)
-    # Test valid Rectangle object with different offsets.
+
+    # Test valid Rectangle object with different offsets, exercising the main
+    # interfaces.
     for (x0, y0) in ((0, 0), (10, 20)):
         rectangle = img.Rectangle(x0, y0, width, height)
         assert rectangle.x0 == x0
@@ -38,3 +41,9 @@ def test_rectangle(width: int = 100, height: int = 200) -> None:
         assert rectangle == img.Rectangle.from_bounding_box(bbox)
         assert rectangle == rectangle.copy()
         assert rectangle.is_square() is False
+
+    # Check the largest_centered_square() method.
+    assert rectangle.largest_centered_square(100, 200) == img.Rectangle(0, 50, 100, 100)
+
+    # Check the equal_area_square() method.
+    assert img.Rectangle(10, 10, 81, 100).equal_area_square() == img.Rectangle(6, 15, 90, 90)

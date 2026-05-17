@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import dataclasses
+import math
 import numbers
 import random
 
@@ -105,9 +106,14 @@ class Rectangle:
         return cls(x0, y0, x1 - x0, y1 - y0)
 
     @classmethod
-    def square_from_size(cls, width: int, height: int) -> Rectangle:
-        """Create a new Rectangle object representing the largest square fitting within a
-        given size, and centered within the corresponding area.
+    def largest_centered_square(cls, width: int, height: int) -> Rectangle:
+        """Create a new Rectangle object representing the largest square fitting within
+        a generic image of a given size, i.e., whose bounding box is (0, 0, width, height),
+        and centered within the corresponding area.
+
+        This is used, e.g., in the face cropping task when opencv is not finding any face
+        candidate, and we just resort to picking the largest square that fits within the
+        image.
 
         Parameters
         ----------
@@ -177,7 +183,7 @@ class Rectangle:
         """
         return self.area() < other.area()
 
-    def isoarea_square(self) -> Rectangle:
+    def equal_area_square(self) -> Rectangle:
         """Return the square with (approximately) the same area  and the same
         center as the original rectangle.
 
@@ -189,14 +195,15 @@ class Rectangle:
         # If the rectangle is already a square, we can just return a copy
         if self.is_square():
             return self.copy()
+
+        # Calculate the side of the equivalent square.
+        side = math.ceil(np.sqrt(self.area()))
         # Calculate the (floating point) coordinates of the center of the rectangle.
         xc = self.x0 + self.width / 2
         yc = self.y0 + self.height / 2
-        # Calculate the side of the equivalent square.
-        side = int(np.ceil(np.sqrt(self.area())))
         # Calculate the coordinates of the relevant corner.
-        x0 = int(xc - side / 2)
-        y0 = int(yc - side / 2)
+        x0 = round(xc - side / 2)
+        y0 = round(yc - side / 2)
         return Rectangle(x0, y0, side, side)
 
     def pad(self, top: int, right: int = None, bottom: int = None, left: int = None) -> Rectangle:
