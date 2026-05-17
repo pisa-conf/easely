@@ -43,6 +43,13 @@ class Rectangle:
     from left to right, and the y coordinate is running from top to bottom, with
     the (0, 0) pixel placed at the top-left corner.
 
+    Note this is intentionally different from the bounding box convention, where the
+    rectangle is identified by the coordinates of the top-left and bottom-right corners.
+    However, we provide convenience methods to convert between the two conventions.
+
+    This class in designed to help with the various cropping and padding operations
+    on images, and especially for the face cropping task.
+
     Parameters
     ----------
     x0 : int
@@ -72,12 +79,15 @@ class Rectangle:
         # numpy integral types as well.
         for item in (self.x0, self.y0, self.width, self.height):
             if not isinstance(item, numbers.Integral):
-                raise RuntimeError(f'Wrong type for {self}')
+                raise TypeError(f'Wrong type for {self}')
+        # Since we are at it, make sure that the width and height are non negative.
+        if self.width < 0 or self.height < 0:
+            raise ValueError(f'Negative width or height for {self}')
 
     @classmethod
     def from_bounding_box(cls, bounding_box: Tuple[int, int, int, int]) -> Rectangle:
-        """Create a Rectangle object from a bounding box, i.e., a four-element tuple of the form
-          (xmin, ymin, xmax, ymax).
+        """Create a Rectangle object from a bounding box, i.e., a four-element tuple of
+        the form (xmin, ymin, xmax, ymax).
         """
         x0, y0, x1, y1 = bounding_box
         return cls(x0, y0, x1 - x0, y1 - y0)
@@ -185,13 +195,13 @@ class Rectangle:
         top : int
             The top padding in pixels.
 
-        right : int
+        right : int, optional
             The right padding in pixels.
 
-        bottom : int
+        bottom : int, optional
             The bottom padding in pixels.
 
-        left : int
+        left : int, optional
             The left padding in pixels.
 
         Returns
@@ -199,13 +209,10 @@ class Rectangle:
         Rectangle
             A new Rectangle object, properly padded with respect to the original one.
         """
-        right = right or top
-        bottom = bottom or top
-        left = left or right
-        rectangle = Rectangle(self.x0 - left, self.y0 - top, self.width + right + left,
-            self.height + top + bottom)
-        logger.debug(f'Padding {self} -> {rectangle}...')
-        return rectangle
+        right = right if right is not None else top
+        bottom = bottom if bottom is not None else top
+        left = left if left is not None else right
+        return Rectangle(self.x0 - left, self.y0 - top, self.width + right + left, self.height + top + bottom)
 
     def fits_within(self, width: int, height: int) -> bool:
         """Return whether the rectangle fits within a given area, possibly after
@@ -261,7 +268,7 @@ class Rectangle:
             self.width == other.width and self.height == other.height
 
     def __lt__(self, other) -> bool:
-        """Comparison operator---this is such that :class:`Ractangle` instances
+        """Comparison operator---this is such that :class:`Rectangle` instances
         get sorted by area by default.
         """
         return self.area() < other.area()
