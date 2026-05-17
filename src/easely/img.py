@@ -82,16 +82,6 @@ class Rectangle:
         x0, y0, x1, y1 = bounding_box
         return cls(x0, y0, x1 - x0, y1 - y0)
 
-    def copy(self) -> Rectangle:
-        """Create an identical copy of the rectangle.
-
-        Returns
-        -------
-        Rectangle
-            A new Rectangle object, identical to the original one.
-        """
-        return Rectangle(self.x0, self.y0, self.width, self.height)
-
     @classmethod
     def square_from_size(cls, width: int, height: int) -> Rectangle:
         """Create a new object representing the largest square fitting within a
@@ -117,6 +107,27 @@ class Rectangle:
         if delta > 0:
             return Rectangle(delta, 0, side, side)
         return Rectangle(0, -delta, side, side)
+
+    def copy(self) -> Rectangle:
+        """Create an identical copy of the rectangle.
+
+        Returns
+        -------
+        Rectangle
+            A new Rectangle object, identical to the original one.
+        """
+        return Rectangle(self.x0, self.y0, self.width, self.height)
+
+    def bounding_box(self) -> Tuple[int, int, int, int]:
+        """Return the bounding box corresponding to the rectangle, in the form
+        of the four-element tuple (xmin, ymin, xmax, ymax).
+
+        Returns
+        -------
+        tuple[int, int, int, int]
+            The four-element tuple corresponding to the rectangle bounding box.
+        """
+        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
 
     def is_square(self) -> bool:
         """Return True if the rectangle is square.
@@ -159,17 +170,6 @@ class Rectangle:
         x0 = int(xc - side / 2)
         y0 = int(yc - side / 2)
         return Rectangle(x0, y0, side, side)
-
-    def bounding_box(self) -> Tuple[int, int, int, int]:
-        """Return the bounding box corresponding to the rectangle, in the form
-        of the four-element tuple (xmin, ymin, xmax, ymax).
-
-        Returns
-        -------
-        tuple[int, int, int, int]
-            The four-element tuple corresponding to the rectangle bounding box.
-        """
-        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
 
     def pad(self, top: int, right: int = None, bottom: int = None, left: int = None) -> Rectangle:
         """Create a new rectangle padding the original one according to the input
