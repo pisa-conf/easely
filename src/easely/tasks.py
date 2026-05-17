@@ -23,7 +23,7 @@ from typing import List, Tuple
 
 from . import pdf
 from . import face
-from . import img2
+from . import img
 from . import indico
 from . import __name__ as __package_name__
 from .dispatch import dispatch_headshots, dispatch_posters
@@ -278,10 +278,10 @@ def rasterize(
         file_path = pdf.run_imagemagick(input_file_path, output_file_path, intermediate_width)
 
         # And, finally, work on the rastered image.
-        image = img2.open_image(file_path)
+        image = img.open_image(file_path)
         if autocrop:
-            image = img2.autocrop_image(image, autocrop_threshold)
-        image = img2.resize_image(image, target_width)
+            image = img.autocrop_image(image, autocrop_threshold)
+        image = img.resize_image(image, target_width)
         image.save(file_path)
         num_rasterized += 1
     logger.info(f"Done, {num_rasterized} poster files rasterized.")
@@ -370,9 +370,9 @@ def facecrop(
     if not dest.exists() or overwrite:
         logger.info(f"Resizing default headshot image...")
         src = ASSETS_DIR / "headshot_generic.jpg"
-        image = img2.open_image(src)
-        img2.resize_image(image, width=size)
-        img2.save_image(image, dest)
+        image = img.open_image(src)
+        img.resize_image(image, width=size)
+        img.save_image(image, dest)
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
     detect_kwargs = {}

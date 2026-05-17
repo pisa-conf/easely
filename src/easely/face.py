@@ -28,7 +28,7 @@ import PIL.ImageDraw
 import PIL.ImageFont
 
 from . import __name__ as __package_name__
-from .img2 import Rectangle, elliptical_mask, open_image, resize_image, save_image
+from .img import Rectangle, elliptical_mask, open_image, resize_image, save_image
 from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
