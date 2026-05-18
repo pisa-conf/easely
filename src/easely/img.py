@@ -146,43 +146,6 @@ class Rectangle:
         """
         return Rectangle(self.x0, self.y0, self.width, self.height)
 
-    def bounding_box(self) -> tuple[int, int, int, int]:
-        """Return the bounding box corresponding to the rectangle, in the form
-        of the four-element tuple (xmin, ymin, xmax, ymax).
-
-        Returns
-        -------
-        tuple[int, int, int, int]
-            The four-element tuple corresponding to the rectangle bounding box.
-        """
-        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
-
-    def is_square(self) -> bool:
-        """Return True if the rectangle is square.
-
-        Returns
-        -------
-        bool
-            True if the rectangle is squared.
-        """
-        return self.width == self.height
-
-    def area(self) -> int:
-        """Return the area of the rectangle.
-
-        Returns
-        -------
-        int
-            The area of the rectangle in pixel squared.
-        """
-        return self.width * self.height
-
-    def __lt__(self, other) -> bool:
-        """Comparison operator---this is such that :class:`Rectangle` instances
-        get sorted by area by default.
-        """
-        return self.area() < other.area()
-
     def equal_area_square(self) -> Rectangle:
         """Return the square with (approximately) the same area  and the same
         center as the original rectangle.
@@ -244,25 +207,6 @@ class Rectangle:
             self.height + top + bottom
             )
 
-    def fits_within(self, width: int, height: int) -> bool:
-        """Return whether the rectangle fits within a given area, possibly after
-        a shift.
-
-        Parameters
-        ----------
-        width : int
-            The width of the target area.
-
-        height : int
-            The height of the target area.
-
-        Returns
-        -------
-        bool
-            True if the Rectangle fits.
-        """
-        return self.width <= width and self.height <= height
-
     def shift_to_fit(self, width: int, height: int) -> Rectangle:
         """Create a new Rectangle object by shifting the origin of the original
         one to make it fully contained in a given area, i.e. within the
@@ -290,6 +234,62 @@ class Rectangle:
         rectangle.x0 = int(np.clip(rectangle.x0, 0, width - rectangle.width))
         rectangle.y0 = int(np.clip(rectangle.y0, 0, height - rectangle.height))
         return rectangle
+
+    def bounding_box(self) -> tuple[int, int, int, int]:
+        """Return the bounding box corresponding to the rectangle, in the form
+        of the four-element tuple (xmin, ymin, xmax, ymax).
+
+        Returns
+        -------
+        tuple[int, int, int, int]
+            The four-element tuple corresponding to the rectangle bounding box.
+        """
+        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
+
+    def is_square(self) -> bool:
+        """Return True if the rectangle is square.
+
+        Returns
+        -------
+        bool
+            True if the rectangle is squared.
+        """
+        return self.width == self.height
+
+    def area(self) -> int:
+        """Return the area of the rectangle.
+
+        Returns
+        -------
+        int
+            The area of the rectangle in pixel squared.
+        """
+        return self.width * self.height
+
+    def __lt__(self, other) -> bool:
+        """Comparison operator---this is such that :class:`Rectangle` instances
+        get sorted by area by default.
+        """
+        return self.area() < other.area()
+
+    def fits_within(self, width: int, height: int) -> bool:
+        """Return whether the rectangle fits within a given area, possibly after
+        a shift.
+
+        Parameters
+        ----------
+        width : int
+            The width of the target area.
+
+        height : int
+            The height of the target area.
+
+        Returns
+        -------
+        bool
+            True if the Rectangle fits.
+        """
+        return self.width <= width and self.height <= height
 
 
 def open_image(file_path: PathLike) -> PIL.Image.Image:
