@@ -136,6 +136,62 @@ class Rectangle:
             return Rectangle(delta, 0, side, side)
         return Rectangle(0, -delta, side, side)
 
+    def bounding_box(self) -> tuple[int, int, int, int]:
+        """Return the bounding box corresponding to the rectangle, in the form
+        of the four-element tuple (xmin, ymin, xmax, ymax).
+
+        Returns
+        -------
+        tuple[int, int, int, int]
+            The four-element tuple corresponding to the rectangle bounding box.
+        """
+        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
+
+    def is_square(self) -> bool:
+        """Return True if the rectangle is square.
+
+        Returns
+        -------
+        bool
+            True if the rectangle is squared.
+        """
+        return self.width == self.height
+
+    def area(self) -> int:
+        """Return the area of the rectangle.
+
+        Returns
+        -------
+        int
+            The area of the rectangle in pixel squared.
+        """
+        return self.width * self.height
+
+    def __lt__(self, other) -> bool:
+        """Comparison operator---this is such that :class:`Rectangle` instances
+        get sorted by area by default.
+        """
+        return self.area() < other.area()
+
+    def fits_size(self, width: int, height: int) -> bool:
+        """Return whether the rectangle fits within a given area, possibly after
+        a shift.
+
+        Parameters
+        ----------
+        width : int
+            The width of the target area.
+
+        height : int
+            The height of the target area.
+
+        Returns
+        -------
+        bool
+            True if the Rectangle fits.
+        """
+        return self.width <= width and self.height <= height
+
     def copy(self) -> Rectangle:
         """Create an identical copy of the rectangle.
 
@@ -228,68 +284,12 @@ class Rectangle:
         Rectangle
             A new, shifted rectangle.
         """
-        if not self.fits_within(width, height):
+        if not self.fits_size(width, height):
             raise RuntimeError(f'{self} does not fit into {width} x {height}')
         rectangle = self.copy()
         rectangle.x0 = int(np.clip(rectangle.x0, 0, width - rectangle.width))
         rectangle.y0 = int(np.clip(rectangle.y0, 0, height - rectangle.height))
         return rectangle
-
-    def bounding_box(self) -> tuple[int, int, int, int]:
-        """Return the bounding box corresponding to the rectangle, in the form
-        of the four-element tuple (xmin, ymin, xmax, ymax).
-
-        Returns
-        -------
-        tuple[int, int, int, int]
-            The four-element tuple corresponding to the rectangle bounding box.
-        """
-        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
-
-    def is_square(self) -> bool:
-        """Return True if the rectangle is square.
-
-        Returns
-        -------
-        bool
-            True if the rectangle is squared.
-        """
-        return self.width == self.height
-
-    def area(self) -> int:
-        """Return the area of the rectangle.
-
-        Returns
-        -------
-        int
-            The area of the rectangle in pixel squared.
-        """
-        return self.width * self.height
-
-    def __lt__(self, other) -> bool:
-        """Comparison operator---this is such that :class:`Rectangle` instances
-        get sorted by area by default.
-        """
-        return self.area() < other.area()
-
-    def fits_within(self, width: int, height: int) -> bool:
-        """Return whether the rectangle fits within a given area, possibly after
-        a shift.
-
-        Parameters
-        ----------
-        width : int
-            The width of the target area.
-
-        height : int
-            The height of the target area.
-
-        Returns
-        -------
-        bool
-            True if the Rectangle fits.
-        """
-        return self.width <= width and self.height <= height
 
 
 def open_image(file_path: PathLike) -> PIL.Image.Image:

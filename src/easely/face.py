@@ -402,7 +402,7 @@ def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     # have to do is to make sure that the origin is such that the square
     # itself is actually fully contained in the image---and apply a simple shift
     # if that is not the case.
-    if square.fits_within(image_width, image_height):
+    if square.fits_size(image_width, image_height):
         return square.shift_to_fit(image_width, image_height)
     # And here comes all the fun, as we do have to do our best to get a good
     # face crop when the embedding image is not as large as we would have wanted.
