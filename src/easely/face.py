@@ -28,7 +28,7 @@ import PIL.ImageDraw
 import PIL.ImageFont
 
 from . import __name__ as __package_name__
-from .img2 import Rectangle, elliptical_mask, open_image, resize_image, save_image
+from .img import Rectangle, elliptical_mask, open_image, resize_image, save_image
 from .logging_ import logger
 from .paths import sanitize_file_path
 from .typing_ import PathLike
@@ -387,7 +387,7 @@ def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
         A new Rectangle object, ready for cropping.
     """
     # Promote the rectangle to a square with approximately the same area.
-    square = rectangle.isoarea_square()
+    square = rectangle.equal_area_square()
     # First of all, pad the square on the four sides as intended.
     # Remember that the horizontal padding is referred to the size of the
     # rectangle returned by the face-detection stage...
@@ -402,7 +402,7 @@ def refine_rectangle(rectangle: Rectangle, image_width: int, image_height: int,
     # have to do is to make sure that the origin is such that the square
     # itself is actually fully contained in the image---and apply a simple shift
     # if that is not the case.
-    if square.fits_within(image_width, image_height):
+    if square.fits_size(image_width, image_height):
         return square.shift_to_fit(image_width, image_height)
     # And here comes all the fun, as we do have to do our best to get a good
     # face crop when the embedding image is not as large as we would have wanted.
@@ -483,7 +483,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     # If there is no candidate bbox, we make a square one up.
     if num_candidates == 0:
         logger.warning(f"No face candidate found in {file_path}, picking generic square...")
-        candidates.append(Rectangle.square_from_size(*image.size))
+        candidates.append(Rectangle.largest_centered_square(*image.size))
     # In case there are multiple candidates, we pick the largest one.
     if num_candidates > 1:
         logger.warning(f"Multiple face candidates found in {file_path}, picking first...")

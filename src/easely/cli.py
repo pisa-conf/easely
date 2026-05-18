@@ -172,7 +172,11 @@ class CliArgumentParser(argparse.ArgumentParser):
             default=tasks.RasterizeDefaults.intermediate_width,
             help="the intermediate width for the generated png file(s)")
         rasterize.add_argument("--autocrop", action="store_true",
+            default=tasks.RasterizeDefaults.autocrop,
             help="perform an horizontal autocrop after the initial rasterization step")
+        rasterize.add_argument("--autocrop-threshold", type=int,
+            default=tasks.RasterizeDefaults.autocrop_threshold,
+            help="the threshold to be used for the autocrop step, in the range [0, 255]")
         rasterize.add_argument("--max-aspect-ratio", type=float,
             default=tasks.RasterizeDefaults.max_aspect_ratio,
             help="the maximum aspect ratio for the generated png file(s)")

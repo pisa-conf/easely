@@ -1,8 +1,8 @@
-# Copyright (C) 2024--2026, the easely team.
+# Copyright (C) 2024--2026 the easely team.
 #
-# This program is free software; you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -10,95 +10,586 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Rasterization tools.
+
+"""Various facilities to operate on raster images.
 """
 
-from loguru import logger
+from __future__ import annotations
+
+import dataclasses
+import math
+import numbers
+import random
+
 import numpy as np
-import PIL
 import PIL.Image
+import PIL.ImageChops
+import PIL.ImageDraw
+import PIL.ImageOps
+from loguru import logger
+
+from .typing_ import PathLike
+
+__all__ = [
+    "Rectangle",
+    "open_image",
+    "save_image",
+    "resize_image",
+    "crop_image",
+    "autocrop_image",
+    "pad_image",
+    #"elliptical_mask",
+    #"Tiling",
+    #"optimal_rectangular_tiling"
+]
 
 
-EXIF_ORIENTATION_TAG = 274
-EXIF_ROTATION_DICT = {3: 180, 6: 270, 8: 90}
+@dataclasses.dataclass
+class Rectangle:
 
+    """Small container class representing a rectangle.
 
+    Following the opencv conventions, a rectangle is identified by the two coordinates
+    of the top-left corner, its with, and its height. The x coordinate is running
+    from left to right, and the y coordinate is running from top to bottom, with
+    the (0, 0) pixel placed at the top-left corner.
 
-def resize_image(img, width, height, output_file_path=None, resample=PIL.Image.LANCZOS,
-    reducing_gap=3., compression_level=6):
-    """Base function to resize an image.
+    Note this is intentionally different from the bounding box convention, where the
+    rectangle is identified by the coordinates of the top-left and bottom-right corners.
+    However, we provide convenience methods to convert between the two conventions.
+
+    This class in designed to help with the various cropping and padding operations
+    on images, and especially for the face cropping task.
+
+    Parameters
+    ----------
+    x0 : int
+        The x coordinate of the upper-left corner of the rectangle.
+
+    y0 : int
+        The y coordinate of the upper-left corner of the rectangle.
+
+    width : int
+        The width of the rectangle.
+
+    height : int
+        The height of the rectangle.
     """
-    w, h = img.size
-    logger.info(f'Resizing image ({w}, {h}) -> ({width}, {height})...')
-    img = img.resize((width, height), resample, None, reducing_gap)
-    if output_file_path is not None:
-        logger.info(f'Saving image to {output_file_path}...')
-        img.save(output_file_path, compress_level=compression_level)
+
+    x0: int
+    y0: int
+    width: int
+    height: int
+
+    def __post_init__(self) -> None:
+        """Post initialization code.
+        """
+        # Make sure all the members are integers, as we are dealing with
+        # pixels in rasterized images. Note that we are using numbers.Integral, as
+        # opposed to the native Python int, as we want to be able to catch the
+        # numpy integral types as well.
+        for item in (self.x0, self.y0, self.width, self.height):
+            if not isinstance(item, numbers.Integral):
+                raise TypeError(f'Wrong type for {self}')
+        # Since we are at it, make sure that the width and height are non negative.
+        if self.width < 0 or self.height < 0:
+            raise ValueError(f'Negative width or height for {self}')
+
+    @classmethod
+    def from_bounding_box(cls, bounding_box: tuple[int, int, int, int]) -> Rectangle:
+        """Create a new Rectangle object from a bounding box, i.e., a four-element tuple of
+        the form (xmin, ymin, xmax, ymax).
+        """
+        x0, y0, x1, y1 = bounding_box
+        return cls(x0, y0, x1 - x0, y1 - y0)
+
+    @classmethod
+    def largest_centered_square(cls, width: int, height: int) -> Rectangle:
+        """Create a new Rectangle object representing the largest square fitting within
+        a generic image of a given size, i.e., whose bounding box is (0, 0, width, height),
+        and centered within the corresponding area.
+
+        This is used, e.g., in the face cropping task when opencv is not finding any face
+        candidate, and we just resort to picking the largest square that fits within the
+        image.
+
+        Parameters
+        ----------
+        width : int
+            The target width.
+
+        height : int
+            The target height.
+
+        Returns
+        -------
+        Rectangle
+            The largest centered, fitting square.
+        """
+        if width == height:
+            return Rectangle(0, 0, width, height)
+        side = min(width, height)
+        delta = round(0.5 * (width - height))
+        if delta > 0:
+            return Rectangle(delta, 0, side, side)
+        return Rectangle(0, -delta, side, side)
+
+    def bounding_box(self) -> tuple[int, int, int, int]:
+        """Return the bounding box corresponding to the rectangle, in the form
+        of the four-element tuple (xmin, ymin, xmax, ymax).
+
+        Returns
+        -------
+        tuple[int, int, int, int]
+            The four-element tuple corresponding to the rectangle bounding box.
+        """
+        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.height)
+
+    def is_square(self) -> bool:
+        """Return True if the rectangle is square.
+
+        Returns
+        -------
+        bool
+            True if the rectangle is squared.
+        """
+        return self.width == self.height
+
+    def area(self) -> int:
+        """Return the area of the rectangle.
+
+        Returns
+        -------
+        int
+            The area of the rectangle in pixel squared.
+        """
+        return self.width * self.height
+
+    def __lt__(self, other) -> bool:
+        """Comparison operator---this is such that :class:`Rectangle` instances
+        get sorted by area by default.
+        """
+        return self.area() < other.area()
+
+    def fits_size(self, width: int, height: int) -> bool:
+        """Return whether the rectangle fits within a given area, possibly after
+        a shift.
+
+        Parameters
+        ----------
+        width : int
+            The width of the target area.
+
+        height : int
+            The height of the target area.
+
+        Returns
+        -------
+        bool
+            True if the Rectangle fits.
+        """
+        return self.width <= width and self.height <= height
+
+    def copy(self) -> Rectangle:
+        """Create an identical copy of the rectangle.
+
+        Returns
+        -------
+        Rectangle
+            A new Rectangle object, identical to the original one.
+        """
+        return Rectangle(self.x0, self.y0, self.width, self.height)
+
+    def equal_area_square(self) -> Rectangle:
+        """Return the square with (approximately) the same area  and the same
+        center as the original rectangle.
+
+        Returns
+        -------
+        Rectangle
+            A square with the same area as the rectangle.
+        """
+        # If the rectangle is already a square, we can just return a copy
+        if self.is_square():
+            return self.copy()
+
+        # Calculate the side of the equivalent square.
+        side = math.ceil(np.sqrt(self.area()))
+        # Calculate the (floating point) coordinates of the center of the rectangle.
+        xc = self.x0 + self.width / 2
+        yc = self.y0 + self.height / 2
+        # Calculate the coordinates of the relevant corner.
+        x0 = round(xc - side / 2)
+        y0 = round(yc - side / 2)
+        return Rectangle(x0, y0, side, side)
+
+    def pad(self, top: int, right: int = None, bottom: int = None, left: int = None) -> Rectangle:
+        """Create a new rectangle padding the original one according to the input
+        parameters.
+
+        Note that the order of the arguments is designed to make it easy for the
+        user to specify a single padding on four sides (passing only one argument)
+        different vertical and horizontal paddings (passing two arguments), as well
+        as arbitrary configurations.
+
+        Parameters
+        ----------
+        top : int
+            The top padding in pixels.
+
+        right : int, optional
+            The right padding in pixels.
+
+        bottom : int, optional
+            The bottom padding in pixels.
+
+        left : int, optional
+            The left padding in pixels.
+
+        Returns
+        -------
+        Rectangle
+            A new Rectangle object, properly padded with respect to the original one.
+        """
+        right = right if right is not None else top
+        bottom = bottom if bottom is not None else top
+        left = left if left is not None else right
+        return Rectangle(
+            self.x0 - left,
+            self.y0 - top,
+            self.width + right + left,
+            self.height + top + bottom
+            )
+
+    def shift_to_fit(self, width: int, height: int) -> Rectangle:
+        """Create a new Rectangle object by shifting the origin of the original
+        one to make it fully contained in a given area, i.e. within the
+        (0, 0, width, height) bounding box.
+
+        Note this raises a RuntimeError if the rectangle is too large for the target
+        area.
+
+        Parameters
+        ----------
+        width : int
+            The width of the target area.
+
+        height : int
+            The height of the target area.
+
+        Returns
+        -------
+        Rectangle
+            A new, shifted rectangle.
+        """
+        if not self.fits_size(width, height):
+            raise RuntimeError(f'{self} does not fit into {width} x {height}')
+        rectangle = self.copy()
+        rectangle.x0 = int(np.clip(rectangle.x0, 0, width - rectangle.width))
+        rectangle.y0 = int(np.clip(rectangle.y0, 0, height - rectangle.height))
+        return rectangle
 
 
-def png_resize_to_width(input_file_path: str, output_file_path: str, width: int, **kwargs):
-    """Resize an image to the target width.
+def open_image(file_path: PathLike) -> PIL.Image.Image:
+    """Open an existing image in read mode.
+
+    Note the image is automatically rotated is the proper EXIF tag is found.
+
+    Parameters
+    ----------
+    file_path
+        The path to the image file.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The actual image object.
     """
-    with PIL.Image.open(input_file_path) as img:
-        w, h = img.size
-        height = round(width / w * h)
-        resize_image(img, width, height, output_file_path, **kwargs)
+    logger.debug(f'Loading image data from {file_path}...')
+    with PIL.Image.open(file_path) as image:
+        image = image.copy()
+        PIL.ImageOps.exif_transpose(image, in_place=True)
+    width, height = image.size
+    logger.debug(f'Image size: {width} x {height}.')
+    return image
 
 
-def png_resize_to_height(input_file_path: str, output_file_path: str, height: int, **kwargs):
-    """Resize an image to the target height.
+def save_image(image: PIL.Image.Image, file_path: PathLike, **kwargs) -> None:
+    """Save an image to file.
+
+    This is a thin wrapper upon the PIL.Image.Image.save() function, where we
+    don't allow the destination to be a file descriptor. All the keyword arguments
+    that are supported for the various output format are thoroughly described at
+    https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+
+    Parameters
+    ----------
+    image : PIL.Image.Image
+        The image to be saved.
+
+    file_path : PathLike
+        The path to the output file.
+
+    kwargs
+        The optional keyword arguments to be passed to the file writer.
     """
-    with PIL.Image.open(input_file_path) as img:
-        w, h = img.size
-        width = round(height / h * w)
-        resize_image(img, width, height, output_file_path, **kwargs)
+    logger.info(f'Saving image to {file_path} with parameters {kwargs}...')
+    image.save(file_path, **kwargs)
 
 
-def png_horizontal_autocrop(input_file_path: str, output_file_path: str,
-    threshold: float = 0.99, padding: float = 0.001, compression_level=6, max_aspect_ratio=1.52):
+def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
+    resample=PIL.Image.Resampling.LANCZOS, box: tuple[float, float, float, float] = None,
+    reducing_gap: float = None) -> PIL.Image.Image:
+    """Resize an existing image.
+
+    This is basically calling PIL.Image.Image.resize() under the hood, but does not
+    require to specify the full output size---either the target width or heigh will
+    suffice, in which case the aspect ratio is preserved.
+
+    More information about the resampling filters can be found at
+    https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-filters
+
+    Parameters
+    ----------
+    image : PIL.Image.Image
+        The original image.
+
+    width : int
+        The target image width (if not provided it is determined by the target
+        height preserving the aspect ratio).
+
+    height : int
+        The target image height (if not provided it is determined by the target
+        width preserving the aspect ratio).
+
+    resample
+        An optional resampling filter. This can be one of Resampling.NEAREST,
+        Resampling.BOX, Resampling.BILINEAR, Resampling.HAMMING, Resampling.BICUBIC
+        or Resampling.LANCZOS.
+
+    box : tuple[float, float, float, float]
+        An optional 4-tuple of floats providing the source image region to be scaled.
+        The values must be within (0, 0, width, height) rectangle. If omitted or
+        None, the entire source is used.
+
+    reducing_gap : float
+        Apply optimization by resizing the image in two steps. First, reducing the
+        image by integer times using `reduce()``. Second, resizing using regular resampling.
+        The last step changes size no less than by `reducing_gap times`. `reducing_gap`
+        may be None (no first step is performed) or should be greater than 1.0.
+        The bigger `reducing_gap`, the closer the result to the fair resampling.
+        The smaller `reducing_gap`, the faster resizing. With `reducing_gap` greater
+        or equal to 3.0, the result is indistinguishable from fair resampling in
+        most cases.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The resized image.
     """
-    """
-    logger.info(f'Cropping image {input_file_path}...')
-    with PIL.Image.open(input_file_path) as img:
-        logger.debug('Decoding image data...')
-        width, height = img.size
-        channel = lambda ch: np.array(img.getdata(0)).reshape((height, width))
-        data = sum(channel(ch) for ch in (0, 1, 2))
-        threshold *= data.max()
-        padding = int(padding * width + 1)
-        hist = data.mean(axis=0)
-        edges, = np.where(np.diff(hist > threshold))
-        xmin = max(edges.min() - padding, 0)
-        xmax = min(edges.max() + padding + 1, width)
-        deltax = (xmax - xmin)
-        if height / deltax > max_aspect_ratio:
-            logger.warning(f'Cropped width ({deltax}) exceeds maximum aspect ratio')
-            pad = int(0.5 * (height / max_aspect_ratio - deltax))
-            logger.debug(f'Padding back by {pad} pixels...')
-            xmin -= pad
-            xmax += pad
-        ratio = deltax / width
-        logger.debug(f'Horizontal compression ratio: {ratio:.3f}')
-        bbox = (xmin, 0, xmax, height)
-        logger.debug(f'Target bounding box: {bbox}')
-        img = img.crop(bbox)
-        logger.info(f'Saving cropped image to {output_file_path}')
-        img.save(output_file_path, compress_level=compression_level)
+    # pylint: disable=too-many-arguments
+    # If we are not providing neither the target width nor the target height
+    # there is nothing we can do except giving up.
+    if width is None and height is None:
+        raise RuntimeError('Please provide at least one length to resize the image.')
+    original_width, original_height = image.size
+    # If only one parameter is provided, then we calculate the other by preserving
+    # the aspect ratio, and we effectively resize to width...
+    if height is None:
+        height = round(width / original_width * original_height)
+    # ...or to height.
+    elif width is None:
+        width = round(height / original_height * original_width)
+    # And now we are good to go.
+    logger.debug(f'Resizing image {original_width} x {original_height} -> {box} '
+        f'-> {width} x {height}...')
+    return image.resize((width, height), resample, box, reducing_gap)
 
 
-def png_horizontal_padding(input_file_path: str, output_file_path: str, aspect_ratio=1.50):
+def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
+    """Crop an image to a given rectangle.
+
+    Parameters
+    ----------
+    image : PIL.Image.Image
+        The original image
+
+    rectangle : Rectangle
+        The rectangle delimiting the cropping area
+
+    Returns
+    -------
+    PIL.Image.Image
+        The cropped image.
     """
+    width, height = image.size
+    logger.debug(f'Cropping image {width} x {height} -> {rectangle}...')
+    return image.crop(rectangle.bounding_box())
+
+
+def autocrop_image(image: PIL.Image.Image, threshold: int = 0) -> PIL.Image.Image:
+    """Autocrop an image by removing the borders.
+
+    Arguments
+    ---------
+    image : PIL.Image.Image
+        The original image.
+
+    threshold : int (between 0 and 255)
+        The threshold to be applied to the difference between the original image and the
+        background color. This is used to determine which pixels are considered as
+        part of the content, and which ones are considered as part of the background.
+        Note that do nothing fancy with the threshold and, basically, we only support
+        image modes where the pixel values are encoded as 8-bit integers (i.e, they range
+        from 0 to 255).
+
+    Returns
+    -------
+    PIL.Image.Image
+        The autocropped image.
     """
-    logger.info(f'Padding image {input_file_path}...')
-    with PIL.Image.open(input_file_path) as img:
-        width, height = img.size
-        target_width = int(height / aspect_ratio)
-        delta = target_width - width
-        logger.debug(f'Padding to {target_width} x {height}...')
-        output = PIL.Image.new(img.mode, (target_width, height), (255, 255, 255))
-        output.paste(img, (delta // 2, 0))
-        output.save(output_file_path)
+    # Make sure the input image is encodes in one of the supported modes, with 8-bit
+    # pixel depth.
+    if image.mode not in ("L", "P", "RGB", "RGBA", "CMYK", "YCbCr"):
+        raise RuntimeError(f"Unsupported image mode {image.mode} for autocropping.")
+    logger.debug(f'Autocropping image with threshold {threshold}...')
+    # Create a new image filled with the background color, which is assumed to be the
+    # color of the pixel on the top-left corner of the image.
+    background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
+    # Compute difference of the original image with the background. This will be
+    # zero for the pixels that are the same as the background, and non-zero for the pixels
+    # that are different from the background.
+    difference = PIL.ImageChops.difference(image, background)
+    # Apply the threshold.
+    difference = difference.point(lambda p: 255 if p > threshold else 0)
+    # Get the bounding box. Note Image.getbbox() returns the smallest rectangle that
+    # contains all non-zero pixels in the image.
+    bbox = difference.getbbox()
+    if bbox:
+        logger.debug(f'Autocrop bounding box: {bbox}.')
+        return crop_image(image, Rectangle.from_bounding_box(bbox))
+    # When no content is found, return a copy of the original image.
+    return image.copy()
+
+
+def pad_image(image: PIL.Image.Image, border: tuple[int, int, int, int],
+              fill: str = "white") -> PIL.Image.Image:
+    """
+    Pad an image with a border.
+
+    Parameters
+    ----------
+    image : PIL.Image.Image
+        The original image.
+
+    border : tuple[int, int, int, int]
+        The border sizes for the left, top, right, and bottom sides, respectively.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The padded image.
+    """
+    logger.debug(f'Padding image with border {border}...')
+    return PIL.ImageOps.expand(image, border, fill=fill)
+
+
+def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
+    """Create an elliptical mask for a given image.
+
+    This is shamelessly borrowed from https://stackoverflow.com/questions/890051
+
+    Parameters
+    ----------
+    image : PIL.Image.Image
+        The input image.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The mask.
+    """
+    width, height = image.size
+    # Here L is 8-bit pixels, grayscale, see
+    # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
+    mask = PIL.Image.new('L', (width, height), 0)
+    PIL.ImageDraw.Draw(mask).ellipse((0, 0, width - 1, height - 1), fill=255, width=0)
+    return mask
+
+
+@dataclasses.dataclass
+class Tiling:
+
+    """Small convenience class representing a tiling.
+    """
+
+    num_cols: int
+    num_rows: int
+    image_size: tuple[int, int]
+    tiling_dict: dict = None
+
+    def __post_init__(self) -> None:
+        """Post-initialization
+        """
+        if self.tiling_dict is None:
+            self.tiling_dict = {}
+
+
+def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: int = None,
+    tile_padding: int = 0, aspect_ratio: float = 1.414) -> Tiling:
+    """Calculate the optimal rectangular tiling to be used to arrange a given number
+    of images into a rectangular mosaic with the given approximate aspect ratio.
+
+    Parameters
+    ----------
+    num_images : int
+        The number of input images to be tiles.
+
+    tile_width : int
+        The width of the single tile.
+
+    tile_height : int
+        The height of the single tile.
+
+    tile_padding : int
+        The padding between adjacent tiles, in both the horizontal and vertical directions.
+
+    aspect_ratio : float
+        The approximate aspect ratio of the final, tiled image.
+
+    Returns
+    -------
+    Tiling
+        A dictionary  of the form {image_id: (posx, posy)} to be used to tile the
+        output image.
+    """
+    # pylint: disable=too-many-locals
+    if tile_height is None:
+        tile_height = tile_width
+    logger.info(f'Creating optimal rectangular tiling for {num_images} '
+        f'{tile_width} x {tile_height} images, with target aspect ratio {aspect_ratio}...')
+    num_cols = round(np.sqrt(aspect_ratio * num_images * tile_height / tile_width) + 0.5)
+    num_rows = round(num_images / num_cols + 0.5)
+    num_tiles = num_cols * num_rows
+    if num_tiles < num_images:
+        raise RuntimeError(f'{num_tiles} tiles are not enough for {num_images} images, '
+            'this is most likely a bug in optimal_rectangular_tiling()')
+    width = num_cols * (tile_width + tile_padding + 1)
+    height = num_rows * (tile_height + tile_padding + 1)
+    logger.debug(f'Optimal tiling is {num_cols} x {num_rows} = {num_tiles} tiles, '
+        f'overall size for the target image is {width} x {height}.')
+    # Calculate the actual tiling...
+    tile_permutation = random.sample(range(num_tiles), num_tiles)
+    tiling = Tiling(num_cols, num_rows, (width, height))
+    for i in range(num_tiles):
+        col = i % num_cols
+        row = i // num_cols
+        index = tile_permutation[i]
+        if index < num_images:
+            posx = col * (tile_width + tile_padding) + tile_padding
+            posy = row * (tile_height + tile_padding) + tile_padding
+            tiling.tiling_dict[index] = (posx, posy)
+    return tiling

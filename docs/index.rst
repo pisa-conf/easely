@@ -34,6 +34,7 @@ easely documentation
    cli
    dispatch
    face
+   img
    indico
    magic
    paths
