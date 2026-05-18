@@ -7,7 +7,7 @@ This module provides functions to operate with rasterized images, and is used
 for the poster rasterization and for the face detection tasks, among other things.
 
 More specifically, the module provides the following wrappers around the basic
-fucntions of the Pillow library:
+functions of the Pillow library:
 
 * :meth:`~easely.img.open_image`
 * :meth:`~easely.img.save_image`
