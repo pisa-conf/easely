@@ -88,7 +88,7 @@ def dispatch_file(src: pathlib.Path, dest: pathlib.Path) -> bool:
 
 
 def dispatch_posters(friendly_ids: List[int], attachments_dir: PathLike,
-    posters_dir: PathLike, pattern: str = "po") -> int:
+    posters_dir: PathLike, pattern: str = "po_") -> int:
     """Dispatch the candidate poster files from the indico attachment folder to
     the target folder holding the poster originals.
 
@@ -131,8 +131,10 @@ def dispatch_posters(friendly_ids: List[int], attachments_dir: PathLike,
             # No strict match, but if there is a single .pdf attachment, and chance are
             # that the presented did not stick to the naming conventions.
             if len(file_list) == 1:
+                src = file_list[0]
                 logger.warning(f"Unique .pdf attachment for contribution {id_}, but not a match.")
-                if dispatch_file(file_list[0], dest):
+                logger.warning(f"  -> {src}")
+                if dispatch_file(src, dest):
                     num_dispatched += 1
             # Too many pdf files---somebody should look into this and resolve the ambiguity.
             else:
@@ -141,12 +143,14 @@ def dispatch_posters(friendly_ids: List[int], attachments_dir: PathLike,
             # Most likely the presenter did upload multiple versions of the poster, and we
             # and we would be better off deleting the old one from indico.
             logger.error(f"Multiple matches found for contribution {id_}, skipping...")
+            for match in matches:
+                logger.error(f"  -> {match}")
     logger.info(f"Done, {num_dispatched} file(s) physically copied.")
     return num_dispatched
 
 
 def dispatch_headshots(friendly_ids: List[int], attachments_dir: PathLike,
-    headshots_dir: PathLike, pattern: str = "cp") -> int:
+    headshots_dir: PathLike, pattern: str = "cp_") -> int:
     """Dispatch the candidate headshot files from the indico attachment folder to
     the target folder holding the headshot originals.
 
@@ -174,7 +178,7 @@ def dispatch_headshots(friendly_ids: List[int], attachments_dir: PathLike,
     file_dict = populate_file_dict(friendly_ids, attachments_dir, [".png", ".jpg", ".jpeg"])
     # Do a second pass and find best candidates for the actual poster files.
     for id_, file_list in file_dict.items():
-    # If there is no file in the list, we have nothing to dispatch...
+        # If there is no file in the list, we have nothing to dispatch...
         if len(file_list) == 0:
             logger.error(f"No graphics attachment found for contribution {id_}")
             continue
@@ -190,8 +194,9 @@ def dispatch_headshots(friendly_ids: List[int], attachments_dir: PathLike,
             # No strict match, but if there is a single graphics attachment, and chance are
             # that the presented did not stick to the naming conventions.
             if len(file_list) == 1:
-                logger.warning(f"Unique graphics attachment for contribution {id_}, but not a match.")
                 src = file_list[0]
+                logger.warning(f"Unique graphics attachment for contribution {id_}, but not a match.")
+                logger.warning(f"  -> {src}")
                 dest = headshots_dir / contribution_file_name(id_, src.suffix)
                 if dispatch_file(src, dest):
                     num_dispatched += 1
@@ -202,5 +207,7 @@ def dispatch_headshots(friendly_ids: List[int], attachments_dir: PathLike,
             # Most likely the presenter did upload multiple versions of the poster, and we
             # and we would be better off deleting the old one from indico.
             logger.error(f"Multiple matches found for contribution {id_}, skipping...")
+            for match in matches:
+                logger.error(f"  -> {match}")
     logger.info(f"Done, {num_dispatched} file(s) physically copied.")
     return num_dispatched

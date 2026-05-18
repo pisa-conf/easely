@@ -33,6 +33,9 @@ PROGRAM_FILE_NAME = "program"
 DEFAULT_FILE_NAME = "default"
 DEFAULT_POSTER_NAME = "poster"
 
+_NUM_FRIENDLY_ID_DIGITS = 4
+_FRIENDLY_ID_FORMAT = f"0{_NUM_FRIENDLY_ID_DIGITS}d"
+
 
 class WorkspaceLayout(str, Enum):
 
@@ -138,7 +141,24 @@ def contribution_file_name(friendly_id: int, suffix: str) -> str:
     str
         The standardized file name for the contribution file, e.g., "0001.pdf".
     """
-    return f"{friendly_id:04d}{suffix}"
+    return f"{friendly_id:{_FRIENDLY_ID_FORMAT}}{suffix}"
+
+
+def valid_contribution_file_path(file_path: pathlib.Path) -> bool:
+    """Return True if the file name for a given path is a valid contribution file name,
+    i.e., it starts with the correct number of digits corresponding to the friendly id on indico.
+
+    Arguments
+    ---------
+    file_path : pathlib.Path
+        The path to the contribution file, from which we want to check the file name.
+
+    Returns
+    -------
+    bool
+        True if the file name for the given path is a valid contribution file name,
+    """
+    return file_path.name[:_NUM_FRIENDLY_ID_DIGITS].isnumeric()
 
 
 def friendly_id(file_path: pathlib.Path) -> int:
@@ -165,7 +185,8 @@ def friendly_id(file_path: pathlib.Path) -> int:
         return None
 
 
-def filter_dir(input_dir: pathlib.Path, friendly_ids: List[int] = None) -> List[pathlib.Path]:
+def filter_dir(input_dir: pathlib.Path, friendly_ids: List[int] = None,
+               check_name: bool = True) -> List[pathlib.Path]:
     """Filter the list of files in a given input directory, by keeping only those whose
     contribution id is in the given list of friendly ids.
 
@@ -180,12 +201,18 @@ def filter_dir(input_dir: pathlib.Path, friendly_ids: List[int] = None) -> List[
     friendly_ids : list of int, optional
         The list of contribution friendly ids to keep (None to keep all files).
 
+    check_name : bool
+        Whether to check the file name format (i.e., that it starts with an integer friendly
+        id) before filtering by friendly id.
+
     Returns
     -------
     list of pathlib.Path
         The list of file paths in the input directory.
     """
     file_list = sorted(file_path for file_path in input_dir.iterdir() if file_path.is_file())
+    if check_name:
+        file_list = [file_path for file_path in file_list if valid_contribution_file_path(file_path)]
     if friendly_ids is None:
         return file_list
     filtered_file_list = []
