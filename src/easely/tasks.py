@@ -379,7 +379,7 @@ def facecrop(
         logger.info(f"Resizing default headshot image...")
         src = ASSETS_DIR / "headshot_generic.jpg"
         image = img.open_image(src)
-        img.resize_image(image, width=size)
+        image = img.resize_image(image, width=size)
         img.save_image(image, dest)
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
