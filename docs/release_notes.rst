@@ -4,6 +4,12 @@ Release notes
 =============
 
 * Picking up the autocrop default from the proper place in tasks.
+* New, improved cropping algorithm implemented.
+* Old img module removed, and replaced with a consistent set of new functions.
+* Documentation and unit tests added.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/43
 
 
 Version 1.0.0 (2026-05-16)
