@@ -26,6 +26,7 @@ import random
 
 import numpy as np
 import PIL.Image
+import PIL.ImageChops
 import PIL.ImageDraw
 import PIL.ImageOps
 from loguru import logger
