@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 1.1.0 (2026-05-18)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Picking up the autocrop default from the proper place in tasks.
 * New, improved cropping algorithm implemented.
 * Old img module removed, and replaced with a consistent set of new functions.
