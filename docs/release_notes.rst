@@ -3,6 +3,12 @@
 Release notes
 =============
 
+* Fix for a bug triggering unnecessary downloads.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/55
+  - https://github.com/pisa-conf/easely/issues/30
+
 
 Version 1.1.0 (2026-05-18)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
