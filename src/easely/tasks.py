@@ -308,6 +308,7 @@ class FacecropDefaults:
     size: int = QrcodesDefaults.size
     circular_mask: bool = False
     model: face.FaceDetection = face.FaceDetection.CASCADE
+    detect_kwargs: dict = None
     min_fractional_area: float = 0.02
     horizontal_padding: float = 0.5
     top_scale_factor: float = 1.25
@@ -322,6 +323,7 @@ def facecrop(
         size: int = FacecropDefaults.size,
         circular_mask: bool = FacecropDefaults.circular_mask,
         model: face.FaceDetection = FacecropDefaults.model,
+        detect_kwargs: dict = FacecropDefaults.detect_kwargs,
         min_fractional_area: float = FacecropDefaults.min_fractional_area,
         horizontal_padding: float = FacecropDefaults.horizontal_padding,
         top_scale_factor: float = FacecropDefaults.top_scale_factor,
@@ -347,6 +349,9 @@ def facecrop(
 
     model : face.FaceDetection
         The face-detection model to use.
+
+    detect_kwargs : dict
+        Additional optional keyword arguments to be passed to the face-detection model.
 
     min_fractional_area : float
         The minimum area of the detected face bounding box as a fraction of the original
@@ -383,7 +388,8 @@ def facecrop(
         img.save_image(image, dest)
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
-    detect_kwargs = {}
+    if detect_kwargs is None:
+        detect_kwargs = {}
     args = size, circular_mask, model, min_fractional_area, detect_kwargs, \
         horizontal_padding, top_scale_factor, interactive, overwrite
     file_list = filter_dir(input_dir, targets)

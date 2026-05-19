@@ -472,7 +472,10 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     if output_file_path.is_file() and not overwrite:
         logger.info(f"Output file {output_file_path} already exists, skipping...")
         return
-    detect_kwargs = detect_kwargs or {}
+    if detect_kwargs is None:
+        detect_kwargs = {}
+    else:
+        logger.debug(f"Keyword arguments for face detection: {detect_kwargs}")
     try:
         candidates = run_face_detection(file_path, model, min_fractional_area, **detect_kwargs)
     except RuntimeError as exception:
