@@ -308,7 +308,7 @@ class Contribution(AbstractIndicoObject):
                 continue
             file_name = f"{self.friendly_id:04d}{separator}{url.split('/')[-1]}"
             file_path = folder_path / file_name
-            timestamp_file_path = file_path.with_suffix(".tstamp")
+            timestamp_file_path = file_path.with_name(f"{file_path.name}.tstamp")
             # If we have the file locally, and we have track of the timestamp, and that
             # matches the one in the .json file, there is no point in downloading another
             # identical copy.
