@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 1.1.1 (2026-05-19)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Fix for a bug triggering unnecessary downloads.
 * Pull requests merged and issues closed:
 
