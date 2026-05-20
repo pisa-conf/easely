@@ -8,9 +8,11 @@ Version 1.1.1 (2026-05-19)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Fix for a bug triggering unnecessary downloads.
+* Avoid overwriting default headshot when specific targets are specified.
 * Pull requests merged and issues closed:
 
   - https://github.com/pisa-conf/easely/pull/55
+  - https://github.com/pisa-conf/easely/issues/53
   - https://github.com/pisa-conf/easely/issues/30
 
 
