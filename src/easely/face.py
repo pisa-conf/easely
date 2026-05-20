@@ -475,6 +475,8 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     if detect_kwargs is None:
         detect_kwargs = {}
     else:
+        if not isinstance(detect_kwargs, dict):
+            raise ValueError(f"Expected detect_kwargs to be a dict, got {type(detect_kwargs)}")
         logger.debug(f"Keyword arguments for face detection: {detect_kwargs}")
     try:
         candidates = run_face_detection(file_path, model, min_fractional_area, **detect_kwargs)
