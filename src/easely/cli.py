@@ -164,6 +164,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         rasterize.add_argument("--input-dir", type=str,
             default=tasks.RasterizeDefaults.input_dir,
             help="the input folder containing the pdf files to be rastered")
+        rasterize.add_argument("--targets", nargs="+", type=int,
+            default=tasks.RasterizeDefaults.targets,
+            help="the list of target ids to be processed")
         rasterize.add_argument("--output-dir", type=str,
             default=tasks.RasterizeDefaults.output_dir,
             help="the output folder for the generated png file(s)")

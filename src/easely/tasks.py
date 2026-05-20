@@ -179,6 +179,7 @@ class RasterizeDefaults:
     """
 
     input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS.value
+    targets: List[int] = None
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS.value
     tool: pdf.Raster = pdf.Raster.PYMUPDF
     target_width: int = 2120
@@ -191,6 +192,7 @@ class RasterizeDefaults:
 
 def rasterize(
         input_dir: PathLike = RasterizeDefaults.input_dir,
+        targets: List[int] = RasterizeDefaults.targets,
         output_dir: PathLike = RasterizeDefaults.output_dir,
         tool: pdf.Raster = RasterizeDefaults.tool,
         target_width: int = RasterizeDefaults.target_width,
@@ -253,10 +255,10 @@ def rasterize(
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
     # Populate the input file list
-    file_list = sorted(input_dir.iterdir())
+    file_list = filter_dir(input_dir, targets)
     # Add the actual conference poster.
     poster_path = conference_poster_path(input_dir.parent)
-    if poster_path.is_file():
+    if poster_path.is_file() and targets is None:
         file_list.append(poster_path)
     # Ready to go.
     num_rasterized = 0
