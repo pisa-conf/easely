@@ -29,6 +29,7 @@ from easely import __version__, logging_
 from easely.__qt__ import bootstrap_window
 from easely.gui import ProgramBrowser, SessionDirectory, SlideShow
 from easely import face
+from easely import pdf
 from easely import tasks
 from easely.program import Program
 
@@ -166,6 +167,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         rasterize.add_argument("--output-dir", type=str,
             default=tasks.RasterizeDefaults.output_dir,
             help="the output folder for the generated png file(s)")
+        rasterize.add_argument("--tool", type=pdf.Raster,
+            choices=[tool.value for tool in pdf.Raster],
+            default=tasks.RasterizeDefaults.tool,
+            help="the rastering tool to be used for the conversion")
         rasterize.add_argument("--target-width", type=int,
             default=tasks.RasterizeDefaults.target_width,
             help="the target width for the generated png file(s)")
