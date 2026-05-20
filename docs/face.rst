@@ -48,11 +48,20 @@ the minimum size of the box containing the detected face. You can run the thing 
 interactive mode (with the ``--interactive`` flag) to get some insights into the
 face-detection process and understand better what is going wrong.
 
-.. warning::
+.. note::
 
-   Each face-detection model has its own parameters, but these are not yet
-   exposed through the public API. We could implement that in the future, if it turns
-   out that this would be useful.
+   Each face-detection model has its own parameters, which are exposed through the
+   the ``detect_kwargs`` argument of the main command-line interface.
+   The basic rule is that these keyword arguments are passed in the form of
+   JSON string which is de-serialized into a Python dictionary at the ``argparse``
+   level, e.g.,
+
+   .. code-block:: console
+
+      easely facecrop --model yunet --detect-kwargs '{"score_threshold": 0.1}'
+
+   This interface is not particularly user-friendly, but arguably fiddling with the
+   face-detection parameters is a somewhat unusual use case.
 
 
 Module documentation
