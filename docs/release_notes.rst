@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 1.1.2 (2026-05-20)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Face detection parameters exposed through the command-line interface.
 * Avoid overwriting default headshot when specific targets are specified.
 * Pull requests merged and issues closed:
