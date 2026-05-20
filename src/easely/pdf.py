@@ -147,14 +147,14 @@ def run_pymupdf(input_file_path: PathLike, output_file_path: PathLike,
         Note the compression only affects size, not image quality.
     """
     # Open the PDF document and get the first page.
-    document = fitz.open(input_file_path)
-    page = document[0]
-    # Calculate the zoom factor to achieve the target width.
-    page_width = page.rect.width
-    zoom_factor = target_width / page_width
-    # Render the page as a pixmap with the specified zoom factor.
-    pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom_factor, zoom_factor))
-    pixmap.save(output_file_path)
+    with fitz.open(input_file_path) as document:
+        page = document[0]
+        # Calculate the zoom factor to achieve the target width.
+        page_width = page.rect.width
+        zoom_factor = target_width / page_width
+        # Render the page as a pixmap with the specified zoom factor.
+        pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom_factor, zoom_factor))
+        pixmap.save(output_file_path)
     return output_file_path
 
 
