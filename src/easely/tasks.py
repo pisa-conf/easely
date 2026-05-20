@@ -275,8 +275,8 @@ def rasterize(
             logger.info(f"Output file {output_file_path} exists, skipping...")
             return output_file_path
 
-        # Run imagemagick to convert the pdf to png---note this is slightly different
-        # depending on whether we want to perform an intermediate rasterization step or not.
+        # Convert the PDF to PNG using the configured rasterization tool; this is
+        # slightly different depending on whether we perform an intermediate rasterization step.
         if intermediate_width is None or intermediate_width <= target_width:
             file_path = pdf.pdf_to_png(tool, input_file_path, output_file_path, target_width)
         else:
