@@ -22,6 +22,7 @@
 
 import argparse
 from enum import Enum
+import json
 
 from easely import __name__ as __package_name__
 from easely import __version__, logging_
@@ -208,6 +209,9 @@ class CliArgumentParser(argparse.ArgumentParser):
             choices=[model.value for model in face.FaceDetection],
             default=tasks.FacecropDefaults.model.value,
             help="the face detection model to be used")
+        facecrop.add_argument("--detect-kwargs", type=json.loads,
+            default=tasks.FacecropDefaults.detect_kwargs,
+            help="additional keyword arguments for the face detection model")
         facecrop.add_argument("--min-fractional-area", type=float,
             default=tasks.FacecropDefaults.min_fractional_area,
             help="the minimum area of the detected face bounding box as a fraction of the original image")

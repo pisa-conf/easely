@@ -3,6 +3,14 @@
 Release notes
 =============
 
+* Face detection parameters exposed through the command-line interface.
+* Avoid overwriting default headshot when specific targets are specified.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/56
+  - https://github.com/pisa-conf/easely/issues/53
+  - https://github.com/pisa-conf/easely/issues/51
+
 
 Version 1.1.1 (2026-05-19)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
