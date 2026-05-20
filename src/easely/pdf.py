@@ -20,7 +20,6 @@
 import pathlib
 import subprocess
 from enum import Enum
-from typing import Tuple
 
 import fitz
 import pdf2image
@@ -28,7 +27,6 @@ import pdfrw
 
 from .logging_ import logger
 from .typing_ import PathLike
-
 
 # Reference density for rasterization, in dpi, see
 # https://imagemagick.org/script/command-line-options.php
@@ -45,7 +43,7 @@ class Raster(str, Enum):
     PDF2IMAGE = "pdf2image"
 
 
-def page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
+def page_size(file_path: PathLike, page_number: int = 0) -> tuple[float, float]:
     """Return the page size for a given page of a given pdf document.
 
     Arguments
@@ -58,7 +56,7 @@ def page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
 
     Returns
     -------
-    Tuple[float, float]
+    tuple[float, float]
         The page size, as a tuple of (width, height).
     """
     logger.debug(f"Retrieving page {page_number} size from {file_path}...")
