@@ -129,7 +129,7 @@ class Box(Rectangle):
         """
         x0, y0, width, height = (int(value) for value in data)
         fractional_area = width * height / original_area
-        return Box(x0, y0, width, height, fractional_area)
+        return cls(x0, y0, width, height, fractional_area)
 
     @classmethod
     def from_yunet(cls, data: np.ndarray, original_area: int) -> "Box":
@@ -156,7 +156,27 @@ class Box(Rectangle):
         x0, y0, width, height = (int(value) for value in data[:4])
         score = float(data[-1])
         fractional_area = width * height / original_area
-        return Box(x0, y0, width, height, fractional_area, score)
+        return cls(x0, y0, width, height, fractional_area, score)
+
+    @classmethod
+    def from_image(cls, image: PIL.Image.Image) -> "Box":
+        """Fallback method creating a Box object from an image, by simply taking
+        the largest square that fits into it.
+
+        Arguments
+        ---------
+        image : PIL.Image.Image
+            The input image.
+
+        Returns
+        -------
+        Box
+            A Box object corresponding to the largest square that fits into the image.
+        """
+        rectangle = Rectangle.largest_centered_square(*image.size)
+        args = rectangle.x0, rectangle.y0, rectangle.width, rectangle.height
+        fractional_area = rectangle.area() / (image.width * image.height)
+        return cls(*args, fractional_area, score=0.)
 
     def quality(self) -> float:
         """Empirical quality factor for sorting the candidate face-detection boxes.
@@ -469,7 +489,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
         of None otherwise.
     """
     output_file_path = sanitize_file_path(output_file_path)
-    if output_file_path.is_file() and not overwrite:
+    if output_file_path.is_file() and not overwrite and not interactive:
         logger.info(f"Output file {output_file_path} already exists, skipping...")
         return
     if detect_kwargs is None:
@@ -488,7 +508,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     # If there is no candidate bbox, we make a square one up.
     if num_candidates == 0:
         logger.warning(f"No face candidate found in {file_path}, picking generic square...")
-        candidates.append(Rectangle.largest_centered_square(*image.size))
+        candidates.append(Box.from_image(image))
     # In case there are multiple candidates, we pick the largest one.
     if num_candidates > 1:
         logger.warning(f"Multiple face candidates found in {file_path}, picking first...")
@@ -519,5 +539,8 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     image = resize_image(image, size, size, box=final_rectangle.bounding_box())
     if circular_mask:
         image.putalpha(elliptical_mask(image))
-    save_image(image, output_file_path)
-    return output_file_path
+    # Since in interactive mode we have run the whole thing, we need to check
+    # again if we should actually save the image.
+    if not output_file_path.is_file() or overwrite:
+        save_image(image, output_file_path)
+        return output_file_path
