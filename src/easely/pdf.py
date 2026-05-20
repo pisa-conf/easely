@@ -117,6 +117,11 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
         The PNG compression level to be passed to convert.
         Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
         Note the compression only affects size, not image quality.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the output rasterized (png) file.
     """
     dpi = _calculate_dpi(input_file_path, target_width)
     # Run imagemagick convert to raster the pdf file and save it as a png file.
@@ -127,7 +132,7 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
 
 
 def run_pymupdf(input_file_path: PathLike, output_file_path: PathLike,
-                target_width: int, compression_level: int = 0) -> pathlib.Path:
+                target_width: int, page_number: int = 0) -> pathlib.Path:
     """Convert a .pdf file to a .png file using pymupdf under the hood.
 
     Arguments
@@ -141,14 +146,14 @@ def run_pymupdf(input_file_path: PathLike, output_file_path: PathLike,
     target_width : int
         The target width for the output png file in pixels.
 
-    compression_level : int, optional
-        The PNG compression level to be passed to convert.
-        Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
-        Note the compression only affects size, not image quality.
+    Returns
+    -------
+    pathlib.Path
+        The path to the output rasterized (png) file.
     """
     # Open the PDF document and get the first page.
     with fitz.open(input_file_path) as document:
-        page = document[0]
+        page = document[page_number]
         # Calculate the zoom factor to achieve the target width.
         page_width = page.rect.width
         zoom_factor = target_width / page_width
@@ -159,7 +164,7 @@ def run_pymupdf(input_file_path: PathLike, output_file_path: PathLike,
 
 
 def run_pdf2image(input_file_path: PathLike, output_file_path: PathLike,
-                   target_width: int, compression_level: int = 0) -> pathlib.Path:
+                   target_width: int, page_number: int = 0) -> pathlib.Path:
     """Convert a .pdf file to a .png file using pdf2image under the hood.
 
     Arguments
@@ -173,19 +178,19 @@ def run_pdf2image(input_file_path: PathLike, output_file_path: PathLike,
     target_width : int
         The target width for the output png file in pixels.
 
-    compression_level : int, optional
-        The PNG compression level to be passed to convert.
-        Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
-        Note the compression only affects size, not image quality.
+    Returns
+    -------
+    pathlib.Path
+        The path to the output rasterized (png) file.
     """
     dpi = _calculate_dpi(input_file_path, target_width)
     images = pdf2image.convert_from_path(input_file_path, dpi=dpi)
-    images[0].save(output_file_path)
+    images[page_number].save(output_file_path)
     return output_file_path
 
 
 def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLike,
-               target_width: int, compression_level: int = 0) -> pathlib.Path:
+               target_width: int) -> pathlib.Path:
     """Convert a .pdf file to a .png file.
 
     Arguments
@@ -202,11 +207,6 @@ def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLi
     target_width : int
         The target width for the output png file in pixels.
 
-    compression_level : int, optional
-        The PNG compression level to be passed to convert.
-        Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
-        Note the compression only affects size, not image quality.
-
     Returns
     -------
     pathlib.Path
@@ -214,10 +214,10 @@ def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLi
     """
     logger.info(f"Converting {input_file_path} to {output_file_path} using {tool}...")
     if tool == Raster.IMAGEMAGICK:
-        return run_imagemagick(input_file_path, output_file_path, target_width, compression_level)
+        return run_imagemagick(input_file_path, output_file_path, target_width)
     elif tool == Raster.PYMUPDF:
-        return run_pymupdf(input_file_path, output_file_path, target_width, compression_level)
+        return run_pymupdf(input_file_path, output_file_path, target_width)
     elif tool == Raster.PDF2IMAGE:
-        return run_pdf2image(input_file_path, output_file_path, target_width, compression_level)
+        return run_pdf2image(input_file_path, output_file_path, target_width)
     else:
         raise RuntimeError(f"Unknown rastering tool {tool}")
