@@ -20,10 +20,11 @@
 import importlib.resources
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
+import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 
@@ -442,7 +443,7 @@ def crop_face(file_path: PathLike, output_file_path: PathLike, size: int,
     circular_mask: bool = False, model: FaceDetection = FaceDetection.CASCADE,
     min_fractional_area: float = 0.02, detect_kwargs: dict = None,
     horizontal_padding: float = 0.5, top_scale_factor: float = 1.25,
-    interactive: bool = False, overwrite: bool = False) -> PathLike:
+    interactive: bool = False, overwrite: bool = False) -> Optional[PathLike]:
     """Produce a square, cropped version of the input image, suitable for use as a headshot
     (i.e., cropped around the face of the person in the image).
 
