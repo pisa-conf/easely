@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 1.1.3 (2026-05-20)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Fix for facecrop crashing in interactive mode when no face candidate is found.
 * Task facecrop can now be run in interactive mode on a specified target without
   the --overwrite flag even when the output file already exists.
