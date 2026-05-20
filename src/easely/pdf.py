@@ -160,9 +160,9 @@ def run_pymupdf(input_file_path: PathLike, output_file_path: PathLike,
     return output_file_path
 
 
-def run_pdftoimage(input_file_path: PathLike, output_file_path: PathLike,
+def run_pdf2image(input_file_path: PathLike, output_file_path: PathLike,
                    target_width: int, compression_level: int = 0) -> pathlib.Path:
-    """Convert a .pdf file to a .png file using pdftoimage under the hood.
+    """Convert a .pdf file to a .png file using pdf2image under the hood.
 
     Arguments
     ---------
@@ -220,6 +220,6 @@ def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLi
     elif tool == Raster.PYMUPDF:
         return run_pymupdf(input_file_path, output_file_path, target_width, compression_level)
     elif tool == Raster.PDF2IMAGE:
-        return run_pdftoimage(input_file_path, output_file_path, target_width, compression_level)
+        return run_pdf2image(input_file_path, output_file_path, target_width, compression_level)
     else:
         raise RuntimeError(f"Unknown rastering tool {tool}")
