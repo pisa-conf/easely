@@ -378,14 +378,16 @@ def facecrop(
     """
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
-    # Place the (resized) default headshot image to the output folder.
-    dest = output_dir / f"{DEFAULT_FILE_NAME}.png"
-    if not dest.exists() or overwrite:
-        logger.info(f"Resizing default headshot image...")
-        src = ASSETS_DIR / "headshot_generic.jpg"
-        image = img.open_image(src)
-        image = img.resize_image(image, width=size)
-        img.save_image(image, dest)
+    # Place the (resized) default headshot image to the output folder, unless
+    # we are specifying one or more target contributions.
+    if targets is None:
+        dest = output_dir / f"{DEFAULT_FILE_NAME}.png"
+        if not dest.exists() or overwrite:
+            logger.info(f"Resizing default headshot image...")
+            src = ASSETS_DIR / "headshot_generic.jpg"
+            image = img.open_image(src)
+            image = img.resize_image(image, width=size)
+            img.save_image(image, dest)
     num_cropped = 0
     # Cache all the arguments and keyword arguments for the function call inside the loop.
     if detect_kwargs is None:
