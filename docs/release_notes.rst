@@ -3,6 +3,15 @@
 Release notes
 =============
 
+* Fix for facecrop crashing in interactive mode when no face candidate is found.
+* Task facecrop can now be run in interactive mode on a specified target without
+  the --overwrite flag even when the output file already exists.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/60
+  - https://github.com/pisa-conf/easely/issues/57
+  - https://github.com/pisa-conf/easely/issues/26
+
 
 Version 1.1.2 (2026-05-20)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
