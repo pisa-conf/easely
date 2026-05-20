@@ -74,6 +74,26 @@ def page_size(file_path: PathLike, page_number: int = 0) -> Tuple[float, float]:
     return width, height
 
 
+def _calculate_dpi(input_file_path: PathLike, target_width: int) -> float:
+    """Calculate the density (in dpi) to be passed to convert to achieve the target width.
+
+    Arguments
+    ---------
+    input_file_path : PathLike
+        The path to the input pdf file.
+
+    target_width : int
+        The target width for the output png file in pixels.
+
+    Returns
+    -------
+    float
+        The density (in dpi) to be passed to convert to achieve the target width.
+    """
+    page_width, _ = page_size(input_file_path)
+    return target_width / page_width * _DEFAULT_RESOLUTION
+
+
 def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
                     target_width: int, compression_level: int = 0) -> pathlib.Path:
     """Convert a .pdf file to a .png file using imagemagick convert under the hood.
@@ -100,11 +120,9 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
         Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
         Note the compression only affects size, not image quality.
     """
-    # Calculate the density to be passed to convert.
-    page_width, _ = page_size(input_file_path)
-    density = target_width / page_width * _DEFAULT_RESOLUTION
+    dpi = _calculate_dpi(input_file_path, target_width)
     # Run imagemagick convert to raster the pdf file and save it as a png file.
-    subprocess.run(["magick", "-density", f"{density}", "-define",
+    subprocess.run(["magick", "-density", f"{dpi}", "-define",
         f"png:compression-level={compression_level}", input_file_path, output_file_path],
         check=True)
     return output_file_path
@@ -162,9 +180,8 @@ def run_pdftoimage(input_file_path: PathLike, output_file_path: PathLike,
         Levels range from 0 (no compression, fastest) to 9 (maximum compression, slowest).
         Note the compression only affects size, not image quality.
     """
-    page_width, _ = page_size(input_file_path)
-    density = target_width / page_width * _DEFAULT_RESOLUTION
-    images = pdf2image.convert_from_path(input_file_path, dpi=density)
+    dpi = _calculate_dpi(input_file_path, target_width)
+    images = pdf2image.convert_from_path(input_file_path, dpi=dpi)
     images[0].save(output_file_path)
     return output_file_path
 
