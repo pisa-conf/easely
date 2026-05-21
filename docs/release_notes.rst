@@ -7,6 +7,7 @@ Release notes
 * Pull requests merged and issues closed:
 
   - https://github.com/pisa-conf/easely/pull/65
+  - https://github.com/pisa-conf/easely/issues/49
 
 
 Version 1.3.0 (2026-05-21)
