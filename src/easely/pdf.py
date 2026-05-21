@@ -94,7 +94,8 @@ def _calculate_dpi(input_file_path: PathLike, target_width: int) -> float:
 
 
 def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
-                    target_width: int, compression_level: int = 0) -> pathlib.Path:
+                    target_width: int, page_number: int = 0,
+                    compression_level: int = 0) -> pathlib.Path:
     """Convert a .pdf file to a .png file using imagemagick convert under the hood.
 
     Note the `convert` command is deprecated in IMv7 in favor of `magick` or
@@ -113,6 +114,9 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
 
     target_width : int
         The target width for the output png file in pixels.
+
+    page_number : int, optional
+        The page number to convert (0-indexed).
 
     compression_level : int, optional
         The PNG compression level to be passed to convert.
@@ -136,8 +140,8 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
         raise RuntimeError("Please install ImageMagick, see https://imagemagick.org/")
     # Run imagemagick convert to raster the pdf file and save it as a png file.
     subprocess.run([_cmd, "-density", f"{dpi}", "-define",
-        f"png:compression-level={compression_level}", input_file_path, output_file_path],
-        check=True)
+        f"png:compression-level={compression_level}", f"{input_file_path}[{page_number}]",
+        output_file_path], check=True)
     return output_file_path
 
 
@@ -236,7 +240,7 @@ def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLi
     """
     logger.info(f"Converting {input_file_path} to {output_file_path} using {tool}...")
     if tool == Raster.IMAGEMAGICK:
-        return run_imagemagick(input_file_path, output_file_path, target_width)
+        return run_imagemagick(input_file_path, output_file_path, target_width, page_number)
     elif tool == Raster.PYMUPDF:
         return run_pymupdf(input_file_path, output_file_path, target_width, page_number)
     elif tool == Raster.PDF2IMAGE:
