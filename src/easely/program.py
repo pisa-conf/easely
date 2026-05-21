@@ -235,14 +235,10 @@ class Poster:
         """
         """
         summary = ""
-        if self.presenter.affiliation == "":
-            summary += "A"
-        if self._missing_image(root_dir, WorkspaceLayout.RASTERED_POSTERS.value):
-            summary += "P"
-        if self._missing_image(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS.value):
-            summary += "H"
-        if self._missing_image(root_dir, WorkspaceLayout.QRCODES.value):
-            summary += "Q"
+        summary += "A" if self.presenter.affiliation == "" else "-"
+        summary += "P" if self._missing_image(root_dir, WorkspaceLayout.RASTERED_POSTERS.value) else "-"
+        summary += "H" if self._missing_image(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS.value) else "-"
+        summary += "Q" if self._missing_image(root_dir, WorkspaceLayout.QRCODES.value) else "-"
         return summary
 
     def _load_pixmap(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
@@ -583,7 +579,10 @@ class Program:
             num_posters = len(posters)
             mult = cnt.values()
             num_screens = len(mult)
-            mean_mult = num_posters / num_screens
+            try:
+                mean_mult = num_posters / num_screens
+            except ZeroDivisionError:
+                mean_mult = np.nan
             print(f"{session.short_title()}: {num_posters:2d} posters on {num_screens:2d} screens, """
                   f"[{min(mult)}--{max(mult)}], average {mean_mult:.2f}")
         print()
@@ -599,7 +598,7 @@ class Program:
             for poster in session.posters:
                 num_contributions += 1
                 error_summary = poster.error_summary(self.root_dir)
-                if error_summary:
+                if error_summary.replace("-", ""):
                     print(f"[{poster.friendly_id:04d}] {error_summary}")
                     if "A" in error_summary:
                         num_missing_affiliations += 1
