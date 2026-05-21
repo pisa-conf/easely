@@ -3,6 +3,13 @@
 Release notes
 =============
 
+* Added new facetile task, which creates a composite image of the cropped headshots,
+  arranged in a grid.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/64
+
+
 Version 1.2.0 (2026-05-21)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
