@@ -41,9 +41,9 @@ __all__ = [
     "crop_image",
     "autocrop_image",
     "pad_image",
-    #"elliptical_mask",
-    #"Tiling",
-    #"optimal_rectangular_tiling"
+    "elliptical_mask",
+    "Tiling",
+    "optimal_rectangular_tiling"
 ]
 
 
