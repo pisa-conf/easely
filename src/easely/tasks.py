@@ -418,15 +418,11 @@ class FacetileDefaults:
     input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS.value
     tile_size: int = 100
     tile_padding: int = 5
-    interactive: bool = False
-    overwrite: bool = False
 
 def facetile(
         input_dir: PathLike = FacetileDefaults.input_dir,
         tile_size: int = FacetileDefaults.tile_size,
-        tile_padding: int = FacetileDefaults.tile_padding,
-        interactive: bool = FacetileDefaults.interactive,
-        overwrite: bool = FacetileDefaults.overwrite
+        tile_padding: int = FacetileDefaults.tile_padding
     ) -> None:
     """Tile the cropped headshot images into a single image.
     """
@@ -442,10 +438,7 @@ def facetile(
                 f'the tiles ({tile_size} x {tile_size})!')
         tile_image = img.resize_image(tile_image, tile_size, tile_size)
         image.paste(tile_image, tiling.tiling_dict[i])
-    #if kwargs['output_file']:
-    #    ipose.raster.save_image(image, kwargs['output_file'])
-    if interactive:
-        image.show()
+    image.show()
 
 
 @dataclass(frozen=True)

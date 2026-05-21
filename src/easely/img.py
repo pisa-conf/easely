@@ -583,7 +583,7 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
         row = i // num_cols
         index = tile_permutation[i]
         if index < num_images:
-            posx = col * (tile_width + tile_padding) + tile_padding
-            posy = row * (tile_height + tile_padding) + tile_padding
-            tiling.tiling_dict[index] = (posx, posy)
+            x = col * (tile_width + tile_padding) + tile_padding
+            y = row * (tile_height + tile_padding) + tile_padding
+            tiling.tiling_dict[index] = (x, y)
     return tiling

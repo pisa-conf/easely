@@ -250,11 +250,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         facetile.add_argument("--tile-padding", type=int,
             default=tasks.FacetileDefaults.tile_padding,
             help="the padding between tiles, in pixels")
-        facetile.add_argument("--interactive", action="store_true",
-            default=tasks.FacetileDefaults.interactive,
-            help="run the face tiling in interactive mode")
-        facetile.add_argument("--overwrite", action="store_true",
-            help="overwrite existing output files")
         self.add_logging_level(facetile)
         facetile.set_defaults(runner=tasks.facetile)
 
