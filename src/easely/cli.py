@@ -237,6 +237,27 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(facecrop)
         facecrop.set_defaults(runner=tasks.facecrop)
 
+        # Face tiling.
+        facetile = subparsers.add_parser("facetile",
+            help="tile the cropped headshot images into a single image",
+            formatter_class=self._FORMATTER_CLASS)
+        facetile.add_argument("--input-dir", type=str,
+            default=tasks.FacetileDefaults.input_dir,
+            help="the input folder containing the cropped headshot images")
+        facetile.add_argument("--tile-size", type=int,
+            default=tasks.FacetileDefaults.tile_size,
+            help="the size of each tile, in pixels")
+        facetile.add_argument("--tile-padding", type=int,
+            default=tasks.FacetileDefaults.tile_padding,
+            help="the padding between tiles, in pixels")
+        facetile.add_argument("--interactive", action="store_true",
+            default=tasks.FacetileDefaults.interactive,
+            help="run the face tiling in interactive mode")
+        facetile.add_argument("--overwrite", action="store_true",
+            help="overwrite existing output files")
+        self.add_logging_level(facetile)
+        facetile.set_defaults(runner=tasks.facetile)
+
         # Poster slideshow.
         slideshow = subparsers.add_parser("slideshow",
             help="run the poster slideshow",
