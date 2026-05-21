@@ -172,7 +172,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="the output folder for the generated png file(s)")
         rasterize.add_argument("--tool", type=pdf.Raster,
             choices=[tool.value for tool in pdf.Raster],
-            default=tasks.RasterizeDefaults.tool,
+            default=tasks.RasterizeDefaults.tool.value,
             help="the rastering tool to be used for the conversion")
         rasterize.add_argument("--target-width", type=int,
             default=tasks.RasterizeDefaults.target_width,
