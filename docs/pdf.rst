@@ -23,7 +23,7 @@ rasterization is performed by one of the following tools:
 When you start rasterizing many posters, you will realize that they come in many different
 flavors, produced with all sort of different tools, and you will run in edge cases with
 any of the available tools, i.e., there is no silver bullet. Hopefully one of the three
-will make the trick---good luck!
+will do the trick---good luck!
 
 
 Module documentation
