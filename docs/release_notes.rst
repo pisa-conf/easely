@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 1.3.1 (2026-05-21)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Improved error reporting in the program info report.
 * Pull requests merged and issues closed:
 
