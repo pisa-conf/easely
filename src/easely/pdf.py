@@ -192,7 +192,9 @@ def run_pdf2image(input_file_path: PathLike, output_file_path: PathLike,
     dpi = _calculate_dpi(input_file_path, target_width)
     kwargs = dict(dpi=dpi, first_page=page_number + 1, last_page=page_number + 1)
     images = pdf2image.convert_from_path(input_file_path, **kwargs)
-    images[page_number].save(output_file_path)
+    # Note the command returns a list with only the requested page, so we can
+    # just take the first element.
+    images[0].save(output_file_path)
     return output_file_path
 
 
