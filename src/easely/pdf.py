@@ -35,7 +35,7 @@ _DEFAULT_RESOLUTION = 72.
 
 class Raster(str, Enum):
 
-    """Small Enum class with the available face-detection models.
+    """Small Enum class with the available pdf rasterization tools.
     """
 
     IMAGEMAGICK = "imagemagick"
@@ -146,6 +146,9 @@ def run_pymupdf(input_file_path: PathLike, output_file_path: PathLike,
     target_width : int
         The target width for the output png file in pixels.
 
+    page_number : int, optional
+        The page number to convert (0-indexed).
+
     Returns
     -------
     pathlib.Path
@@ -178,19 +181,23 @@ def run_pdf2image(input_file_path: PathLike, output_file_path: PathLike,
     target_width : int
         The target width for the output png file in pixels.
 
+    page_number : int, optional
+        The page number to convert (0-indexed).
+
     Returns
     -------
     pathlib.Path
         The path to the output rasterized (png) file.
     """
     dpi = _calculate_dpi(input_file_path, target_width)
-    images = pdf2image.convert_from_path(input_file_path, dpi=dpi)
+    kwargs = dict(dpi=dpi, first_page=page_number + 1, last_page=page_number + 1)
+    images = pdf2image.convert_from_path(input_file_path, **kwargs)
     images[page_number].save(output_file_path)
     return output_file_path
 
 
 def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLike,
-               target_width: int) -> pathlib.Path:
+               target_width: int, page_number: int = 0) -> pathlib.Path:
     """Convert a .pdf file to a .png file.
 
     Arguments
@@ -207,6 +214,9 @@ def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLi
     target_width : int
         The target width for the output png file in pixels.
 
+    page_number : int, optional
+        The page number to convert (0-indexed).
+
     Returns
     -------
     pathlib.Path
@@ -216,8 +226,8 @@ def pdf_to_png(tool: Raster, input_file_path: PathLike, output_file_path: PathLi
     if tool == Raster.IMAGEMAGICK:
         return run_imagemagick(input_file_path, output_file_path, target_width)
     elif tool == Raster.PYMUPDF:
-        return run_pymupdf(input_file_path, output_file_path, target_width)
+        return run_pymupdf(input_file_path, output_file_path, target_width, page_number)
     elif tool == Raster.PDF2IMAGE:
-        return run_pdf2image(input_file_path, output_file_path, target_width)
+        return run_pdf2image(input_file_path, output_file_path, target_width, page_number)
     else:
         raise RuntimeError(f"Unknown rastering tool {tool}")
