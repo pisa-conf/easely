@@ -270,11 +270,8 @@ def rasterize(
         if output_file_path.exists() and not overwrite:
             logger.debug(f"Output file {output_file_path} exists, skipping...")
             continue
-        logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
-        if output_file_path.exists() and not overwrite:
-            logger.info(f"Output file {output_file_path} exists, skipping...")
-            return output_file_path
 
+        logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
         # Convert the PDF to PNG using the configured rasterization tool; this is
         # slightly different depending on whether we perform an intermediate rasterization step.
         if intermediate_width is None or intermediate_width <= target_width:
