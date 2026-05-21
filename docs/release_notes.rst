@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 1.3.0 (2026-05-21)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Added new facetile task, which creates a composite image of the cropped headshots,
   arranged in a grid.
 * Pull requests merged and issues closed:
