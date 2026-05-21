@@ -194,7 +194,7 @@ class Poster:
         friendly_id, screen_id, title = row[:-3]
         return cls(friendly_id, screen_id, title, presenter)
 
-    def short_title(self, max_chars: int = 40):
+    def short_title(self, max_chars: int = 40) -> str:
         """Return a shortened version of the title, trimmed to a fixed maximum
         number of characters if too long.
         """
@@ -319,7 +319,7 @@ class Session:
         """
         return cls(*row)
 
-    def short_title(self, max_chars: int = 40):
+    def short_title(self, max_chars: int = 40) -> str:
         """Return a shortened version of the title, trimmed to a fixed maximum
         number of characters if too long.
         """
