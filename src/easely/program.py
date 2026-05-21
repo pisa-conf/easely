@@ -194,7 +194,7 @@ class Poster:
         friendly_id, screen_id, title = row[:-3]
         return cls(friendly_id, screen_id, title, presenter)
 
-    def short_title(self, max_chars: int = 40):
+    def short_title(self, max_chars: int = 40) -> str:
         """Return a shortened version of the title, trimmed to a fixed maximum
         number of characters if too long.
         """
@@ -209,8 +209,8 @@ class Poster:
         file_path = root_dir / workspace_dir / file_name
         return file_path
 
-    def missing_image(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
-                      suffix: str = ".png") -> bool:
+    def _missing_image(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
+                       suffix: str = ".png") -> bool:
         """Check if the image file for the poster is missing.
 
         Arguments
@@ -230,6 +230,16 @@ class Poster:
             True if the image file is missing, False otherwise.
         """
         return not self._image_file_path(root_dir, workspace_dir, suffix).is_file()
+
+    def error_summary(self, root_dir: pathlib.Path) -> str:
+        """
+        """
+        summary = ""
+        summary += "A" if self.presenter.affiliation == "" else "-"
+        summary += "P" if self._missing_image(root_dir, WorkspaceLayout.RASTERED_POSTERS.value) else "-"
+        summary += "H" if self._missing_image(root_dir, WorkspaceLayout.CROPPED_HEADSHOTS.value) else "-"
+        summary += "Q" if self._missing_image(root_dir, WorkspaceLayout.QRCODES.value) else "-"
+        return summary
 
     def _load_pixmap(self, root_dir: pathlib.Path, workspace_dir: pathlib.Path,
         default: pathlib.Path, width: int = None, suffix: str = ".png") -> QtGui.QPixmap:
@@ -308,6 +318,12 @@ class Session:
         """Create a Session object from a dataframe row.
         """
         return cls(*row)
+
+    def short_title(self, max_chars: int = 40) -> str:
+        """Return a shortened version of the title, trimmed to a fixed maximum
+        number of characters if too long.
+        """
+        return _trim_string(self.title, max_chars)
 
     def add(self, poster: Poster) -> None:
         """Add a poster to the session.
@@ -554,49 +570,49 @@ class Program:
     def dump_report(self):
         """Dump a program report for diagnostics purposes.
         """
-        basic_stats = {"posters": 0, "pics": 0, "qrcodes": 0}
-        missing_stats = {"posters": 0, "pics": 0, "qrcodes": 0}
-        missing_pics = []
-        missing_posters = []
-        missing_affiliations = []
+        print("Screen occupancy by session")
+        print("---------------------------")
         for session in self.session_dict.values():
-            logger.info(f"Reading session '{session.title}'...")
             posters = session.posters
             cnt = Counter([poster.screen_id for poster in posters if not pd.isna(poster.screen_id)])
             cnt = dict(sorted(cnt.items()))
             num_posters = len(posters)
             mult = cnt.values()
             num_screens = len(mult)
-            mean_mult = num_posters / num_screens
-            logger.info(f"{num_posters} posters on {num_screens} screen(s), multiplicity: {min(mult)}--{max(mult)} (average {mean_mult:.2f})")
-
-            for poster in posters:
-                if poster.presenter.affiliation == "":
-                    logger.warning(f"Poster {poster.friendly_id} presenter affiliation missing.")
-                    if poster not in missing_affiliations:
-                        missing_affiliations.append(poster)
-
-                if poster.missing_image(self.root_dir, WorkspaceLayout.RASTERED_POSTERS.value):
-                    logger.warning(f"Rastered poster {poster.friendly_id} missing.")
-                    missing_stats["posters"] += 1
-                    if poster not in missing_posters:
-                        missing_posters.append(poster)
-                else:
-                    basic_stats["posters"] += 1
-                if poster.missing_image(self.root_dir, WorkspaceLayout.CROPPED_HEADSHOTS.value):
-                    missing_stats["pics"] += 1
-                    missing_pics.append(poster)
-                else:
-                    basic_stats["pics"] += 1
-                if poster.missing_image(self.root_dir, WorkspaceLayout.QRCODES.value):
-                    missing_stats["qrcodes"] += 1
-                else:
-                    basic_stats["qrcodes"] += 1
-            print(f"Screen statistics for session '{session.title}': {cnt}")
-
+            try:
+                mean_mult = num_posters / num_screens
+            except ZeroDivisionError:
+                mean_mult = np.nan
+            print(f"{session.short_title()}: {num_posters:2d} posters on {num_screens:2d} screens, """
+                  f"[{min(mult)}--{max(mult)}], average {mean_mult:.2f}")
         print()
-        print(f"Basic statistics: {basic_stats}")
-        print(f"Missing: {missing_stats}")
-        print(f"Missing posters: {[poster.friendly_id for poster in missing_posters]}")
-        print(f"Missing headshots: {[poster.friendly_id for poster in missing_pics]}")
-        print(f"Missing affiliations: {[poster.friendly_id for poster in missing_affiliations]}")
+        print("Error summary by contribution")
+        print("-----------------------------")
+        num_contributions = 0
+        num_missing_affiliations = 0
+        num_missing_posters = 0
+        num_missing_headshots = 0
+        num_missing_qrcodes = 0
+        for session in self.session_dict.values():
+            print(session.title)
+            for poster in session.posters:
+                num_contributions += 1
+                error_summary = poster.error_summary(self.root_dir)
+                if error_summary.replace("-", ""):
+                    print(f"[{poster.friendly_id:04d}] {error_summary}")
+                    if "A" in error_summary:
+                        num_missing_affiliations += 1
+                    if "P" in error_summary:
+                        num_missing_posters += 1
+                    if "H" in error_summary:
+                        num_missing_headshots += 1
+                    if "Q" in error_summary:
+                        num_missing_qrcodes += 1
+        print()
+        print("Grand summary")
+        print("-------------")
+        print(f"Missing affiliations: {num_missing_affiliations} / {num_contributions}")
+        print(f"Missing posters: {num_missing_posters} / {num_contributions}")
+        print(f"Missing headshots: {num_missing_headshots} / {num_contributions}")
+        print(f"Missing qrcodes: {num_missing_qrcodes} / {num_contributions}")
+
