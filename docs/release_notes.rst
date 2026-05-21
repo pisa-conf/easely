@@ -3,6 +3,11 @@
 Release notes
 =============
 
+* Improved error reporting in the program info report.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/65
+
 
 Version 1.3.0 (2026-05-21)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
