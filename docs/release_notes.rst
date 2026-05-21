@@ -7,7 +7,6 @@ Release notes
 Version 1.2.0 (2026-05-21)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 * Two alternatives added to imagemagick as tools for rasterizing pdf
   files (and new command-line switch --tool in the rasterize task to choose
   between them).
