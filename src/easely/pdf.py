@@ -18,6 +18,7 @@
 """
 
 import pathlib
+import shutil
 import subprocess
 from enum import Enum
 
@@ -124,8 +125,17 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
         The path to the output rasterized (png) file.
     """
     dpi = _calculate_dpi(input_file_path, target_width)
+    # Find out the correct imagemagick command to use.
+    if shutil.which("magick") is not None:
+        # IMv7, use `magick` command.
+        _cmd = "magick"
+    elif shutil.which("convert") is not None:
+        # IMv6, use `convert` command.
+        _cmd = "convert"
+    else:
+        raise RuntimeError("Please install ImageMagick, see https://imagemagick.org/")
     # Run imagemagick convert to raster the pdf file and save it as a png file.
-    subprocess.run(["magick", "-density", f"{dpi}", "-define",
+    subprocess.run([_cmd, "-density", f"{dpi}", "-define",
         f"png:compression-level={compression_level}", input_file_path, output_file_path],
         check=True)
     return output_file_path

@@ -10,11 +10,13 @@ Release notes
 * PyMuPDF and pdf2image added as dependencies.
 * --targets command-line switch added to rasterize (modeled on what we are already
   doing for facecrop).
+* Fix for issue #25 (rasterize failing with imagemagick < 7).
 * Linting.
 * Pull requests merged and issues closed:
 
   - https://github.com/pisa-conf/easely/pull/63
   - https://github.com/pisa-conf/easely/issues/59
+  - https://github.com/pisa-conf/easely/issues/25
   - https://github.com/pisa-conf/easely/issues/7
 
 
