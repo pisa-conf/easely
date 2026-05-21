@@ -4,6 +4,24 @@ Release notes
 =============
 
 
+* Two alternatives added to imagemagick as tools for rasterizing pdf
+  files (and new command-line switch --tool in the rasterize task to choose
+  between them).
+* PyMuPDF and pdf2image added as dependencies.
+* --targets command-line switch added to rasterize (modeled on what we are already
+  doing for facecrop).
+* Fix for issue #25 (rasterize failing with imagemagick < 7).
+* Page number option now handled consistently across all rastering tools.
+* Linting.
+* Pull requests merged and issues closed:
+
+  - https://github.com/pisa-conf/easely/pull/63
+  - https://github.com/pisa-conf/easely/issues/59
+  - https://github.com/pisa-conf/easely/issues/25
+  - https://github.com/pisa-conf/easely/issues/8
+  - https://github.com/pisa-conf/easely/issues/7
+
+
 Version 1.1.3 (2026-05-20)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

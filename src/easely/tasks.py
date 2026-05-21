@@ -179,7 +179,9 @@ class RasterizeDefaults:
     """
 
     input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.POSTERS.value
+    targets: List[int] = None
     output_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.RASTERED_POSTERS.value
+    tool: pdf.Raster = pdf.Raster.PYMUPDF
     target_width: int = 2120
     intermediate_width: int = 4240
     autocrop: bool = True
@@ -190,7 +192,9 @@ class RasterizeDefaults:
 
 def rasterize(
         input_dir: PathLike = RasterizeDefaults.input_dir,
+        targets: List[int] = RasterizeDefaults.targets,
         output_dir: PathLike = RasterizeDefaults.output_dir,
+        tool: pdf.Raster = RasterizeDefaults.tool,
         target_width: int = RasterizeDefaults.target_width,
         intermediate_width: int = RasterizeDefaults.intermediate_width,
         autocrop: bool = RasterizeDefaults.autocrop,
@@ -251,10 +255,10 @@ def rasterize(
     input_dir = sanitize_folder_path(input_dir)
     output_dir = sanitize_folder_path(output_dir, create=True)
     # Populate the input file list
-    file_list = sorted(input_dir.iterdir())
+    file_list = filter_dir(input_dir, targets)
     # Add the actual conference poster.
     poster_path = conference_poster_path(input_dir.parent)
-    if poster_path.is_file():
+    if poster_path.is_file() and targets is None:
         file_list.append(poster_path)
     # Ready to go.
     num_rasterized = 0
@@ -266,16 +270,14 @@ def rasterize(
         if output_file_path.exists() and not overwrite:
             logger.debug(f"Output file {output_file_path} exists, skipping...")
             continue
-        logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
-        if output_file_path.exists() and not overwrite:
-            logger.info(f"Output file {output_file_path} exists, skipping...")
-            return output_file_path
 
-        # Run imagemagick to convert the pdf to png---note this is slightly different
-        # depending on whether we want to perform an intermediate rasterization step or not.
+        logger.info(f"Rasterizing {input_file_path} with target width {target_width}...")
+        # Convert the PDF to PNG using the configured rasterization tool; this is
+        # slightly different depending on whether we perform an intermediate rasterization step.
         if intermediate_width is None or intermediate_width <= target_width:
-            return pdf.run_imagemagick(input_file_path, output_file_path, target_width)
-        file_path = pdf.run_imagemagick(input_file_path, output_file_path, intermediate_width)
+            file_path = pdf.pdf_to_png(tool, input_file_path, output_file_path, target_width)
+        else:
+            file_path = pdf.pdf_to_png(tool, input_file_path, output_file_path, intermediate_width)
 
         # And, finally, work on the rasterized image.
         image = img.open_image(file_path)
