@@ -13,7 +13,7 @@ rasterization is performed by one of the following tools:
 
 * `ImageMagick <https://imagemagick.org/>`_, which is a very popular command-line tool
   for image manipulation, and was the first conversion path to be implemented (note this
-  requires a working image magick installation);
+  requires a working ImageMagick installation);
 * `PyMuPDF <https://pymupdf.readthedocs.io/en/latest/>`_, which is a Python binding for
   the MuPDF library, a lightweight PDF and XPS viewer;
 * `pdf2image <https://pdf2image.readthedocs.io/en/latest/>`_, which is another Python
