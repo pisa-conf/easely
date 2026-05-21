@@ -589,6 +589,7 @@ class Program:
         print()
         print("Error summary by contribution")
         print("-----------------------------")
+        num_contributions = 0
         num_missing_affiliations = 0
         num_missing_posters = 0
         num_missing_headshots = 0
@@ -596,6 +597,7 @@ class Program:
         for session in self.session_dict.values():
             print(session.title)
             for poster in session.posters:
+                num_contributions += 1
                 error_summary = poster.error_summary(self.root_dir)
                 if error_summary:
                     print(f"[{poster.friendly_id:04d}] {error_summary}")
@@ -610,8 +612,8 @@ class Program:
         print()
         print("Grand summary")
         print("-------------")
-        print(f"Missing affiliations: {num_missing_affiliations}")
-        print(f"Missing posters: {num_missing_posters}")
-        print(f"Missing headshots: {num_missing_headshots}")
-        print(f"Missing qrcodes: {num_missing_qrcodes}")
+        print(f"Missing affiliations: {num_missing_affiliations} / {num_contributions}")
+        print(f"Missing posters: {num_missing_posters} / {num_contributions}")
+        print(f"Missing headshots: {num_missing_headshots} / {num_contributions}")
+        print(f"Missing qrcodes: {num_missing_qrcodes} / {num_contributions}")
 
