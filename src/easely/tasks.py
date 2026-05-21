@@ -426,6 +426,7 @@ def facetile(
     ) -> None:
     """Tile the cropped headshot images into a single image.
     """
+    input_dir = sanitize_folder_path(input_dir)
     file_list = filter_dir(input_dir)
     num_images = len(file_list)
     tiling = img.optimal_rectangular_tiling(num_images, tile_size, tile_size, tile_padding)
