@@ -4,7 +4,7 @@ Release notes
 =============
 
 
-* Two pure python alternatives added to imagemagick as tools for rasterizing pdf
+* Two alternatives added to imagemagick as tools for rasterizing pdf
   files (and new command-line switch --tool in the rasterize task to choose
   between them).
 * PyMuPDF and pdf2image added as dependencies.
