@@ -17,9 +17,12 @@
 """Task definition for the command-line interface.
 """
 
+import math
 import pathlib
 from dataclasses import dataclass
 from typing import List, Tuple
+
+import PIL.Image
 
 from . import pdf
 from . import face
@@ -404,6 +407,39 @@ def facecrop(
             num_cropped += 1
     logger.info(f"Done, {num_cropped} face images cropped.")
     return num_cropped
+
+
+@dataclass(frozen=True)
+class FacetileDefaults:
+
+    """Default values for face tiling task parameters.
+    """
+
+    input_dir: PathLike = pathlib.Path.cwd() / WorkspaceLayout.CROPPED_HEADSHOTS.value
+    tile_size: int = 100
+    tile_padding: int = 5
+
+def facetile(
+        input_dir: PathLike = FacetileDefaults.input_dir,
+        tile_size: int = FacetileDefaults.tile_size,
+        tile_padding: int = FacetileDefaults.tile_padding
+    ) -> None:
+    """Tile the cropped headshot images into a single image.
+    """
+    input_dir = sanitize_folder_path(input_dir)
+    file_list = filter_dir(input_dir)
+    num_images = len(file_list)
+    tiling = img.optimal_rectangular_tiling(num_images, tile_size, tile_size, tile_padding)
+    image = PIL.Image.new('RGB', tiling.image_size)
+    for i, file_path in enumerate(file_list):
+        tile_image = img.open_image(file_path)
+        width, height = tile_image.size
+        if not math.isclose(width / height, tile_size / tile_size):
+            logger.warning(f'Image aspect ratio ({width} x {height}) dot match that of '
+                f'the tiles ({tile_size} x {tile_size})!')
+        tile_image = img.resize_image(tile_image, tile_size, tile_size)
+        image.paste(tile_image, tiling.tiling_dict[i])
+    image.show()
 
 
 @dataclass(frozen=True)

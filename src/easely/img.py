@@ -19,10 +19,10 @@
 
 from __future__ import annotations
 
-import dataclasses
 import math
 import numbers
 import random
+from dataclasses import dataclass, field
 
 import numpy as np
 import PIL.Image
@@ -41,13 +41,13 @@ __all__ = [
     "crop_image",
     "autocrop_image",
     "pad_image",
-    #"elliptical_mask",
-    #"Tiling",
-    #"optimal_rectangular_tiling"
+    "elliptical_mask",
+    "Tiling",
+    "optimal_rectangular_tiling"
 ]
 
 
-@dataclasses.dataclass
+@dataclass
 class Rectangle:
 
     """Small container class representing a rectangle.
@@ -520,7 +520,7 @@ def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
     return mask
 
 
-@dataclasses.dataclass
+@dataclass
 class Tiling:
 
     """Small convenience class representing a tiling.
@@ -529,13 +529,7 @@ class Tiling:
     num_cols: int
     num_rows: int
     image_size: tuple[int, int]
-    tiling_dict: dict = None
-
-    def __post_init__(self) -> None:
-        """Post-initialization
-        """
-        if self.tiling_dict is None:
-            self.tiling_dict = {}
+    tiling_dict: dict = field(default_factory=dict)
 
 
 def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: int = None,
@@ -589,7 +583,7 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
         row = i // num_cols
         index = tile_permutation[i]
         if index < num_images:
-            posx = col * (tile_width + tile_padding) + tile_padding
-            posy = row * (tile_height + tile_padding) + tile_padding
-            tiling.tiling_dict[index] = (posx, posy)
+            x = col * (tile_width + tile_padding) + tile_padding
+            y = row * (tile_height + tile_padding) + tile_padding
+            tiling.tiling_dict[index] = (x, y)
     return tiling
