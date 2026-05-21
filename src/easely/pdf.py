@@ -73,7 +73,7 @@ def page_size(file_path: PathLike, page_number: int = 0) -> tuple[float, float]:
     return width, height
 
 
-def _calculate_dpi(input_file_path: PathLike, target_width: int) -> float:
+def _calculate_dpi(input_file_path: PathLike, target_width: int, page_number: int = 0) -> float:
     """Calculate the density (in dpi) to be passed to convert to achieve the target width.
 
     Arguments
@@ -89,7 +89,7 @@ def _calculate_dpi(input_file_path: PathLike, target_width: int) -> float:
     float
         The density (in dpi) to be passed to convert to achieve the target width.
     """
-    page_width, _ = page_size(input_file_path)
+    page_width, _ = page_size(input_file_path, page_number)
     return target_width / page_width * _DEFAULT_RESOLUTION
 
 
@@ -128,7 +128,7 @@ def run_imagemagick(input_file_path: PathLike, output_file_path: PathLike,
     pathlib.Path
         The path to the output rasterized (png) file.
     """
-    dpi = _calculate_dpi(input_file_path, target_width)
+    dpi = _calculate_dpi(input_file_path, target_width, page_number)
     # Find out the correct imagemagick command to use.
     if shutil.which("magick") is not None:
         # IMv7, use `magick` command.
@@ -203,7 +203,7 @@ def run_pdf2image(input_file_path: PathLike, output_file_path: PathLike,
     pathlib.Path
         The path to the output rasterized (png) file.
     """
-    dpi = _calculate_dpi(input_file_path, target_width)
+    dpi = _calculate_dpi(input_file_path, target_width, page_number)
     kwargs = dict(dpi=dpi, first_page=page_number + 1, last_page=page_number + 1)
     images = pdf2image.convert_from_path(input_file_path, **kwargs)
     # Note the command returns a list with only the requested page, so we can
